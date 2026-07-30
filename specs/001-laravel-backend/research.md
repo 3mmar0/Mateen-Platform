@@ -144,18 +144,85 @@ All Technical Context unknowns resolved below. Format: Decision / Rationale / Al
 
 ## R12 — Hosting & CORS
 
-**Decision**: API on HTTPS VPS/PaaS; allow CORS from Mateen web origin(s); environment-based `FRONTEND_URL`. Queues via database or Redis worker for notifications/exports.
+**Decision**: API on HTTPS Linux VPS (PHP-FPM + Nginx/Apache + MySQL). Allow CORS from Mateen web origin(s) via `FRONTEND_URL` / `CORS_ALLOWED_ORIGINS`. Queues via database or Redis worker for notifications/exports. Client `API_BASE_URL` points at the active VPS API (`/api/v1`).
 
-**Rationale**: Static GitHub Pages + separate API is the current deployment shape; CORS + tokens is the proven pattern.
+**Rationale**: Ops now targets dedicated VPS hosts (staging then production) rather than relying on a third-party PaaS as the primary path. Token + CORS remains correct while static files and API may share a host or use academy origin → API origin.
 
-**Alternatives considered**: Serve SPA from Laravel `public/` — possible later; not required for v1 cutover.
+**Alternatives considered**:
+- Serve only from Laravel `public/` (Blade/Inertia) — out of scope; keep existing HTML/JS.
+- GitHub Pages-only frontend forever — still viable for static assets, but staging/prod VPS can also serve static Mateen paths for one-box testing.
 
 ---
 
 ## R13 — Testing strategy
 
-**Decision**: Pest feature tests per API resource group; policy unit tests for each role × action matrix (SC-002); migration dry-run tests on fixture JSON dumps; contract smoke against OpenAPI paths.
+**Decision**: Pest feature tests per API resource group; policy unit tests for each role × action matrix (SC-002); migration dry-run tests on fixture JSON dumps; contract smoke against OpenAPI paths; **post-deploy staging smoke** (login + `/auth/me` + one authorized list) before production promote.
 
-**Rationale**: Authorization defects are the highest product risk; automated matrix beats manual-only checks.
+**Rationale**: Authorization defects are the highest product risk; automated matrix beats manual-only checks; staging gate prevents bad cutovers.
 
 **Alternatives considered**: Manual QA only — insufficient for six-role matrix.
+
+---
+
+## R14 — Monorepo vs separate backend repository
+
+**Decision**: **Keep one repository** containing static Mateen client + `backend/` Laravel app. Do **not** move the backend to a separate GitHub project.
+
+**Rationale**: Stakeholder preference is a single project for visibility and coordinated cutover (`USE_LARAVEL_API` + API deploy). The tree already matches this layout. Splitting would duplicate CI, complicate CORS/version alignment, and slow full-parity release (FR-019).
+
+**Alternatives considered**:
+- Backend-only new repo + keep frontend on Mateenweb/Mateen — rejected by merge preference.
+- Git submodule for backend — extra friction without benefit at this scale.
+
+---
+
+## R15 — New GitHub repository & remotes
+
+**Decision**: Create a **new GitHub repository** as the deploy/CI source of truth for the monorepo. Keep existing remotes (`origin` / `upstream`) as historical references until cutover; add the new repo as deploy remote (e.g. `deploy` or replace `origin` when ready). Protect `main`; require CI green before merge.
+
+**Rationale**: Clean CI/CD secrets and deploy workflows without inheriting only-Firebase Actions from the old Functions pipeline. Enables SSH deploy secrets scoped to this product.
+
+**Alternatives considered**: Only push workflows to existing `3mmar0/Mateen` — acceptable if naming stays, but stakeholder asked for a new repo for deploy + CI/CD clarity.
+
+**Note**: Repository name/org to be set at create time; document URL in `contracts/environments.md` when created. Do not commit credentials.
+
+---
+
+## R16 — Staging-then-production VPS deploy order
+
+**Decision**:
+1. **Staging first**: deploy to VPS host `187.127.71.130` (SSH as `root`). Run migrations/seed or migration dry-run, point a staging `API_BASE_URL` / CORS at this host, smoke-test login and core APIs.
+2. **Production later**: deploy to VPS host `31.97.122.143` only after staging smoke passes. Production frontend reference remains `https://mateen.academy/Mateen/html/login.html` with CORS allowing `https://mateen.academy`.
+
+**Rationale**: Explicit stakeholder order — test environment before production cutover host. Reduces blast radius.
+
+**Alternatives considered**: Deploy production first — rejected. Dual-write Firebase during prod — rejected by FR-019.
+
+**Security**: SSH passwords/keys and DB passwords are **operator secrets** (GitHub Actions secrets / server `.env` only). Never write them into specs, plan, or git.
+
+---
+
+## R17 — CI/CD pipeline shape
+
+**Decision**: GitHub Actions on the new repo:
+- **CI** (`ci-backend.yml`): on PR/`main` — `composer install`, `php artisan test` (Pest) in `backend/`; fail merge if red.
+- **Deploy staging** (`deploy-vps.yml`): on push to `main` (or `workflow_dispatch`) — SSH to staging, `git pull` (or rsync), `composer install --no-dev`, `php artisan migrate --force`, reload PHP-FPM, optional queue restart.
+- **Deploy production**: separate job/environment with **required approval** (GitHub Environment protection) after staging verification; same script targeting prod host.
+
+**Rationale**: Matches monorepo + two-VPS gate; keeps Firebase Functions workflow until retirement but does not block Laravel deploys.
+
+**Alternatives considered**:
+- Manual FTP/SCP only — error-prone, no audit trail.
+- Docker/Kubernetes — overkill for single-tenant VPS at current scale.
+
+---
+
+## R18 — How static site and API are co-hosted
+
+**Decision (staging default)**: On staging VPS, serve Laravel under a subdomain or path (e.g. `https://<staging-host>/api` or `api.<staging>`) and optionally sync static `html/`/`js/`/`css/` for integrated browser tests. Client config: `USE_LARAVEL_API=true` and `API_BASE_URL` → staging API `/api/v1`.
+
+**Decision (production)**: Keep academy static site at `mateen.academy` paths; point `API_BASE_URL` at the production VPS API HTTPS URL; set CORS to academy origin. Optionally later reverse-proxy API under the same domain (`mateen.academy/api`) to simplify cookies — not required for Sanctum token mode.
+
+**Rationale**: Production UI already lives at Mateen Academy; API can move to the new VPS without relocating every static asset on day one.
+
+**Alternatives considered**: Force all static files onto production VPS immediately — possible but unnecessary for first staging validation.

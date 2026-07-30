@@ -42,7 +42,8 @@ export const YEARS_HIJRI     = Array.from({ length: 11 }, (_, i) => CUR_HIJRI_YE
  * - USE_LARAVEL_API=false → legacy Firebase Auth/Firestore (rollback / migration only).
  */
 export const USE_LARAVEL_API = true;
-export const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+// Staging VPS (test before production cutover). Prod academy UI can point here for API smoke tests.
+export const API_BASE_URL = 'http://187.127.71.130/api/v1';
 
 // Firebase web config — FCM messaging when Laravel is on; full legacy backend when off
 export const FIREBASE_CONFIG = {

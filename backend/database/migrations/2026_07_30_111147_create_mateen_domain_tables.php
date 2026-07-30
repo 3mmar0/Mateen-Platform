@@ -84,7 +84,7 @@ return new class extends Migration
         });
         Schema::create('user_devices', function (Blueprint $table) {
             $table->id(); $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->text('fcm_token')->unique(); $table->string('platform')->nullable();
+            $table->string('fcm_token', 512)->unique(); $table->string('platform')->nullable();
             $table->dateTime('last_seen_at')->nullable(); $table->timestamps();
         });
         foreach (['attendance_records', 'grade_records'] as $name) {

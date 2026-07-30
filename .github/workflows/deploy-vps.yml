@@ -1,0 +1,99 @@
+name: Deploy VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deploy target'
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: deploy-${{ github.event.inputs.target || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    if: github.event_name == 'push' || github.event.inputs.target == 'staging'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload app to staging
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          source: "backend/,html/,js/,css/,index.html,manifest.json,sw.js,firebase-messaging-sw.js,logo.png,favicon.ico"
+          target: ${{ secrets.STAGING_APP_DIR }}
+          rm: false
+          overwrite: true
+          strip_components: 0
+
+      - name: Install, migrate, reload
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.STAGING_APP_DIR }}"
+            cd "$APP_DIR/backend"
+            composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:clear
+            php artisan route:clear
+            chown -R www-data:www-data storage bootstrap/cache
+            systemctl reload php8.4-fpm || systemctl reload php8.3-fpm || true
+            systemctl reload nginx || true
+            curl -fsS -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1/api/v1/auth/login \
+              -H 'Content-Type: application/json' -H 'Accept: application/json' \
+              -d '{"email":"admin@mateen.test","password":"password"}' | grep -E '200|422|401' >/dev/null
+
+  deploy-production:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload app to production
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          source: "backend/,html/,js/,css/,index.html,manifest.json,sw.js,firebase-messaging-sw.js,logo.png,favicon.ico"
+          target: ${{ secrets.PRODUCTION_APP_DIR }}
+          rm: false
+          overwrite: true
+          strip_components: 0
+
+      - name: Install, migrate, reload
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${{ secrets.PRODUCTION_APP_DIR }}"
+            cd "$APP_DIR/backend"
+            composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:clear
+            php artisan route:clear
+            chown -R www-data:www-data storage bootstrap/cache
+            systemctl reload php8.4-fpm || systemctl reload php8.3-fpm || true
+            systemctl reload nginx || true
