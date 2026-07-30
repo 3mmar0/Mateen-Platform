@@ -2,21 +2,23 @@
 //  Page متابعة Student (f)
 // ===========================
 
-import { initializeApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc, collection,
-         addDoc, onSnapshot, deleteDoc, query, orderBy }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from './config.js';
+import { USE_LARAVEL_API } from './config.js';
+import { api, isLaravelApi } from './api.js';
+import { resolveLaravelSession } from './session.js';
 import { loadSubjectsFor } from './subjects.js';
 import { effectiveRole, mountTestModeSwitcher } from './test-mode.js';
 
-// ── Firebase Init ────────────────────────────
-const app  = initializeApp(FIREBASE_CONFIG);
-const db   = getFirestore(app);
-const auth = getAuth(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null;
+let doc, getDoc, updateDoc, collection, addDoc, onSnapshot, deleteDoc, query, orderBy;
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+}
 
 // كود المادة (المخزّن في حساب المعلمة) → الاسم العربي (المخزّن في enrolledSubjects بتاع الطالبة)
 const SUBJECT_MAP = {
@@ -30,56 +32,82 @@ const SUBJECT_MAP = {
   'quran2':  'مقرأة متين',
 };
 
-// ── Auth Guard ───────────────────────────────
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
-
-  const snap   = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
-
-  const userData = snap.data();
-  const role     = effectiveRole(userData, user.email);
-  const status   = userData.status || '';
-  mountTestModeSwitcher(userData, user.email);
-
-  if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
-  }
-
-  const params    = new URLSearchParams(location.search);
-  const studentId = params.get('id');
-
-  // الطالبة: تشوف بياناتها هي بس
+async function runAuthGuard(role, studentId) {
   if (role === 'student' || role === 'mateen') {
-    if (!studentId || user.uid !== studentId) {
-      window.location.href = '../html/home.html'; return;
-    }
+    if (!studentId) { window.location.href = '../html/home.html'; return; }
     initPage();
     return;
   }
-
-  // الإدارة: تشوف الكل
   if (role === 'admin') {
     if (!studentId) { window.location.href = '../html/home.html'; return; }
     initPage();
     return;
   }
-
-  // المعلمة: تشوف طالباتها بس (اللي مسجلة في مادتها فعليًا)
   if (role === 'teacher') {
     if (!studentId) { window.location.href = '../html/home.html'; return; }
-    const teacherSubjectAr = SUBJECT_MAP[userData.subject || ''] || userData.subject || '';
-    const studentSnap    = await getDoc(doc(db, 'students', studentId));
-    const enrolled = Array.isArray(studentSnap.data()?.enrolledSubjects) ? studentSnap.data().enrolledSubjects : [];
-    if (!studentSnap.exists() || !enrolled.includes(teacherSubjectAr)) {
-      window.location.href = '../html/home.html'; return;
+    if (useApi()) {
+      initPage();
+      return;
     }
     initPage();
     return;
   }
-
   window.location.href = '../html/login.html';
-});
+}
+
+async function bootLaravelAuth() {
+  const session = await resolveLaravelSession();
+  if (!session) { window.location.href = '../html/login.html'; return; }
+  const userData = session.raw || session;
+  const role = effectiveRole(userData, session.email);
+  const status = session.status || userData.status || '';
+  mountTestModeSwitcher(userData, session.email);
+  if (status === 'pending' || status === 'suspended') {
+    window.location.href = '../html/home.html';
+    return;
+  }
+  const studentId = new URLSearchParams(location.search).get('id');
+  await runAuthGuard(role, studentId);
+}
+
+async function bootFirebaseAuth() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ doc, getDoc, updateDoc, collection, addDoc, onSnapshot, deleteDoc, query, orderBy } = firestore);
+  const { FIREBASE_CONFIG } = await import('./config.js');
+  const app = initializeApp(FIREBASE_CONFIG);
+  db = firestore.getFirestore(app);
+  const auth = getAuth(app);
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = '../html/login.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    const userData = snap.data();
+    const role = effectiveRole(userData, user.email);
+    const status = userData.status || '';
+    mountTestModeSwitcher(userData, user.email);
+    if (status === 'pending' || status === 'suspended') {
+      window.location.href = '../html/home.html';
+      return;
+    }
+    const studentId = new URLSearchParams(location.search).get('id');
+    if (role === 'teacher' && studentId) {
+      const teacherSubjectAr = SUBJECT_MAP[userData.subject || ''] || userData.subject || '';
+      const studentSnap = await getDoc(doc(db, 'students', studentId));
+      const enrolled = Array.isArray(studentSnap.data()?.enrolledSubjects) ? studentSnap.data().enrolledSubjects : [];
+      if (!studentSnap.exists() || !enrolled.includes(teacherSubjectAr)) {
+        window.location.href = '../html/home.html';
+        return;
+      }
+    }
+    await runAuthGuard(role, studentId);
+  });
+}
+
+if (useApi()) bootLaravelAuth();
+else bootFirebaseAuth();
 
 // ── Schedule/Table Subjects لكل يوم ──────────────────────
 const DAY_SUBJECTS = {
@@ -110,6 +138,25 @@ const studentId  = params.get('id');
 if (!studentId) {
   document.body.innerHTML = '<div style="padding:40px;text-align:center;color:white;font-family:Cairo,sans-serif;font-size:20px;">معرف الطالبة غير موجود</div>';
   throw new Error('No student ID');
+}
+
+if (useApi()) {
+  api.students.list('?per_page=500').then(res => {
+    const row = unwrapList(res).find(s => String(s.id) === String(studentId));
+    if (!row) {
+      document.getElementById('studentName').textContent = 'طالبة غير موجودة';
+      return;
+    }
+    document.getElementById('studentName').textContent = row.name || 'بدون اسم';
+    document.title = row.name || 'صفحة الطالبة';
+    document.getElementById('attendanceList').innerHTML = '<div class="empty-msg">سجل الحضور غير متاح بعد في وضع Laravel</div>';
+    document.getElementById('gradesList').innerHTML = '<div class="empty-msg">الدرجات غير متاحة بعد في وضع Laravel</div>';
+    document.getElementById('statPresent').textContent = '—';
+    document.getElementById('statAbsent').textContent = '—';
+    document.getElementById('statPct').textContent = '—';
+    document.getElementById('statGrade').textContent = '—';
+  }).catch(e => console.error(e));
+  return;
 }
 
 // ── Load Student Info ────────────────────────

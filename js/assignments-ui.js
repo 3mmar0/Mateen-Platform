@@ -2,19 +2,33 @@
 //  واجهة الواجبات — Assignments UI Widget
 //  يُستخدم جوه أي صفحة فيها مواد/محاضرات (courses-firebase.js وما شابه)
 // ===========================
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, getStoredUser, isLaravelApi } from "./api.js";
 import { effectiveRole } from "./test-mode.js";
+import { uploadToCloudinary } from "./cloud-upload.js";
 import {
-  addAssignment, getAssignmentsForMaterial, deleteAssignment,
+  addAssignment, getAssignmentById, getAssignmentsForMaterial, deleteAssignment,
   submitAssignment, getMySubmission, getAllSubmissions, gradeSubmission, getDeadlineStatus
 } from "./assignments.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let doc, getDoc, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ doc, getDoc } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
 
 const CLOUD_NAME    = 'dqqtznoqt';
 const UPLOAD_PRESET = 'mateen_uploads';
@@ -36,22 +50,49 @@ const lecTargetsMap = {};
 let _resolveRoleReady;
 const roleReady = new Promise(res => { _resolveRoleReady = res; });
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { _resolveRoleReady(); return; }
-  _currentUserId = user.uid;
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  if (snap.exists()) {
-    const data = snap.data();
-    _currentUserRole = effectiveRole(data, user.email);
+async function initRoleFromApi() {
+  try {
+    const me = await api.me();
+    const data = (me?.data ?? me ?? getStoredUser()) || {};
+    _currentUserId = String(data.id || '');
+    _currentUserRole = effectiveRole(data, data.email || '');
     if (_currentUserRole === 'teacher') {
-      const arSubject = SUBJECT_ID_TO_AR[data.subject] || data.subject || '';
+      const arSubject = SUBJECT_ID_TO_AR[data.subject_id] || data.subject || '';
       _currentUserSubjects = arSubject ? [arSubject] : [];
     } else {
-      _currentUserSubjects = data.enrolledSubjects || [];
+      _currentUserSubjects = data.enrolled_subjects || data.enrolledSubjects || [];
     }
+  } catch {
+    const data = getStoredUser() || {};
+    _currentUserId = String(data.id || '');
+    _currentUserRole = data.role || null;
   }
   _resolveRoleReady();
-});
+}
+
+if (useApi()) {
+  initRoleFromApi();
+} else {
+  (async () => {
+    await ensureFirebase();
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { _resolveRoleReady(); return; }
+      _currentUserId = user.uid;
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        _currentUserRole = effectiveRole(data, user.email);
+        if (_currentUserRole === 'teacher') {
+          const arSubject = SUBJECT_ID_TO_AR[data.subject] || data.subject || '';
+          _currentUserSubjects = arSubject ? [arSubject] : [];
+        } else {
+          _currentUserSubjects = data.enrolledSubjects || [];
+        }
+      }
+      _resolveRoleReady();
+    });
+  })();
+}
 
 function canManageAssignments(course) {
   if (_currentUserRole === 'admin' || _currentUserRole === 'supervisor') return true;
@@ -60,6 +101,7 @@ function canManageAssignments(course) {
 }
 
 async function uploadFile(file) {
+  if (useApi()) return uploadToCloudinary(file);
   const fd = new FormData();
   fd.append('file', file);
   fd.append('upload_preset', UPLOAD_PRESET);
@@ -319,11 +361,16 @@ window.openAssignmentDetail = async (assignmentId, course) => {
 
   const canManage = canManageAssignments(course);
 
-  // جيب بيانات الواجب
-  const { getDoc: gd, doc: d } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
-  const asgSnap = await gd(d(db, 'assignments', assignmentId));
-  if (!asgSnap.exists()) { body.innerHTML = '<div>الواجب غير موجود</div>'; return; }
-  const asg = { id: asgSnap.id, ...asgSnap.data() };
+  let asg;
+  if (useApi()) {
+    asg = await getAssignmentById(assignmentId);
+    if (!asg) { body.innerHTML = '<div>الواجب غير موجود</div>'; return; }
+  } else {
+    const { getDoc: gd, doc: d } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+    const asgSnap = await gd(d(db, 'assignments', assignmentId));
+    if (!asgSnap.exists()) { body.innerHTML = '<div>الواجب غير موجود</div>'; return; }
+    asg = { id: asgSnap.id, ...asgSnap.data() };
+  }
   const isExam = asg.kind === 'exam';
 
   document.getElementById('asgDetailTitle').textContent = (isExam ? '✍️ ' : '📝 ') + asg.title;

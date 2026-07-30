@@ -4,6 +4,35 @@
 
 import { showToast } from './ui.js';
 import { MATEEN_LOGO_BASE64 } from './mateen-logo.js';
+import { API_BASE_URL, USE_LARAVEL_API } from './config.js';
+import { getToken, isLaravelApi } from './api.js';
+
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+export async function downloadApiStatsExport(format = 'xlsx') {
+  if (!useApi()) return false;
+  const token = getToken();
+  const fmt = format === 'excel' ? 'xlsx' : format === 'word' ? 'docx' : format;
+  const res = await fetch(`${API_BASE_URL}/stats/export`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/octet-stream',
+      Authorization: token ? `Bearer ${token}` : '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ format: fmt }),
+  });
+  if (!res.ok) throw new Error('تعذر تصدير الإحصائيات');
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `متين_إحصائيات.${fmt === 'docx' ? 'docx' : fmt === 'pdf' ? 'pdf' : 'xlsx'}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast('تم التصدير ✅');
+  return true;
+}
 
 function watermarkHtml() {
   return `<img src="${MATEEN_LOGO_BASE64}" class="wm-logo" alt=""/>`;

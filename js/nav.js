@@ -1,4 +1,5 @@
 // nav.js — loads Navigation bar across all pages
+// Laravel mode: session from mateen_api_token; Firebase only as legacy fallback.
 
 function renderNav(activePage) {
   const links = [
@@ -10,7 +11,6 @@ function renderNav(activePage) {
     { href: 'home.html#contact', label: 'تواصل معنا' },
   ];
 
-  // Check if user is logged in via Firebase localStorage key
   const isLoggedIn = _navIsLoggedIn();
 
   const navHTML = `
@@ -43,7 +43,6 @@ function renderNav(activePage) {
   if (placeholder) {
     placeholder.outerHTML = navHTML;
   }
-  // Hide tour button if page has no tour
   setTimeout(() => {
     const tourBtn = document.getElementById('navTourBtn');
     if (tourBtn && typeof startPageTour !== 'function') tourBtn.style.display = 'none';
@@ -51,8 +50,11 @@ function renderNav(activePage) {
 }
 
 function _navIsLoggedIn() {
-  // Firebase stores auth session in localStorage with key matching firebaseLocalStorage
-  // Key pattern: "firebase:authUser:<API_KEY>:[DEFAULT]"
+  try {
+    if (localStorage.getItem('mateen_api_token') && localStorage.getItem('mateen_api_user')) {
+      return true;
+    }
+  } catch (_) {}
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -61,15 +63,29 @@ function _navIsLoggedIn() {
         if (val && val !== 'null') return true;
       }
     }
-  } catch(e) {}
+  } catch (_) {}
   return false;
 }
 
-// Auto-run if nav-placeholder exists and renderNav isn't called manually
-document.async function _addAdminBtn() {
+async function _addAdminBtn() {
   const page = location.pathname.split('/').pop() || 'home.html';
   if (page !== 'home.html' && page !== '') return;
   try {
+    const { USE_LARAVEL_API } = await import('./config.js');
+    if (USE_LARAVEL_API === true) {
+      const raw = JSON.parse(localStorage.getItem('mateen_api_user') || 'null');
+      const role = raw?.role || raw?.data?.role;
+      if (role !== 'admin') return;
+      const navBtns = document.querySelector('.nav-btns');
+      if (!navBtns) return;
+      const btn = document.createElement('a');
+      btn.href = 'admin.html';
+      btn.className = 'btn-admin';
+      btn.innerHTML = '<i class="ti ti-dashboard"></i> لوحة الإدارة';
+      navBtns.prepend(btn);
+      return;
+    }
+
     const keys = Object.keys(localStorage).filter(k => k.startsWith('firebase:authUser:'));
     if (!keys.length) return;
     const userData = JSON.parse(localStorage.getItem(keys[0]));
@@ -88,7 +104,7 @@ document.async function _addAdminBtn() {
     btn.className = 'btn-admin';
     btn.innerHTML = '<i class="ti ti-dashboard"></i> لوحة الإدارة';
     navBtns.prepend(btn);
-  } catch(e) {}
+  } catch (_) {}
 }
 
 addEventListener('DOMContentLoaded', function() {

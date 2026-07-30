@@ -1,14 +1,36 @@
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, Timestamp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi } from "./api.js";
 
-const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const db  = getFirestore(app);
-const auth = getAuth(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-// اقرأ TEACHER_ID من data attribute على script tag
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
+}
+
+const TEACHER_SLUG_MAP = {
+  tafseer: 'tafsir', fiqh: 'fiqh', aqeedah: 'aqeedah', hadeeth: 'hadeeth', hadith: 'hadeeth',
+  quran1: 'maqraah', quran2: 'maqraah', quran: 'maqraah', ithraiyat: 'ithraiyat',
+};
+
+let db = null, auth = null;
+let collection, addDoc, getDocs, deleteDoc, doc, Timestamp, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, addDoc, getDocs, deleteDoc, doc, Timestamp } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
 const scriptEl   = document.currentScript ||
   [...document.querySelectorAll('script')].find(s => s.src.includes('teacher-schedule-shared'));
 const TEACHER_ID = scriptEl ? scriptEl.dataset.teacherId : '';
@@ -16,17 +38,40 @@ const TEACHER_ID = scriptEl ? scriptEl.dataset.teacherId : '';
 const DAYS_ORDER = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 
 let scheduleSlots = [];
+let apiSubjectId = null;
 
-// ── Load Schedule/Table ─────────────────────────────────────────────
+async function resolveSubjectId(teacherKey) {
+  if (apiSubjectId) return apiSubjectId;
+  const slug = TEACHER_SLUG_MAP[teacherKey] || teacherKey;
+  const subjects = unwrapList(await api.subjects.list());
+  const hit = subjects.find(s => s.slug === slug || String(s.id) === String(teacherKey));
+  apiSubjectId = hit?.id ?? null;
+  return apiSubjectId;
+}
+
+function mapApiSchedule(entry) {
+  const day = DAYS_ORDER[entry.weekday] || '';
+  const d = entry.starts_at ? new Date(entry.starts_at) : new Date();
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return { id: String(entry.id), day, time, note: entry.title || '' };
+}
+
 async function loadSchedule() {
-  const snap = await getDocs(collection(db, 'teachers', TEACHER_ID, 'schedule'));
-  scheduleSlots = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (useApi()) {
+    const subjectId = await resolveSubjectId(TEACHER_ID);
+    scheduleSlots = unwrapList(await api.schedules.list())
+      .filter(s => !subjectId || s.subject_id === subjectId)
+      .map(mapApiSchedule);
+  } else {
+    await ensureFirebase();
+    const snap = await getDocs(collection(db, 'teachers', TEACHER_ID, 'schedule'));
+    scheduleSlots = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
   scheduleSlots.sort((a,b) => DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day) || (a.time||'').localeCompare(b.time||''));
   renderSchedule();
   updateQuickCards();
 }
 
-// ── Width/Display Schedule/Table ───────────────────────────────────────────────
 function renderSchedule() {
   const c = document.getElementById('scheduleContainer');
   if (!c) return;
@@ -35,7 +80,6 @@ function renderSchedule() {
     return;
   }
 
-  // تجميع حسب اليوم
   const byDay = {};
   scheduleSlots.forEach(s => {
     if (!byDay[s.day]) byDay[s.day] = [];
@@ -58,7 +102,6 @@ function renderSchedule() {
   c.innerHTML = html;
 }
 
-// ── بطاقات الإحصاء ───────────────────────────────────────────
 function updateQuickCards() {
   const totalEl = document.getElementById('qTotalSlots');
   const daysEl  = document.getElementById('qTotalDays');
@@ -66,7 +109,6 @@ function updateQuickCards() {
   if (totalEl) totalEl.textContent = scheduleSlots.length;
   if (daysEl)  daysEl.textContent  = [...new Set(scheduleSlots.map(s => s.day))].length;
 
-  // أقرب موعد
   if (nextEl) {
     const todayIdx = new Date().getDay();
     let nearest = null;
@@ -74,14 +116,13 @@ function updateQuickCards() {
     scheduleSlots.forEach(s => {
       const idx = DAYS_ORDER.indexOf(s.day);
       let diff = (idx - todayIdx + 7) % 7;
-      if (diff === 0) diff = 0; // نفس اليوم
+      if (diff === 0) diff = 0;
       if (diff < minDiff) { minDiff = diff; nearest = s; }
     });
     nextEl.textContent = nearest ? `${nearest.day} ${formatTime(nearest.time)}` : '—';
   }
 }
 
-// ── Add موعد ───────────────────────────────────────────────
 window.showAddSlot = () => {
   const f = document.getElementById('addSlotForm');
   if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
@@ -96,9 +137,23 @@ window.saveSlot = async () => {
   const btn = document.querySelector('.btn-save-slot');
   btn.disabled = true;
   try {
-    await addDoc(collection(db, 'teachers', TEACHER_ID, 'schedule'), {
-      day, time, note, createdAt: Timestamp.now()
-    });
+    if (useApi()) {
+      const weekday = DAYS_ORDER.indexOf(day);
+      const [h, m] = time.split(':');
+      const starts = new Date();
+      starts.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      await api.schedules.create({
+        subject_id: await resolveSubjectId(TEACHER_ID),
+        title: note || 'موعد',
+        weekday: weekday >= 0 ? weekday : null,
+        starts_at: starts.toISOString(),
+      });
+    } else {
+      await ensureFirebase();
+      await addDoc(collection(db, 'teachers', TEACHER_ID, 'schedule'), {
+        day, time, note, createdAt: Timestamp.now()
+      });
+    }
     document.getElementById('addSlotForm').style.display = 'none';
     document.getElementById('slotTime').value = '';
     document.getElementById('slotNote').value = '';
@@ -107,14 +162,17 @@ window.saveSlot = async () => {
   finally { btn.disabled = false; }
 };
 
-// ── Delete موعد ─────────────────────────────────────────────────
 window.deleteSlot = async (id) => {
   if (!confirm('حذف هذا الموعد؟')) return;
-  await deleteDoc(doc(db, 'teachers', TEACHER_ID, 'schedule', id));
+  if (useApi()) {
+    await api.schedules.remove(id);
+  } else {
+    await ensureFirebase();
+    await deleteDoc(doc(db, 'teachers', TEACHER_ID, 'schedule', id));
+  }
   await loadSchedule();
 };
 
-// ── مساعدات ──────────────────────────────────────────────────
 function formatTime(t) {
   if (!t) return '—';
   const [h, m] = t.split(':');
@@ -128,7 +186,13 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── تشغيل بعد auth ────────────────────────────────────────────
-onAuthStateChanged(auth, user => {
-  if (user && TEACHER_ID) loadSchedule();
-});
+if (useApi()) {
+  if (TEACHER_ID) loadSchedule();
+} else {
+  (async () => {
+    await ensureFirebase();
+    onAuthStateChanged(auth, user => {
+      if (user && TEACHER_ID) loadSchedule();
+    });
+  })();
+}

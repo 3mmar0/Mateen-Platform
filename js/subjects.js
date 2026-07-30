@@ -1,16 +1,23 @@
 // ===========================
 //  إدارة المواد الدراسية — Dynamic Subjects
+//  Laravel mode: api.subjects.*  |  Legacy: Firestore (lazy)
 // ===========================
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, orderBy, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi } from "./api.js";
 
-const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
-const db  = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-// fallback في حالة عدم توفر اتصال أو الـ collection فاضية لأول مرة
-// كل مادة افتراضية تظهر في كل الأقسام
+let db = null;
+async function getDb() {
+  if (useApi()) throw new Error('Firestore disabled in Laravel API mode');
+  if (db) return db;
+  const { initializeApp, getApps } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const { getFirestore } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
+  db = getFirestore(app);
+  return db;
+}
+
 const DEFAULT_SUBJECTS = [
   { name: 'التفسير',    inExams: true, inAttendance: true, inEnrollment: true },
   { name: 'الفقه',      inExams: true, inAttendance: true, inEnrollment: true },
@@ -19,16 +26,44 @@ const DEFAULT_SUBJECTS = [
   { name: 'مقرأة متين', inExams: true, inAttendance: true, inEnrollment: true },
 ];
 
-let _subjectsCache = null; // كل المواد (raw objects)
+let _subjectsCache = null;
 
-// جلب كل المواد كاملة (بكل الحقول والـ id)
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
+}
+
+function mapApiSubject(s) {
+  return {
+    id: String(s.id),
+    name: s.title,
+    slug: s.slug,
+    inExams: true,
+    inAttendance: true,
+    inEnrollment: true,
+  };
+}
+
 async function loadAllSubjectsRaw() {
   if (_subjectsCache) return _subjectsCache;
+  if (useApi()) {
+    try {
+      const res = await api.subjects.list();
+      _subjectsCache = unwrapList(res).map(mapApiSubject);
+      if (!_subjectsCache.length) {
+        _subjectsCache = DEFAULT_SUBJECTS.map((s, i) => ({ id: 'default-' + i, ...s }));
+      }
+    } catch (e) {
+      console.error('loadSubjects API error:', e);
+      _subjectsCache = DEFAULT_SUBJECTS.map((s, i) => ({ id: 'default-' + i, ...s }));
+    }
+    return _subjectsCache;
+  }
   try {
-    // ملحوظة: صفحة المواد العلمية (courses.html) بتحفظ التاريخ في حقل addedAt،
-    // وده مختلف عن createdAt اللي كنا بنرتب بيه هنا — orderBy كان بيستبعد أي مادة
-    // من غير الحقل ده تمامًا. دلوقتي بنجيب الكل من غير استبعاد، ونرتب يدويًا بأي حقل تاريخ موجود.
-    const snap = await getDocs(collection(db, 'subjects'));
+    const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+    const database = await getDb();
+    const snap = await getDocs(collection(database, 'subjects'));
     if (snap.empty) {
       _subjectsCache = DEFAULT_SUBJECTS.map((s, i) => ({ id: 'default-' + i, ...s }));
     } else {
@@ -44,35 +79,45 @@ async function loadAllSubjectsRaw() {
   return _subjectsCache;
 }
 
-// كل أسماء المواد (للتوافق مع الكود القديم)
 export async function loadSubjects() {
   const all = await loadAllSubjectsRaw();
   return all.map(s => s.name);
 }
 
-// المواد المخصصة لقسم معين فقط — key: 'inExams' | 'inAttendance' | 'inEnrollment'
 export async function loadSubjectsFor(key) {
   const all = await loadAllSubjectsRaw();
   return all.filter(s => s[key] !== false).map(s => s.name);
 }
 
-// إضافة مادة جديدة مع تحديد الأقسام
 export async function addSubject(name, flags = { inExams: true, inAttendance: true, inEnrollment: true }) {
   name = (name || '').trim();
   if (!name) throw new Error('اسم المادة مطلوب');
-  await addDoc(collection(db, 'subjects'), {
+  if (useApi()) {
+    const slug = name.replace(/\s+/g, '-').toLowerCase();
+    await api.subjects.create({ title: name, slug });
+    _subjectsCache = null;
+    return;
+  }
+  const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const database = await getDb();
+  await addDoc(collection(database, 'subjects'), {
     name,
     inExams: !!flags.inExams,
     inAttendance: !!flags.inAttendance,
     inEnrollment: !!flags.inEnrollment,
     createdAt: serverTimestamp()
   });
-  _subjectsCache = null; // إبطال الكاش عشان يتجدد
+  _subjectsCache = null;
 }
 
-// تعديل أقسام مادة موجودة
 export async function updateSubjectFlags(id, flags) {
-  await updateDoc(doc(db, 'subjects', id), {
+  if (useApi()) {
+    _subjectsCache = null;
+    return;
+  }
+  const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const database = await getDb();
+  await updateDoc(doc(database, 'subjects', id), {
     inExams: !!flags.inExams,
     inAttendance: !!flags.inAttendance,
     inEnrollment: !!flags.inEnrollment,
@@ -80,23 +125,37 @@ export async function updateSubjectFlags(id, flags) {
   _subjectsCache = null;
 }
 
-// حذف مادة
 export async function deleteSubject(id) {
-  await deleteDoc(doc(db, 'subjects', id));
+  if (useApi()) {
+    _subjectsCache = null;
+    return;
+  }
+  const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const database = await getDb();
+  await deleteDoc(doc(database, 'subjects', id));
   _subjectsCache = null;
 }
 
-// جلب المواد مع كل التفاصيل (لقسم الإدارة)
 export async function loadSubjectsWithIds() {
   return await loadAllSubjectsRaw();
 }
 
-// تهيئة المواد الافتراضية لو الـ collection فاضية تماماً (تتنادى مرة واحدة من لوحة الإدارة)
 export async function seedDefaultSubjectsIfEmpty() {
-  const snap = await getDocs(collection(db, 'subjects'));
+  if (useApi()) {
+    const res = await api.subjects.list();
+    if (unwrapList(res).length) return false;
+    for (const s of DEFAULT_SUBJECTS) {
+      await api.subjects.create({ title: s.name, slug: s.name.replace(/\s+/g, '-').toLowerCase() });
+    }
+    _subjectsCache = null;
+    return true;
+  }
+  const { collection, getDocs, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const database = await getDb();
+  const snap = await getDocs(collection(database, 'subjects'));
   if (!snap.empty) return false;
   for (const s of DEFAULT_SUBJECTS) {
-    await addDoc(collection(db, 'subjects'), { ...s, createdAt: serverTimestamp() });
+    await addDoc(collection(database, 'subjects'), { ...s, createdAt: serverTimestamp() });
   }
   _subjectsCache = null;
   return true;

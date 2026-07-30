@@ -5,24 +5,23 @@
 //  كل الشروط  and the منطق محفوظة بالضبط كما كانت in the Fileات الأصلية.
 // ═══════════════════════════════════════════════════════════════
 
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { initNotifications } from "./notifications.js";
-import { getFirestore, doc, getDoc, getDocs, addDoc, setDoc,
-         collection, query, where, orderBy, serverTimestamp, onSnapshot, limit }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi } from "./api.js";
+import { logoutApp, onAppSession, resolveLaravelSession, useLaravelBackend } from "./session.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 import { applyCustomTheme } from "./custom-theme.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-// ── المواعيد المهمة (تظهر للجميع بدون تسجيل دخول) ──────────────
-onSnapshot(query(collection(db, 'events'), orderBy('order')), snap => {
+function unwrapUsers(res) {
+  const data = res?.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+async function bootPublicFeedsFirebase(db, onSnapshot, query, collection, orderBy, limit) {
+  onSnapshot(query(collection(db, 'events'), orderBy('order')), snap => {
   const el = document.getElementById('homeEventsList');
   if (!el) return;
   if (snap.empty) {
@@ -41,8 +40,7 @@ onSnapshot(query(collection(db, 'events'), orderBy('order')), snap => {
   }).join('');
 });
 
-// ── آخر الإعلانات العامة (تظهر للجميع بدون تسجيل دخول) ──────────────
-onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc'), limit(6)), snap => {
+  onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc'), limit(6)), snap => {
   const section = document.getElementById('publicNewsSection');
   const list    = document.getElementById('publicNewsList');
   if (!section || !list) return;
@@ -63,6 +61,14 @@ onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc'), limit(6))
       </div>`;
   }).join('');
 });
+}
+
+function bootPublicFeedsApi() {
+  const el = document.getElementById('homeEventsList');
+  if (el) {
+    el.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════
    مستمع واحد موحّد لـ onAuthStateChanged
@@ -219,7 +225,107 @@ function showLoginPrompt() {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 }
 
-onAuthStateChanged(auth, async user => {
+let _homeAuth = null;
+
+async function loadRecipientsApi() {
+  const select = document.getElementById('ctRecipient');
+  if (!select) return;
+  try {
+    let users = [];
+    try {
+      const res = await api.support.users();
+      users = unwrapUsers(res);
+    } catch {
+      const session = await resolveLaravelSession({ refresh: false });
+      if (session) {
+        const convRes = await api.conversations.list();
+        const seen = new Set();
+        (convRes?.data || []).forEach(c => {
+          (c.participants || []).forEach(p => {
+            const id = String(p.id);
+            if (id !== String(session.id) && !seen.has(id)) { seen.add(id); users.push(p); }
+          });
+        });
+      }
+    }
+    const admins = users.filter(u => u.role === 'admin');
+    const teachers = users.filter(u => u.role === 'teacher' && u.is_active !== false);
+    let html = '<option value="">اختاري الجهة</option>';
+    if (admins.length) {
+      html += '<optgroup label="── الإدارة ──">';
+      admins.forEach(u => { html += `<option value="${u.id}">${u.name || 'الإدارة العامة'}</option>`; });
+      html += '</optgroup>';
+    }
+    if (teachers.length) {
+      html += '<optgroup label="── المعلمات ──">';
+      teachers.forEach(u => { html += `<option value="${u.id}">${u.name || 'معلمة'}</option>`; });
+      html += '</optgroup>';
+    }
+    if (!admins.length && !teachers.length) html = '<option value="">لا يوجد مستلمون متاحون</option>';
+    select.innerHTML = html;
+  } catch (e) {
+    select.innerHTML = '<option value="">تعذر التحميل</option>';
+  }
+}
+
+function applySidebarGuestHome() {
+  const loading = document.getElementById('sidebar-loading');
+  if (loading) loading.style.display = 'none';
+  document.getElementById('sidebar-guest')?.classList.remove('d-none');
+  document.getElementById('sidebar-user')?.classList.add('sidebar-user-hidden');
+  document.querySelector('.page-layout')?.classList.add('guest-layout');
+}
+
+async function applySidebarUserHome(session) {
+  const loading = document.getElementById('sidebar-loading');
+  if (loading) loading.style.display = 'none';
+  document.querySelector('.page-layout')?.classList.remove('guest-layout');
+  document.getElementById('sidebar-guest')?.classList.add('d-none');
+  const userDiv = document.getElementById('sidebar-user');
+  if (userDiv) { userDiv.classList.remove('sidebar-user-hidden'); userDiv.classList.add('show-user'); }
+  const role = session.role || 'student';
+  const name = session.name || session.email?.split('@')[0] || 'مستخدم';
+  initNotifications(String(session.uid || session.id));
+  showSidebarSetup();
+  const sidebarNameEl = document.getElementById('sidebarName');
+  if (sidebarNameEl) sidebarNameEl.textContent = 'مرحباً، ' + name;
+  const ctName = document.getElementById('ctName');
+  if (ctName) {
+    ctName.value = role === 'admin' ? 'إدارة متين' : name;
+    ctName.readOnly = role === 'admin';
+  }
+  mountTestModeSwitcher(session.raw || session, session.email);
+  applyCustomTheme(session.raw || session);
+}
+
+async function bootHomeLaravel() {
+  bootPublicFeedsApi();
+  await onAppSession(async (session) => {
+    if (!session) { applySidebarGuestHome(); return; }
+    await applySidebarUserHome(session);
+  });
+  loadRecipientsApi();
+  window.doLogout = () => logoutApp('../html/login.html');
+  window.requestAccountDeletion = async () => {
+    alert('تواصلي مع الإدارة لحذف الحساب من لوحة الرسائل.');
+  };
+}
+
+async function bootHomeFirebase() {
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const { getAuth, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const { doc, getDoc, getDocs, addDoc, setDoc, collection, query, where, orderBy, serverTimestamp, onSnapshot, limit } = firestore;
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const db = firestore.getFirestore(app);
+  _homeAuth = auth;
+  window._homeDb = db;
+  window._reloadRecipientsFirebase = () => loadRecipientsFirebase(db, getDocs, query, collection, where);
+  await bootPublicFeedsFirebase(db, onSnapshot, query, collection, orderBy, limit);
+  window._reloadRecipientsFirebase();
+
+  onAuthStateChanged(auth, async user => {
 
   /* ───────────────────────────────────────────────────────────
      [من home-1.js] — Sidebar، الروابط حسب Role، Logout
@@ -438,64 +544,41 @@ onAuthStateChanged(auth, async user => {
   // عداد الأخبار والرسائل → home-msg.js يتولى الأمر
 });
 
-window.doLogout = () =>
-  signOut(auth).then(() => window.location.href = '../html/login.html');
+  window.doLogout = () =>
+    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
 
-// ── طلب حذف الحساب — بيبعت إشعار للإدارة بدل الحذف المباشر ──
-window.requestAccountDeletion = async () => {
-  const user = auth.currentUser;
-  if (!user) return;
+  window.requestAccountDeletion = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    if (!confirm('سيتم إرسال طلب حذف حسابك للإدارة للموافقة عليه. هل تريدين المتابعة؟')) return;
+    const btn = document.getElementById('sidebarDeleteAccBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader spin"></i> جارٍ الإرسال...'; }
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const userData = snap.exists() ? snap.data() : {};
+      const userName = userData.name || user.email;
+      await addDoc(collection(db, 'deletionRequests'), {
+        uid: user.uid, name: userName, email: user.email, role: userData.role || '',
+        status: 'pending', requestedAt: serverTimestamp(),
+      });
+      const adminSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin')));
+      await Promise.all(adminSnap.docs.map(adminDoc =>
+        addDoc(collection(db, 'userNotifications', adminDoc.id, 'items'), {
+          type: 'deletion_request', title: '🗑️ طلب حذف حساب',
+          body: `${userName} طلبت حذف حسابها — بانتظار موافقتك`, url: 'admin.html',
+          read: false, createdAt: serverTimestamp(),
+        })
+      ));
+      if (btn) btn.innerHTML = '<i class="ti ti-check"></i> تم إرسال الطلب';
+      alert('✅ تم إرسال طلب حذف حسابك للإدارة. سيتم التواصل معكِ قريباً إن شاء الله.');
+    } catch (e) {
+      alert('حدث خطأ أثناء إرسال الطلب، حاولي مرة أخرى');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-trash"></i> طلب حذف الحساب'; }
+    }
+  };
+}
 
-  if (!confirm('سيتم إرسال طلب حذف حسابك للإدارة للموافقة عليه. هل تريدين المتابعة؟')) return;
-
-  const btn = document.getElementById('sidebarDeleteAccBtn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader spin"></i> جارٍ الإرسال...'; }
-
-  try {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    const userData = snap.exists() ? snap.data() : {};
-    const userName = userData.name || user.email;
-
-    // إرسال طلب الحذف في collection منفصلة عشان الإدارة تراجعها
-    await addDoc(collection(db, 'deletionRequests'), {
-      uid:        user.uid,
-      name:       userName,
-      email:      user.email,
-      role:       userData.role || '',
-      status:     'pending',
-      requestedAt: serverTimestamp(),
-    });
-
-    // إشعار لكل الإدارة
-    const adminSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin')));
-    const notifPromises = adminSnap.docs.map(adminDoc =>
-      addDoc(collection(db, 'userNotifications', adminDoc.id, 'items'), {
-        type:      'deletion_request',
-        title:     '🗑️ طلب حذف حساب',
-        body:      `${userName} طلبت حذف حسابها — بانتظار موافقتك`,
-        url:       'admin.html',
-        read:      false,
-        createdAt: serverTimestamp(),
-      })
-    );
-    await Promise.all(notifPromises);
-
-    if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> تم إرسال الطلب'; }
-    alert('✅ تم إرسال طلب حذف حسابك للإدارة. سيتم التواصل معكِ قريباً إن شاء الله.');
-  } catch (e) {
-    console.error('requestAccountDeletion error:', e);
-    alert('حدث خطأ أثناء إرسال الطلب، حاولي مرة أخرى');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-trash"></i> طلب حذف الحساب'; }
-  }
-};
-
-
-/* ═══════════════════════════════════════════════════════════════
-   [من home-2.js] — Form التواصل: Load المستلمين + Send/Submit الMessage
-   ═══════════════════════════════════════════════════════════════ */
-
-// ── Load المستلمين من Firebase ──────────────
-async function loadRecipients() {
+async function loadRecipientsFirebase(db, getDocs, query, collection, where) {
   const select = document.getElementById('ctRecipient');
   if (!select) return;
 
@@ -538,95 +621,75 @@ async function loadRecipients() {
   }
 }
 
-// Load المستلمين عند فتح Page
-loadRecipients();
-
 // ── Send/Submit الMessage ─────────────────────────────
 window.submitContactNew = async () => {
-  const nameEl      = document.getElementById('ctName');
+  const nameEl = document.getElementById('ctName');
   const recipientEl = document.getElementById('ctRecipient');
-  const topicEl     = document.getElementById('ctTopic');
-  const bodyEl      = document.getElementById('ctBody');
-  const btn         = document.getElementById('ctBtn');
-  const successEl   = document.getElementById('ctSuccess');
-
-  // تحقق from the حقول المطIfبة
-  let valid = true;
+  const topicEl = document.getElementById('ctTopic');
+  const bodyEl = document.getElementById('ctBody');
+  const btn = document.getElementById('ctBtn');
+  const successEl = document.getElementById('ctSuccess');
   [nameEl, recipientEl, topicEl, bodyEl].forEach(el => {
-    if (!el || !el.value.trim()) { if(el) el.style.borderColor='#c0392b'; valid=false; }
-    else el.style.borderColor='';
+    if (!el || !el.value.trim()) { if (el) el.style.borderColor = '#c0392b'; }
+    else el.style.borderColor = '';
   });
-
-  const recipientUid = recipientEl.value;
-  const bodyText     = `[${topicEl.value}]\n${bodyEl.value.trim()}`;
-
+  if (!recipientEl?.value || !topicEl?.value.trim() || !bodyEl?.value.trim()) return;
+  const bodyText = `[${topicEl.value}]\n${bodyEl.value.trim()}`;
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> جارٍ الإرسال...';
-
   try {
-    const user = auth.currentUser;
-    if (!user) { alert('يجب تسجيل الدخول أولاً'); btn.disabled=false; btn.innerHTML='<i class="ti ti-send"></i> إرسال الرسالة'; return; }
-
-    // جيبي اسم المرسلة من Firestore أو استخدمي ما كتبته
-    const senderSnap = await getDoc(doc(db,'users',user.uid));
-    const senderName = (senderSnap.exists() && senderSnap.data().name)
-      ? senderSnap.data().name
-      : (nameEl.value.trim() || '');
-    const senderRole = (senderSnap.exists() && senderSnap.data().role) || 'student';
-
-    // إنشاء أو Update المحادثة
-    const cid = [user.uid, recipientUid].sort().join('__');
-    await setDoc(doc(db,'conversations',cid), {
-      participants: [user.uid, recipientUid],
-      lastMsg:  bodyText.slice(0,60) || '',
-      lastAt:   serverTimestamp(),
-      [`unread.${recipientUid}`]: 1,
-      [`unread.${user.uid}`]:     0,
-    }, { merge: true });
-
-    // Add الMessage
-    await addDoc(collection(db,'conversations',cid,'messages'), {
-      text:       bodyText     || '',
-      senderId:   user.uid     || '',
-      senderName: senderName   || '',
-      senderRole: senderRole   || '',
-      sentAt:     serverTimestamp(),
-    });
-
-    // Notification Firestore للمستلم
-    if (recipientUid) {
-      await addDoc(collection(db,'notifications',recipientUid,'pending'), {
-        title:     `💬 ${senderName}`,
-        body:      bodyText.slice(0, 80),
-        url:       'https://mateenweb.github.io/Mateen/html/messages.html',
-        senderId:  user.uid,
-        createdAt: serverTimestamp(),
-      });
+    if (useApi()) {
+      const session = await resolveLaravelSession({ refresh: false });
+      if (!session) throw new Error('يجب تسجيل الدخول أولاً');
+      const created = await api.conversations.create({ participant_id: Number(recipientEl.value) || recipientEl.value });
+      const convId = created?.data?.id ?? created?.id;
+      await api.conversations.send(convId, { body: bodyText });
+    } else {
+      await window._submitContactFirebaseHome(bodyText, recipientEl.value, nameEl);
     }
-
-    // Success
     btn.innerHTML = '<i class="ti ti-check"></i> تم الإرسال بنجاح!';
     btn.style.background = 'var(--green-mid)';
     if (successEl) successEl.style.display = 'block';
-    [nameEl, recipientEl, topicEl, bodyEl].forEach(el => { if(el) el.value=''; });
-    // إعادة Load الخيارات
-    loadRecipients();
-
+    [nameEl, recipientEl, topicEl, bodyEl].forEach(el => { if (el) el.value = ''; });
+    if (useApi()) loadRecipientsApi();
+    else window._reloadRecipientsFirebase?.();
     setTimeout(() => {
-      btn.disabled=false;
-      btn.innerHTML='<i class="ti ti-send"></i> إرسال الرسالة';
-      btn.style.background='';
-      if (successEl) successEl.style.display='none';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-send"></i> إرسال الرسالة';
+      btn.style.background = '';
+      if (successEl) successEl.style.display = 'none';
     }, 3500);
-
-  } catch(e) {
-    console.error(e);
-    btn.disabled=false;
-    btn.innerHTML='<i class="ti ti-send"></i> إرسال الرسالة';
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-send"></i> إرسال الرسالة';
     alert('حدث خطأ أثناء الإرسال: ' + e.message);
   }
 };
 
+if (useApi()) {
+  bootHomeLaravel();
+} else {
+  bootHomeFirebase().then(async () => {
+    const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+    const db = window._homeDb;
+    window._submitContactFirebaseHome = async (bodyText, recipientUid, nameEl) => {
+      const { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } = firestore;
+      const auth = _homeAuth;
+      const user = auth.currentUser;
+      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+      const senderSnap = await getDoc(doc(db, 'users', user.uid));
+      const senderName = (senderSnap.exists() && senderSnap.data().name) ? senderSnap.data().name : (nameEl.value.trim() || '');
+      const cid = [user.uid, recipientUid].sort().join('__');
+      await setDoc(doc(db, 'conversations', cid), {
+        participants: [user.uid, recipientUid], lastMsg: bodyText.slice(0, 60),
+        lastAt: serverTimestamp(), [`unread.${recipientUid}`]: 1, [`unread.${user.uid}`]: 0,
+      }, { merge: true });
+      await addDoc(collection(db, 'conversations', cid, 'messages'), {
+        text: bodyText, senderId: user.uid, senderName, senderRole: senderSnap.data()?.role || 'student', sentAt: serverTimestamp(),
+      });
+    };
+  });
+}
 
 /* ═══════════════════════════════════════════════════════════════
    [من home-3.js] — submitContact (Form تواصل قthisم — dead code،

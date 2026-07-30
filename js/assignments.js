@@ -1,47 +1,89 @@
 // ===========================
 //  نظام الواجبات — Assignments System
 // ===========================
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
-         query, where, orderBy, onSnapshot, serverTimestamp, Timestamp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, getStoredUser, isLaravelApi } from "./api.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-/*
-هيكلة Firestore:
-assignments/{assignmentId}
-  - materialId: string  (ربط بالمحاضرة/المادة من materials collection)
-  - course: string      (اسم المادة — التفسير، الفقه...)
-  - kind: 'homework' | 'exam'
-  - title: string
-  - description: string
-  - allowFile: bool
-  - allowText: bool
-  - deadline: Timestamp
-  - createdBy: uid
-  - createdAt: Timestamp
+let db = null, auth = null;
+let collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
+    query, where, orderBy, serverTimestamp, Timestamp;
 
-assignments/{assignmentId}/submissions/{studentUid}
-  - studentUid: string
-  - studentName: string
-  - fileUrl: string | null
-  - textAnswer: string | null
-  - submittedAt: Timestamp
-  - grade: number | null
-  - feedback: string | null
-  - gradedAt: Timestamp | null
-  - gradedBy: uid | null
-*/
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } = firestore);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
+function apiDeadline(dueAt) {
+  if (!dueAt) return null;
+  const d = new Date(dueAt);
+  return { toDate: () => d };
+}
+
+function mapApiAssignment(a) {
+  return {
+    id: String(a.id),
+    materialId: a.learning_material_id != null ? String(a.learning_material_id) : '',
+    course: a.subject?.name || '',
+    kind: 'homework',
+    title: a.title,
+    description: a.description || '',
+    allowFile: true,
+    allowText: true,
+    deadline: apiDeadline(a.due_at),
+    examLink: null,
+    createdAt: a.created_at,
+  };
+}
+
+function mapApiSubmission(s) {
+  const u = s.user || {};
+  return {
+    id: String(s.id),
+    studentUid: String(s.user_id),
+    studentName: u.name || u.email || 'طالبة',
+    fileUrl: s.attachment_url || null,
+    textAnswer: s.content || null,
+    grade: s.grade ?? null,
+    feedback: s.feedback || null,
+    gradedAt: s.updated_at || null,
+  };
+}
+
+async function apiListAssignments(filter = {}) {
+  let q = '';
+  if (filter.subject_id) q = `?subject_id=${encodeURIComponent(filter.subject_id)}`;
+  const res = await api.assignments.list(q);
+  return (res?.data || []).map(mapApiAssignment);
+}
 
 // ── إضافة واجب أو اختبار جديد (معلمة/أدمن فقط) ────────────────
-export async function addAssignment({ materialId, course, title, description, allowFile, allowText, deadline, kind, examLink }) {
+export async function addAssignment({ materialId, course, title, description, allowFile, allowText, deadline, kind, examLink, subjectId }) {
+  if (useApi()) {
+    const isExam = kind === 'exam';
+    if (isExam) throw new Error('اختبارات الروابط غير مدعومة عبر الواجهة حالياً');
+    if (!allowFile && !allowText) throw new Error('اختاري وسيلة تسليم واحدة على الأقل');
+    const body = {
+      title,
+      description: description || '',
+      due_at: deadline || null,
+      learning_material_id: materialId ? Number(materialId) || materialId : null,
+    };
+    if (subjectId) body.subject_id = Number(subjectId);
+    const res = await api.assignments.create(body);
+    return { id: String(res?.data?.id || res?.id) };
+  }
+
+  await ensureFirebase();
   const user = auth.currentUser;
   if (!user) throw new Error('يجب تسجيل الدخول');
   const isExam = kind === 'exam';
@@ -64,6 +106,11 @@ export async function addAssignment({ materialId, course, title, description, al
 
 // ── جلب واجبات محاضرة معينة ──────────────────────────────────
 export async function getAssignmentsForMaterial(materialId) {
+  if (useApi()) {
+    const all = await apiListAssignments();
+    return all.filter(a => a.materialId === String(materialId));
+  }
+  await ensureFirebase();
   const q = query(collection(db, 'assignments'), where('materialId', '==', materialId));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -71,26 +118,44 @@ export async function getAssignmentsForMaterial(materialId) {
 
 // ── جلب كل واجبات مادة معينة (لصفحة المعلمة) ─────────────────
 export async function getAssignmentsForCourse(course) {
+  if (useApi()) {
+    const all = await apiListAssignments();
+    return all.filter(a => a.course === course);
+  }
+  await ensureFirebase();
   const q = query(collection(db, 'assignments'), where('course', '==', course), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
+export async function getAssignmentById(assignmentId) {
+  if (useApi()) {
+    const all = await apiListAssignments();
+    return all.find(a => a.id === String(assignmentId)) || null;
+  }
+  await ensureFirebase();
+  const snap = await getDoc(doc(db, 'assignments', assignmentId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
 // ── حذف كل تسليمات واجب معين (مساعدة داخلية) ──────────────────
 async function deleteSubmissionsFor(assignmentId) {
+  await ensureFirebase();
   const snap = await getDocs(collection(db, 'assignments', assignmentId, 'submissions'));
   await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
 }
 
 // ── حذف واجب (بيمسح تسليماته الأول عشان محدش يفضل يتيم) ───────
 export async function deleteAssignment(assignmentId) {
+  if (useApi()) throw new Error('حذف الواجبات غير متاح عبر الواجهة حالياً');
   await deleteSubmissionsFor(assignmentId);
   await deleteDoc(doc(db, 'assignments', assignmentId));
 }
 
 // ── حذف كل الواجبات (+تسليماتها) المرتبطة بمادة معينة ─────────
-// يُستخدم عند حذف المادة نفسها من courses/library عشان محدش يفضل واجب يتيم
 export async function deleteAssignmentsForMaterial(materialId) {
+  if (useApi()) return;
+  await ensureFirebase();
   const q = query(collection(db, 'assignments'), where('materialId', '==', materialId));
   const snap = await getDocs(q);
   await Promise.all(snap.docs.map(async d => {
@@ -101,6 +166,17 @@ export async function deleteAssignmentsForMaterial(materialId) {
 
 // ── تسليم رد الطالبة على الواجب ──────────────────────────────
 export async function submitAssignment(assignmentId, { fileUrl, textAnswer }) {
+  if (useApi()) {
+    const me = getStoredUser();
+    if (!me?.id) throw new Error('يجب تسجيل الدخول');
+    await api.assignments.submit(assignmentId, {
+      content: textAnswer || null,
+      attachment_url: fileUrl || null,
+    });
+    return;
+  }
+
+  await ensureFirebase();
   const user = auth.currentUser;
   if (!user) throw new Error('يجب تسجيل الدخول');
 
@@ -114,7 +190,6 @@ export async function submitAssignment(assignmentId, { fileUrl, textAnswer }) {
     textAnswer: textAnswer || null,
     submittedAt: serverTimestamp()
   }).catch(async () => {
-    // لو الـ doc مش موجود (أول تسليم)
     const { setDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
     await setDoc(doc(db, 'assignments', assignmentId, 'submissions', user.uid), {
       studentUid: user.uid,
@@ -132,6 +207,14 @@ export async function submitAssignment(assignmentId, { fileUrl, textAnswer }) {
 
 // ── جلب رد طالبة معينة على واجب (الطالبة بتشوف ردها هي بس) ───
 export async function getMySubmission(assignmentId) {
+  if (useApi()) {
+    const me = getStoredUser();
+    if (!me?.id) return null;
+    const res = await api.assignments.submissions(assignmentId);
+    const mine = (res?.data || []).find(s => String(s.user_id) === String(me.id));
+    return mine ? mapApiSubmission(mine) : null;
+  }
+  await ensureFirebase();
   const user = auth.currentUser;
   if (!user) return null;
   const snap = await getDoc(doc(db, 'assignments', assignmentId, 'submissions', user.uid));
@@ -140,12 +223,25 @@ export async function getMySubmission(assignmentId) {
 
 // ── جلب كل الردود على واجب (للمعلمة/الأدمن فقط) ──────────────
 export async function getAllSubmissions(assignmentId) {
+  if (useApi()) {
+    const res = await api.assignments.submissions(assignmentId);
+    return (res?.data || []).map(mapApiSubmission);
+  }
+  await ensureFirebase();
   const snap = await getDocs(collection(db, 'assignments', assignmentId, 'submissions'));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // ── تقييم رد طالبة (معلمة/أدمن) ───────────────────────────────
 export async function gradeSubmission(assignmentId, studentUid, { grade, feedback }) {
+  if (useApi()) {
+    const subs = await getAllSubmissions(assignmentId);
+    const sub = subs.find(s => s.studentUid === String(studentUid));
+    if (!sub) throw new Error('لم يُعثر على التسليم');
+    await api.assignments.grade(sub.id, { grade: grade ?? null, feedback: feedback || '' });
+    return;
+  }
+  await ensureFirebase();
   const user = auth.currentUser;
   if (!user) throw new Error('يجب تسجيل الدخول');
   await updateDoc(doc(db, 'assignments', assignmentId, 'submissions', studentUid), {

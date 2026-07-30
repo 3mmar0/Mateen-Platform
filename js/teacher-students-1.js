@@ -1,17 +1,15 @@
 
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi } from "./api.js";
+import { logoutApp, resolveLaravelSession } from "./session.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 import { applyCustomTheme } from "./custom-theme.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null;
+let auth = null;
+let doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs;
 
 // كود المادة (من حساب المعلمة) → اسم المادة العربي (المستخدم في enrolledSubjects)
 const SUBJ_LABELS = {
@@ -24,35 +22,108 @@ const SUBJ_LABELS = {
   ithraiyat: 'الإثرائيات',
 };
 
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+}
 
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  const data = snap.exists() ? snap.data() : {};
-  const role = effectiveRole(data, user.email);
+function renderStudentRows(activeStudents, subjLabel, withGrades = true) {
+  const listEl = document.getElementById('studentsList');
+  const rowsHtml = activeStudents.map(s => {
+    const gradeInputs = withGrades && s.sid ? `
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mid)">
+              مشاركة
+              <input type="number" min="0" id="partScore-${s.sid}-${subjLabel}" value="" placeholder="0"
+                onchange="savePartGrade('${s.sid}','${subjLabel}')"
+                style="width:56px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;text-align:center">
+            </label>
+          </div>`
+      : (!withGrades ? '' : `<div style="margin-top:6px;font-size:11px;color:#c9852b">⚠️ سجل الطالبة غير متاح بعد</div>`);
+    return `
+        <div class="stu-row" style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;background:var(--white)">
+          <div style="width:40px;height:40px;flex-shrink:0;border-radius:50%;background:var(--beige2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--green-dark);font-family:'Noto Naskh Arabic',serif">
+            ${(s.name || '؟')[0]}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Noto Naskh Arabic',serif;font-weight:600;color:var(--green-dark)">${s.name || '—'}</div>
+            <div style="font-size:12px;color:var(--text-mid)">${s.email || ''}</div>
+            ${gradeInputs}
+          </div>
+        </div>`;
+  });
+  listEl.innerHTML = `<div style="margin-bottom:10px;font-size:13px;color:var(--text-mid)">عدد الطالبات: ${activeStudents.length}</div>` + rowsHtml.join('');
+}
 
+async function showTeacherPage(session) {
+  const data = session.raw || session;
+  const role = effectiveRole(data, session.email);
   if (role !== 'teacher') { window.location.href = '../html/login.html'; return; }
-  mountTestModeSwitcher(data, user.email);
+  mountTestModeSwitcher(data, session.email);
   applyCustomTheme(data);
-
-  const name    = data.name || user.email.split('@')[0];
-  const subjCode = data.subject || '';
+  const name = session.name || session.email?.split('@')[0];
+  const subjCode = session.subject || data.subject || '';
   const subjLabel = SUBJ_LABELS[subjCode] || subjCode;
-
   document.getElementById('navUserName').textContent = name;
-  document.getElementById('heroName').textContent     = `طالبات ${subjLabel}`;
-  document.getElementById('heroSubj').textContent     = `المادة: ${subjLabel}`;
-  document.getElementById('authGate').style.display    = 'none';
+  document.getElementById('heroName').textContent = `طالبات ${subjLabel}`;
+  document.getElementById('heroSubj').textContent = `المادة: ${subjLabel}`;
+  document.getElementById('authGate').style.display = 'none';
   document.getElementById('mainContent').style.display = 'flex';
-
   if (!subjLabel) {
     document.getElementById('studentsList').innerHTML =
       '<div class="stu-empty"><i class="ti ti-alert-circle"></i><span>لم يتم تحديد مادة لحسابك بعد.</span></div>';
     return;
   }
-
   await loadStudents(subjLabel);
-});
+}
+
+async function bootLaravel() {
+  const session = await resolveLaravelSession();
+  if (!session) { window.location.href = '../html/login.html'; return; }
+  await showTeacherPage(session);
+  window.doLogout = () => logoutApp('../html/login.html');
+}
+
+async function bootFirebase() {
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const { getAuth, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  ({ doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } = firestore);
+  const { FIREBASE_CONFIG } = await import("./config.js");
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = getAuth(app);
+  db = firestore.getFirestore(app);
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = '../html/login.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const data = snap.exists() ? snap.data() : {};
+    const role = effectiveRole(data, user.email);
+    if (role !== 'teacher') { window.location.href = '../html/login.html'; return; }
+    mountTestModeSwitcher(data, user.email);
+    applyCustomTheme(data);
+    const name = data.name || user.email.split('@')[0];
+    const subjCode = data.subject || '';
+    const subjLabel = SUBJ_LABELS[subjCode] || subjCode;
+    document.getElementById('navUserName').textContent = name;
+    document.getElementById('heroName').textContent = `طالبات ${subjLabel}`;
+    document.getElementById('heroSubj').textContent = `المادة: ${subjLabel}`;
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'flex';
+    if (!subjLabel) {
+      document.getElementById('studentsList').innerHTML =
+        '<div class="stu-empty"><i class="ti ti-alert-circle"></i><span>لم يتم تحديد مادة لحسابك بعد.</span></div>';
+      return;
+    }
+    await loadStudents(subjLabel);
+  });
+  window.doLogout = () => signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+}
+
+if (useApi()) bootLaravel();
+else bootFirebase();
 
 // بتطبّع الاسم الكامل عشان تقدر تقارن أسماء بينها اختلافات بسيطة (مسافات/همزات/تاء مربوطة)
 function normalizeStuName(name) {
@@ -78,6 +149,23 @@ async function loadStudents(subjLabel) {
   listEl.innerHTML = '<div style="text-align:center;padding:30px"><i class="ti ti-loader spin" style="font-size:28px;color:var(--border)"></i></div>';
 
   try {
+    if (useApi()) {
+      const res = await api.students.list('?per_page=500');
+      const rows = unwrapList(res).map(row => ({
+        uid: String(row.id),
+        sid: String(row.id),
+        name: row.name || '—',
+        email: row.email || '',
+        archived: !!(row.student_profile || row.studentProfile)?.extra?.archived,
+      })).filter(s => !s.archived);
+      if (!rows.length) {
+        listEl.innerHTML = '<div class="stu-empty"><i class="ti ti-users-group"></i><span>لا توجد طالبات ملتحقات بهذه المادة بعد.</span></div>';
+        return;
+      }
+      renderStudentRows(rows, subjLabel, false);
+      return;
+    }
+
     const q = query(
       collection(db, 'users'),
       where('role', '==', 'mateen'),
@@ -167,6 +255,10 @@ async function loadStudents(subjLabel) {
 
 // بتتنادى لما المعلمة تكتب درجة المشاركة وتخرج من الخانة — مفيش توتال خالص، رقم بس — بتحفظ/تحدّث نفس الدرجة (مش تضيف درجة جديدة كل مرة)
 window.savePartGrade = async (sid, subject) => {
+  if (useApi()) {
+    alert('حفظ درجة المشاركة غير متاح بعد في وضع Laravel');
+    return;
+  }
   const scoreInput = document.getElementById(`partScore-${sid}-${subject}`);
   if (!scoreInput) return;
 
@@ -199,4 +291,3 @@ window.savePartGrade = async (sid, subject) => {
   }
 };
 
-window.doLogout = () => signOut(auth).then(() => window.location.href = '../html/login.html');

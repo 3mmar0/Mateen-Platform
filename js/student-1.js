@@ -1,23 +1,52 @@
 // ===========================
 //  Student file — student-1.js
 // ===========================
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, query,
-         orderBy, onSnapshot, addDoc, updateDoc, serverTimestamp, deleteDoc }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut,
-         EmailAuthProvider, reauthenticateWithCredential, deleteUser }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from './config.js';
+import { USE_LARAVEL_API } from './config.js';
+import { api, isLaravelApi } from './api.js';
+import { deleteCurrentAccount, logoutApp, resolveLaravelSession } from './session.js';
 import { loadSubjectsFor } from './subjects.js';
 import { effectiveRole, mountTestModeSwitcher } from './test-mode.js';
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
 let _isAdmin = false;
 let _studentId = '';
-const db   = getFirestore(app);
-const auth = getAuth(app);
+let db = null;
+let auth = null;
+let doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, serverTimestamp, deleteDoc;
+let EmailAuthProvider, reauthenticateWithCredential, deleteUser;
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+}
+
+function mapApiStudentRow(row) {
+  const p = row.student_profile || row.studentProfile || {};
+  const extra = p.extra || {};
+  let status = extra.status || '';
+  if (!status && p.status_class === 'mateen_girls') status = 'mateen';
+  if (!status && p.status_class === 'newcomer') status = 'new';
+  return {
+    name: row.name || '',
+    status,
+    accepted: extra.accepted || 'na',
+    day: extra.day || '',
+    month: extra.month || '',
+    hour: extra.hour || '',
+    ampm: extra.ampm || '',
+    interview: p.interview_status === 'done' ? 'done' : 'pending',
+    notes: p.notes || '',
+  };
+}
+
+async function fetchStudentApi(id) {
+  const res = await api.students.list('?per_page=500');
+  const row = unwrapList(res).find(s => String(s.id) === String(id));
+  return row ? mapApiStudentRow(row) : null;
+}
 
 // ── Tab switcher (global) ─────────────────────
 window.switchTab = name => {
@@ -27,45 +56,73 @@ window.switchTab = name => {
     p.classList.toggle('active', p.id === `tab-${name}`));
 };
 
-// ── Auth Guard ────────────────────────────────
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
-
-  const userSnap = await getDoc(doc(db, 'users', user.uid));
-  if (!userSnap.exists()) { window.location.href = '../html/login.html'; return; }
-
-  const userData = userSnap.data();
-  const role     = effectiveRole(userData, user.email);
-  const status   = userData.status || '';
-  mountTestModeSwitcher(userData, user.email);
+async function runAuthGuard(sessionOrUser, userData, role) {
+  const status = userData.status || sessionOrUser.status || '';
+  mountTestModeSwitcher(userData, sessionOrUser.email);
 
   if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '../html/home.html';
+    return;
   }
 
-  // تحthisد studentId
   let studentId = new URLSearchParams(location.search).get('id');
 
   if (role === 'student' || role === 'mateen') {
-    // Student (f) تشوف but/only Rowحتها — نجيب linkedStudentId من users doc
-    studentId = userData.linkedStudentId || null;
+    studentId = userData.linkedStudentId || userData.linked_student_id || null;
     if (!studentId) {
       showNoData();
       showPage();
-      document.getElementById('studentName').textContent = user.email?.split('@')[0] || 'الطالبة';
-      document.getElementById('studentEmail').textContent = user.email || '';
+      document.getElementById('studentName').textContent = sessionOrUser.email?.split('@')[0] || 'الطالبة';
+      document.getElementById('studentEmail').textContent = sessionOrUser.email || '';
       return;
     }
   } else if (role === 'admin' || role === 'teacher' || role === 'supervisor') {
     if (!studentId) { window.location.href = '../html/home.html'; return; }
   } else {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '../html/login.html';
+    return;
   }
 
   showPage();
-  document.getElementById('studentEmail').textContent = user.email || '';
-  initPage(studentId, user, role);
-});
+  document.getElementById('studentEmail').textContent = sessionOrUser.email || '';
+  await initPage(studentId, sessionOrUser, role);
+}
+
+async function bootLaravelAuth() {
+  const session = await resolveLaravelSession();
+  if (!session) { window.location.href = '../html/login.html'; return; }
+  const role = effectiveRole(session.raw || session, session.email);
+  const userData = { ...session.raw, linkedStudentId: session.linkedStudentId, status: session.status };
+  await runAuthGuard(session, userData, role);
+}
+
+async function bootFirebaseAuth() {
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, serverTimestamp, deleteDoc } = firestore);
+  ({ getAuth, onAuthStateChanged, signOut, EmailAuthProvider, reauthenticateWithCredential, deleteUser } = firebaseAuth);
+  const { FIREBASE_CONFIG } = await import('./config.js');
+
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  db = firestore.getFirestore(app);
+  auth = getAuth(app);
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = '../html/login.html'; return; }
+    const userSnap = await getDoc(doc(db, 'users', user.uid));
+    if (!userSnap.exists()) { window.location.href = '../html/login.html'; return; }
+    const userData = userSnap.data();
+    const role = effectiveRole(userData, user.email);
+    await runAuthGuard(user, userData, role);
+  });
+}
+
+if (useApi()) {
+  bootLaravelAuth();
+} else {
+  bootFirebaseAuth();
+}
 
 function showPage() {
   document.getElementById('authGate').style.display  = 'none';
@@ -84,7 +141,6 @@ async function initPage(studentId, user, role) {
   _isAdmin = role === 'admin';
   _studentId = studentId;
 
-  // ملء قايمة مادة الدرجة من نفس مصدر المواد الحقيقي بدل القايمة الثابتة
   loadSubjectsFor('inExams').then(subjects => {
     const sel = document.getElementById('gradeSubject');
     if (sel && subjects.length) {
@@ -92,12 +148,55 @@ async function initPage(studentId, user, role) {
     }
   }).catch(e => console.error('loadSubjectsFor(inExams):', e));
 
-  // Load student info
+  if (useApi()) {
+    const s = await fetchStudentApi(studentId);
+    if (!s) { showNoData(); return; }
+    fillStudentProfile(s);
+    showApiEmptySubcollections();
+    applyRoleUi(studentId, user, role, s);
+    document.getElementById('logoutBtn').onclick = () => logoutApp('../html/login.html');
+    if (role === 'student' || role === 'mateen') setupDeleteAccountApi();
+    return;
+  }
+
+  // Load student info (Firebase)
   const stuSnap = await getDoc(doc(db, 'students', studentId));
   if (!stuSnap.exists()) { showNoData(); return; }
   const s = stuSnap.data();
+  fillStudentProfile(s);
+  applyRoleUi(studentId, user, role, s);
 
-  // Fill profile header
+  const sessQ = query(collection(db,'students',studentId,'sessions'), orderBy('date','desc'));
+  onSnapshot(sessQ, snap => {
+    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderSessions(sessions);
+    updateStats(sessions);
+  });
+
+  const gradeQ = query(collection(db,'students',studentId,'grades'), orderBy('createdAt','desc'));
+  onSnapshot(gradeQ, snap => {
+    const grades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGrades(grades);
+    updateGradeAvg(grades);
+  });
+
+  const certQ = query(collection(db,'students',studentId,'certificates'), orderBy('createdAt','desc'));
+  onSnapshot(certQ, snap => {
+    renderCerts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+
+  const awardQ = query(collection(db,'students',studentId,'awards'), orderBy('createdAt','desc'));
+  onSnapshot(awardQ, snap => {
+    renderAwards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+
+  document.getElementById('logoutBtn').onclick = () =>
+    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+
+  setupDeleteAccount(user);
+}
+
+function fillStudentProfile(s) {
   document.getElementById('studentName').textContent = s.name || 'بدون اسم';
   document.title = (s.name || 'الطالبة') + ' — متين';
 
@@ -106,89 +205,57 @@ async function initPage(studentId, user, role) {
   badge.textContent = statusMap[s.status] || '';
   if (!statusMap[s.status]) badge.style.display = 'none';
 
-  // Fill info tab
-  document.getElementById('infoName').textContent     = s.name || '—';
-  document.getElementById('infoStatus').textContent   = statusMap[s.status] || '—';
+  document.getElementById('infoName').textContent = s.name || '—';
+  document.getElementById('infoStatus').textContent = statusMap[s.status] || '—';
   const accMap = { accepted: '✅ مقبولة', rejected: '❌ غير مقبولة', na: '⏳ لم يحدد' };
-  document.getElementById('infoAccepted').textContent  = accMap[s.accepted] || '—';
-  document.getElementById('infoDay').textContent       = formatDayDate(s.day, s.month) || '—';
-  document.getElementById('infoTime').textContent      = formatTime(s.hour, s.ampm) || '—';
+  document.getElementById('infoAccepted').textContent = accMap[s.accepted] || '—';
+  document.getElementById('infoDay').textContent = formatDayDate(s.day, s.month) || '—';
+  document.getElementById('infoTime').textContent = formatTime(s.hour, s.ampm) || '—';
   const intMap = { done: '✅ تمت', pending: '⏳ لم تتم' };
   document.getElementById('infoInterview').textContent = intMap[s.interview] || '—';
-
-  // Notes
   document.getElementById('notesContent').textContent = s.notes || 'لا توجد ملاحظات بعد.';
+}
 
-  // Attendance
-  const sessQ = query(collection(db,'students',studentId,'sessions'), orderBy('date','desc'));
-  onSnapshot(sessQ, snap => {
-    const sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderSessions(sessions);
-    updateStats(sessions);
-  });
+function showApiEmptySubcollections() {
+  const empty = (icon, msg) => `<div class="stu-empty"><i class="ti ti-${icon}"></i><span>${msg}</span></div>`;
+  document.getElementById('attendanceList').innerHTML = empty('calendar-off', 'سجل الحضور غير متاح بعد في وضع Laravel');
+  document.getElementById('gradesList').innerHTML = empty('school-off', 'الدرجات غير متاحة بعد في وضع Laravel');
+  document.getElementById('certsList').innerHTML = empty('certificate-off', 'الشهادات غير متاحة بعد في وضع Laravel');
+  document.getElementById('awardsList').innerHTML = empty('award-off', 'الإجازات غير متاحة بعد في وضع Laravel');
+  document.getElementById('statPresent').textContent = '—';
+  document.getElementById('statAbsent').textContent = '—';
+  document.getElementById('statPct').textContent = '—';
+  document.getElementById('statGrade').textContent = '—';
+}
 
-  // Grades
-  const gradeQ = query(collection(db,'students',studentId,'grades'), orderBy('createdAt','desc'));
-  onSnapshot(gradeQ, snap => {
-    const grades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderGrades(grades);
-    updateGradeAvg(grades);
-  });
-
-  // Certificates (شهاداتي)
-  const certQ = query(collection(db,'students',studentId,'certificates'), orderBy('createdAt','desc'));
-  onSnapshot(certQ, snap => {
-    renderCerts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  });
-
-  // Awards / إجازات علمية (إجازاتي)
-  const awardQ = query(collection(db,'students',studentId,'awards'), orderBy('createdAt','desc'));
-  onSnapshot(awardQ, snap => {
-    renderAwards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  });
-
-  // Hide Button Delete الحساب للأدمن/Teacher (f)/الnot/don'tرفة
+function applyRoleUi(studentId, user, role, s) {
   if (role !== 'student' && role !== 'mateen') {
     document.getElementById('deleteAccBtn')?.closest('.delete-acc-section')?.remove();
   }
 
-  // الnot/don'tرفة: تشوف but/only تبويبي "حضوري" و"Notes" — وتقدر تسجل حضور وتكتب Notes
-  if (role === 'supervisor') {
-    // إخفاء الإحصائيات
+  if (role === 'supervisor' && !useApi()) {
     const statsBar = document.getElementById('statsBar');
     if (statsBar) statsBar.style.display = 'none';
-
-    // إخفاء تبويبي "بياناتي" و"درجاتي" و"شهاداتي" و"إجازاتي" فقط — بس مش نشيلهم (hide مش remove)
-    const tabInfo   = document.getElementById('tabBtn-info');
-    const tabGrades = document.getElementById('tabBtn-grades');
-    const tabCerts  = document.getElementById('tabBtn-certs');
-    const tabAwards = document.getElementById('tabBtn-awards');
-    if (tabInfo)   tabInfo.style.display   = 'none';
-    if (tabGrades) tabGrades.style.display = 'none';
-    if (tabCerts)  tabCerts.style.display  = 'none';
-    if (tabAwards) tabAwards.style.display = 'none';
-
-    // إظهار نموذج تسجيل حضور جديد — بدون قايمة الجلسات القديمة
+    ['tabBtn-info','tabBtn-grades','tabBtn-certs','tabBtn-awards'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
     document.getElementById('newSessionWrap').style.display = 'block';
     document.getElementById('attendanceList').style.display = 'none';
-
-    // تبويب الملاحظات — نموذج فاضي بدون عرض الملاحظات القديمة
-    document.getElementById('notesEditWrap').style.display  = 'block';
-    document.getElementById('notesTextarea').value          = '';
-    document.getElementById('notesContent').style.display   = 'none';
-
+    document.getElementById('notesEditWrap').style.display = 'block';
+    document.getElementById('notesTextarea').value = '';
+    document.getElementById('notesContent').style.display = 'none';
     setupSupervisorAttendance(studentId);
     setupSupervisorNotes(studentId);
     switchTab('attend');
   }
 
-  // الإدارة: صلاحية كاملة — تشوف كل التبويبات وتقدر تعدّل حضور + Grades + Notes
-  if (role === 'admin') {
+  if (role === 'admin' && !useApi()) {
     document.getElementById('newSessionWrap').style.display = 'block';
-    document.getElementById('newGradeWrap').style.display   = 'block';
-    document.getElementById('newCertWrap').style.display    = 'block';
-    document.getElementById('newAwardWrap').style.display   = 'block';
-    document.getElementById('notesEditWrap').style.display  = 'block';
+    document.getElementById('newGradeWrap').style.display = 'block';
+    document.getElementById('newCertWrap').style.display = 'block';
+    document.getElementById('newAwardWrap').style.display = 'block';
+    document.getElementById('notesEditWrap').style.display = 'block';
     document.getElementById('notesTextarea').value = s.notes || '';
     setupSupervisorAttendance(studentId);
     setupAdminGrades(studentId);
@@ -197,18 +264,32 @@ async function initPage(studentId, user, role) {
     setupSupervisorNotes(studentId);
   }
 
-  // لو مفتوحة من رابط فيه تحديد تاب معين (زي درجاتي/شهاداتي/إجازاتي من السايد بار)
   const hashTab = (location.hash || '').replace('#', '');
   if (['info','attend','grades','certs','awards','notes'].includes(hashTab)) {
     switchTab(hashTab);
   }
+}
 
-  // Logout
-  document.getElementById('logoutBtn').onclick = () =>
-    signOut(auth).then(() => window.location.href = '../html/login.html');
-
-  // Delete account
-  setupDeleteAccount(user);
+function setupDeleteAccountApi() {
+  const btn = document.getElementById('deleteAccBtn');
+  if (!btn) return;
+  btn.onclick = () => document.getElementById('delModal').classList.add('open');
+  document.getElementById('delCancelBtn').onclick = () => {
+    document.getElementById('delModal').classList.remove('open');
+    document.getElementById('delError').textContent = '';
+    document.getElementById('delPassInput').value = '';
+  };
+  document.getElementById('delConfirmBtn').onclick = async () => {
+    const pass = document.getElementById('delPassInput').value;
+    const errEl = document.getElementById('delError');
+    if (!pass) { errEl.textContent = 'أدخلي كلمة المرور'; return; }
+    try {
+      await deleteCurrentAccount();
+      window.location.href = '../html/login.html';
+    } catch (e) {
+      errEl.textContent = e.message || 'حدث خطأ، حاولي مرة أخرى';
+    }
+  };
 }
 
 // ── الnot/don'tرفة: تسجيل حضور جthisد ──────────────────

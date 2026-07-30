@@ -1,17 +1,80 @@
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc,
-         deleteDoc, doc, getDoc, orderBy, query, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, getStoredUser, isLaravelApi } from "./api.js";
 import { renderAssignmentsSection } from "./assignments-ui.js";
 import { deleteAssignmentsForMaterial } from "./assignments.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, orderBy, query, serverTimestamp, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, orderBy, query, serverTimestamp } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
+const API_SECTION = { 'mateen-lib': 'mateen_library', enrichment: 'enrichment', podcast: 'podcast', courses: 'courses' };
+
+function mapApiLibItem(item) {
+  const desc = item.description || '';
+  const typeMatch = desc.match(/^type:([^\n]*)/m);
+  const notes = desc.replace(/^type:[^\n]*\n?/m, '').trim();
+  return {
+    id: String(item.id),
+    title: item.title,
+    type: typeMatch ? typeMatch[1].trim() : 'أخرى',
+    url: item.media_url || '',
+    notes,
+    course: item.subject_filter || '',
+    lectureNumber: item.sort_order || null,
+    addedAt: item.created_at ? Date.parse(item.created_at) : Date.now(),
+  };
+}
+
+function toApiLibBody(section, { title, type, url, notes, course, lectureNumber }) {
+  const desc = [type ? `type:${type}` : '', notes || ''].filter(Boolean).join('\n');
+  return {
+    section: API_SECTION[section] || section,
+    title,
+    description: desc,
+    media_url: url,
+    subject_filter: course || null,
+    sort_order: lectureNumber != null ? Number(lectureNumber) : 0,
+  };
+}
+
+async function refreshLibraryFromApi() {
+  try {
+    const res = await api.library.list();
+    const raw = res?.data || [];
+    allLibMats = raw.filter(r => r.section === 'mateen_library').map(mapApiLibItem);
+    allLibExtra = { enrichment: [], podcast: [] };
+    raw.forEach(r => {
+      const mapped = mapApiLibItem(r);
+      if (r.section === 'enrichment') allLibExtra.enrichment.push(mapped);
+      if (r.section === 'podcast') allLibExtra.podcast.push(mapped);
+    });
+    allCourses = raw.filter(r => r.section === 'courses').map(r => ({
+      id: String(r.id),
+      name: r.title,
+      desc: (r.description || '').replace(/^type:[^\n]*\n?/m, '').trim(),
+    }));
+    window.renderLibMats();
+    ['enrichment', 'podcast'].forEach(renderSection);
+    renderCoursesGrid();
+  } catch (e) {
+    console.error('refreshLibraryFromApi:', e);
+  }
+}
 
 let currentRole = null;
 let allLibMats  = [];   // Library متين (من libraryMaterials collection — منفصل تمامًا عن materials المواد العلمية)
@@ -193,42 +256,67 @@ function renderCoursesGrid() {
   if (addBtn) addBtn.style.display = isAdmin() ? 'block' : 'none';
 }
 
-// ══ مستمعات Firestore ══
+// ══ مستمعات Firestore / Laravel API ══
 
-// 1. Library متين — من libraryMaterials collection (منفصل تمامًا عن materials المواد العلمية)
-onSnapshot(query(collection(db, 'libraryMaterials'), orderBy('addedAt', 'desc')), snap => {
-  allLibMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+if (useApi()) {
+  refreshLibraryFromApi();
+  setInterval(refreshLibraryFromApi, 30000);
+  const stored = getStoredUser();
+  currentRole = stored?.role || null;
   window.renderLibMats();
-  if (window._openCourseId) window.openCourseDetailModal(window._openCourseId, true);
-});
-
-// 2. الأقسام الأخرى — من libraryItems collection
-onSnapshot(query(collection(db, 'libraryItems'), orderBy('addedAt', 'desc')), snap => {
-  allLibExtra = { enrichment: [], podcast: [] };
-  snap.docs.forEach(d => {
-    const data = { id: d.id, ...d.data() };
-    if (allLibExtra[data.section] !== undefined) allLibExtra[data.section].push(data);
-  });
   ['enrichment', 'podcast'].forEach(renderSection);
-});
-
-// 3. الدورات — من courses collection (كل دورة زي مادة مصغّرة بموادها الخاصة)
-onSnapshot(query(collection(db, 'courses'), orderBy('addedAt', 'asc')), snap => {
-  allCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderCoursesGrid();
-});
+} else {
+  (async () => {
+    await ensureFirebase();
+  // 1. Library متين — من libraryMaterials collection (منفصل تمامًا عن materials المواد العلمية)
+  onSnapshot(query(collection(db, 'libraryMaterials'), orderBy('addedAt', 'desc')), snap => {
+    allLibMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    window.renderLibMats();
+    if (window._openCourseId) window.openCourseDetailModal(window._openCourseId, true);
+  });
+
+  // 2. الأقسام الأخرى — من libraryItems collection
+  onSnapshot(query(collection(db, 'libraryItems'), orderBy('addedAt', 'desc')), snap => {
+    allLibExtra = { enrichment: [], podcast: [] };
+    snap.docs.forEach(d => {
+      const data = { id: d.id, ...d.data() };
+      if (allLibExtra[data.section] !== undefined) allLibExtra[data.section].push(data);
+    });
+    ['enrichment', 'podcast'].forEach(renderSection);
+  });
+
+  // 3. الدورات — من courses collection (كل دورة زي مادة مصغّرة بموادها الخاصة)
+  onSnapshot(query(collection(db, 'courses'), orderBy('addedAt', 'asc')), snap => {
+    allCourses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCoursesGrid();
+  });
+  })();
+}
 
 // ══ Auth ══
-onAuthStateChanged(auth, async user => {
-  if (!user) { currentRole = null; }
-  else {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    currentRole = snap.exists() ? (snap.data().role || null) : null;
-  }
-  window.renderLibMats();
-  ['enrichment', 'podcast'].forEach(renderSection);
-  renderCoursesGrid();
-});
+if (useApi()) {
+  api.me().then(me => {
+    currentRole = (me?.data ?? me)?.role || getStoredUser()?.role || null;
+    window.renderLibMats();
+    ['enrichment', 'podcast'].forEach(renderSection);
+    renderCoursesGrid();
+  }).catch(() => {});
+} else {
+  (async () => {
+    await ensureFirebase();
+  onAuthStateChanged(auth, async user => {
+    if (!user) { currentRole = null; }
+    else {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      currentRole = snap.exists() ? (snap.data().role || null) : null;
+    }
+    window.renderLibMats();
+    ['enrichment', 'podcast'].forEach(renderSection);
+    renderCoursesGrid();
+  });
+  })();
+}
 
 // ── رقم المحاضرة: تحديث القايمة حسب المادة/الدورة المختارة ────
 window.updateLibLectureOptions = () => {
@@ -284,6 +372,20 @@ window.submitNewCourseContainer = async () => {
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> جاري الإضافة...';
 
   try {
+    if (useApi()) {
+      await api.library.create({
+        section: 'courses',
+        title: name,
+        description: desc,
+        media_url: document.getElementById('crsIconUrl').value.trim() || null,
+      });
+      await refreshLibraryFromApi();
+      document.getElementById('addCourseContainerModal').style.display = 'none';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-plus"></i> إضافة الدورة';
+      return;
+    }
+    await ensureFirebase();
     await addDoc(collection(db, 'courses'), {
       name,
       desc,
@@ -346,6 +448,14 @@ window.openCourseDetailModal = (courseId, keepOpenSilent) => {
 window.confirmDeleteCourse = async (courseId, name) => {
   if (!confirm(`هل أنتِ متأكدة من حذف دورة "${name}"؟ هيتم حذف كل محتواها كمان.`)) return;
   try {
+    if (useApi()) {
+      await api.library.remove(courseId);
+      await refreshLibraryFromApi();
+      document.getElementById('courseDetailModal').style.display = 'none';
+      window._openCourseId = null;
+      return;
+    }
+    await ensureFirebase();
     const mats = allLibMats.filter(m => m.courseId === courseId);
     for (const m of mats) {
       await deleteAssignmentsForMaterial(m.id);
@@ -389,7 +499,16 @@ window.submitAddLib = async () => {
   }
 
   try {
-    if (section === 'mateen-lib') {
+    if (useApi()) {
+      await api.library.create(toApiLibBody(section, {
+        title, type, url, notes,
+        course: section === 'mateen-lib' ? document.getElementById('addLibSubject').value : undefined,
+        lectureNumber,
+      }));
+      await refreshLibraryFromApi();
+    } else {
+      await ensureFirebase();
+      if (section === 'mateen-lib') {
       await addDoc(collection(db, 'libraryMaterials'), {
         title, type, url, notes,
         course: document.getElementById('addLibSubject').value,
@@ -405,6 +524,7 @@ window.submitAddLib = async () => {
       });
     } else {
       await addDoc(collection(db, 'libraryItems'), { title, type, url, notes, section, addedAt: Date.now() });
+    }
     }
     document.getElementById('addLibModal').style.display = 'none';
   } catch(e) {
@@ -442,8 +562,13 @@ window.submitEditLib = async () => {
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحفظ...';
 
   try {
-    const colName = (editCache.section === 'mateen-lib' || editCache.section === 'courses') ? 'libraryMaterials' : 'libraryItems';
-    await updateDoc(doc(db, colName, id), { title, type, url, notes });
+    if (useApi()) {
+      await api.library.update(id, toApiLibBody(editCache.section, { title, type, url, notes }));
+      await refreshLibraryFromApi();
+    } else {
+      const colName = (editCache.section === 'mateen-lib' || editCache.section === 'courses') ? 'libraryMaterials' : 'libraryItems';
+      await updateDoc(doc(db, colName, id), { title, type, url, notes });
+    }
     document.getElementById('editLibModal').style.display = 'none';
   } catch(e) {
     err.style.display = 'block'; err.textContent = 'خطأ: ' + e.message;
@@ -467,8 +592,15 @@ window.executeDeleteLib = async () => {
   const btn = document.getElementById('deleteLibConfirm');
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>';
   try {
-    await deleteAssignmentsForMaterial(id);
-    await deleteDoc(doc(db, col, id));
+    if (useApi()) {
+      await deleteAssignmentsForMaterial(id);
+      await api.library.remove(id);
+      await refreshLibraryFromApi();
+    } else {
+      await ensureFirebase();
+      await deleteAssignmentsForMaterial(id);
+      await deleteDoc(doc(db, col, id));
+    }
     document.getElementById('deleteLibModal').style.display = 'none';
   } catch(e) { alert('خطأ في الحذف: ' + e.message); }
   btn.disabled = false; btn.innerHTML = '<i class="ti ti-trash"></i> حذف';
