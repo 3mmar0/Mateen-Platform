@@ -2029,7 +2029,7 @@ function renderBGStudents() {
     <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
       <input type="checkbox" class="bg-check" data-id="${s.id}" data-name="${esc(s.name||'')}" checked style="width:16px;height:16px;cursor:pointer"/>
       <span style="flex:1;font-size:13px;font-weight:600">${esc(s.name||'—')}</span>
-      <input type="number" class="bg-score" data-id="${s.id}" min="0" placeholder="الدرجة"
+      <input type="number" class="bg-score" data-id="${s.id}" placeholder="الدرجة"
         style="width:80px;border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-family:inherit;font-size:13px;text-align:center"/>
     </div>
   `).join('');
@@ -2490,7 +2490,7 @@ window.openEditExamModal = async (encodedKey) => {
               ${isDup ? `<span title="فيه أكتر من طالبة بنفس الاسم" style="display:inline-block;margin-inline-start:6px;font-size:10px;background:#fdf3e3;color:#a9720f;border-radius:10px;padding:1px 8px">⚠️ ${esc(tag || 'اسم مكرر')}</span>` : ''}
             </span>
             <input type="number" class="ee-score" data-grade-id="${e.gradeId}" data-student-id="${e.studentId}"
-              value="${e.score ?? ''}" min="0"
+              value="${e.score ?? ''}"
               style="width:80px;border:1px solid ${e.isNew ? '#c9852b' : 'var(--border)'};border-radius:6px;padding:4px 8px;text-align:center">
           </label>
           ${isDup ? `<button type="button" onclick="removeExamScoreRow(this,'${e.gradeId}','${e.studentId}')" title="احذفي الصف ده" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:15px;padding:2px 4px">🗑️</button>` : ''}
@@ -2694,9 +2694,24 @@ function renderBAStudents() {
         ? `<div style="display:flex;flex-direction:column;gap:2px">${baSubjectsForCurrentDay().map(subj => baSubjRowHtml(s.id, subj, null)).join('')}</div>`
         : `<div class="ba-status-wrap" data-id="${s.id}" data-status="" style="display:flex;gap:6px">${baBtnHtml(s.id, null)}</div>`
       }
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <input type="number" min="0" class="ba-late-input" data-id="${s.id}" value="0"
+          oninput="if(this.value<0)this.value=0;updateBALateTotal()"
+          title="دقائق التأخير"
+          style="width:56px;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12px;text-align:center"/>
+        <span style="font-size:11px;color:var(--text-mid);white-space:nowrap">د. تأخير</span>
+      </div>
     </div>
   `).join('');
+  updateBALateTotal();
 }
+
+window.updateBALateTotal = () => {
+  const total = [...document.querySelectorAll('.ba-late-input')]
+    .reduce((sum, el) => sum + (parseInt(el.value, 10) || 0), 0);
+  const totalEl = document.getElementById('baLateTotal');
+  if (totalEl) totalEl.textContent = total;
+};
 
 window.baSelectAll = () => document.querySelectorAll('.ba-check').forEach(cb => cb.checked = true);
 window.baClearAll  = () => document.querySelectorAll('.ba-check').forEach(cb => cb.checked = false);
@@ -2780,9 +2795,11 @@ window.saveBulkAttendance = async () => {
         const status = document.querySelector(`.ba-status-wrap[data-id="${sid}"]`)?.dataset.status;
         subjectsMap = { [subject]: status };
       }
+      const lateMinutes = parseInt(document.querySelector(`.ba-late-input[data-id="${sid}"]`)?.value, 10) || 0;
       return addDoc(collection(db, 'students', sid, 'sessions'), {
         day, date,
         subjects: subjectsMap,
+        lateMinutes,
         createdAt: Date.now(),
       });
     }));

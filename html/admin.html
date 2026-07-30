@@ -322,14 +322,16 @@
   </div>
 
   <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="notesMenuBtn" onclick="openBulkNotesModal()" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-notes"></i> الملاحظات
+    </button>
+  </div>
+
+  <div class="am-group" style="position:relative;display:inline-block">
     <button class="btn-add-row am-menu-btn" id="otherMenuBtn" onclick="toggleActionMenu('otherMenu')" style="background:var(--beige2);border-color:var(--border)">
       <i class="ti ti-dots"></i> أخرى ▾
     </button>
     <div id="otherMenu" class="am-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(44,26,14,0.15);padding:4px 6px 6px;min-width:230px;z-index:200;overflow:hidden">
-      <button class="actions-menu-item" onclick="openBulkNotesModal();closeActionMenus()">
-        <span class="ami-icon" style="background:rgba(230,126,34,0.12);color:#d35400"><i class="ti ti-notes"></i></span>
-        <span class="ami-text"><strong>محرر الملاحظات الجماعي</strong><small>عدّلي ملاحظات عدة طالبات مرة واحدة</small></span>
-      </button>
       <button class="actions-menu-item" onclick="showArchive();closeActionMenus()">
         <span class="ami-icon" style="background:rgba(127,140,141,0.12);color:#7f8c8d"><i class="ti ti-archive"></i></span>
         <span class="ami-text"><strong>الأرشيف</strong><small>الطالبات المؤرشفات</small></span>
@@ -979,7 +981,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="../js/admin-1.js?v=20260723" type="module"></script>
+<script src="../js/admin-1.js?v=20260726" type="module"></script>
 <script type="module" src="../js/notifications.js?v=20260723"></script>
 <script src="../js/sw-register.js?v=20260723"></script>
 
@@ -1127,6 +1129,11 @@
       </div>
 
       <div id="baStudentsList" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;background:rgba(230,126,34,0.1);border:1px solid rgba(230,126,34,0.3);border-radius:8px;padding:8px 14px">
+        <span style="font-size:13px;font-weight:600;color:#a3552a"><i class="ti ti-clock"></i> إجمالي دقائق التأخير لهذا اليوم</span>
+        <span id="baLateTotal" style="font-size:15px;font-weight:800;color:#a3552a">0</span>
+      </div>
 
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
         <button onclick="closeBulkAttModal()" style="background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-family:inherit;cursor:pointer">إلغاء</button>
