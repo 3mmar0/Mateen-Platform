@@ -122,11 +122,41 @@ Serve static site as you do today (Live Server / GitHub Pages local).
 
 **Pass**: Pilot ≥90% task success; SC-001–SC-008 recorded.
 
+### V8 — Staging VPS smoke (ops gate before production)
+
+Prerequisites: monorepo on the **new GitHub repo**; CI green; staging deploy to host `187.127.71.130` complete; TLS or clear HTTP-only test URL documented for that box; staging `.env` set (see [contracts/environments.md](./contracts/environments.md)).
+
+1. Hit Laravel health (`/up` or documented health path) on staging → 200.
+2. Point a browser or curl client at staging `API_BASE_URL`; `POST /auth/login` with a staging seed user → Bearer token.
+3. `GET /auth/me` → expected role.
+4. Open production-shaped UI path locally or on staging static files with `USE_LARAVEL_API=true` and staging `API_BASE_URL`; confirm login page flow equivalent to `https://mateen.academy/Mateen/html/login.html`.
+5. Confirm CORS allows the origin used in step 4.
+6. **Do not** deploy to production host `31.97.122.143` until this scenario passes.
+
+**Pass**: Health + login + `/auth/me` + CORS OK on staging; production deploy still blocked until explicitly promoted.
+
+---
+
+## Monorepo & CI/CD validation (ops)
+
+```bash
+# From repo root — backend CI locally
+cd backend && composer install && php artisan test
+
+# After GitHub Actions deploy workflow exists:
+# 1) Push to new repo main → staging job runs
+# 2) Run V8 against staging
+# 3) Approve production environment → prod VPS only then
+```
+
+Keep SSH credentials and DB passwords in GitHub Secrets / server `.env` only.
+
 ---
 
 ## Useful references
 
 - OpenAPI paths: [contracts/openapi.yaml](./contracts/openapi.yaml)
+- Environments / deploy order: [contracts/environments.md](./contracts/environments.md)
 - Entities & delete rules: [data-model.md](./data-model.md)
 - Stack decisions: [research.md](./research.md)
 - Acceptance metrics: [spec.md](./spec.md) Success Criteria
@@ -136,7 +166,7 @@ Serve static site as you do today (Live Server / GitHub Pages local).
 ## Out of scope for this quickstart
 
 - Full UI redesign
-- Production DNS/TLS runbooks (ops-specific)
+- Pasting live SSH passwords into docs (use Secrets)
 - Complete automated test suite listing (belongs in implementation / `tasks.md`)
 
 ---

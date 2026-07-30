@@ -298,3 +298,9 @@ AttendanceRecord / GradeRecord → User, Subject
 - Student/mateen message create rejects media.
 - Library `section` must be one of four enums.
 - Bulk student create: transactional; partial failure returns per-row errors without silent skip of successes unless documented batch mode.
+
+---
+
+## Deployment note (non-domain)
+
+Staging/production VPS and GitHub remotes do **not** add domain tables. Environment URLs, CORS origins, and deploy order are contracted in [contracts/environments.md](./contracts/environments.md).
