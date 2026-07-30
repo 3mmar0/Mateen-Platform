@@ -2,18 +2,32 @@
 //  Student page — Width/Display only
 // ===========================
 
-import { initializeApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, setDoc, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from './config.js';
+import { USE_LARAVEL_API } from './config.js';
+import { api, isLaravelApi } from './api.js';
+import { resolveLaravelSession } from './session.js';
 import { effectiveRole, mountTestModeSwitcher } from './test-mode.js';
 
-const app  = initializeApp(FIREBASE_CONFIG);
-const db   = getFirestore(app);
-const auth = getAuth(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null;
+let doc, getDoc, collection, getDocs, query, orderBy, setDoc, serverTimestamp;
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+}
+
+function mapApiStudentRow(row) {
+  const p = row.student_profile || row.studentProfile || {};
+  const extra = p.extra || {};
+  return {
+    name: row.name || '',
+    notes: p.notes || '',
+    enrolledSubjects: extra.enrolledSubjects || row.enrollments?.map(e => e.subject?.title).filter(Boolean) || [],
+  };
+}
 
 // كود المادة (المخزّن في حساب المعلمة) → الاسم العربي (المخزّن في enrolledSubjects بتاع الطالبة)
 const SUBJECT_MAP = {
@@ -27,41 +41,58 @@ const SUBJECT_MAP = {
   'quran2':  'مقرأة متين',
 };
 
-// ── Auth Guard ───────────────────────────────
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
-
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
-
-  const userData = snap.data();
-  const role     = effectiveRole(userData, user.email);
-  const status   = userData.status || '';
-  mountTestModeSwitcher(userData, user.email);
-
-  if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
-  }
-
-  // الإدارة والمشرفة: يشوفوا كل الطالبات
-  if (role === 'admin' || role === 'supervisor') {
-    document.getElementById('authGate').style.display    = 'none';
+async function runAuthGuard(userData, effRole) {
+  if (effRole === 'admin' || effRole === 'supervisor' || effRole === 'teacher') {
+    document.getElementById('authGate').style.display = 'none';
     document.getElementById('mainContent').style.display = 'block';
-    initStudentView(userData, role);
+    initStudentView(userData, effRole);
     return;
   }
-
-  // المعلمة: تشوف طالباتها بس — التحقق يتم جوه initStudentView بعد ما يتحمّل الـ student
-  if (role === 'teacher') {
-    document.getElementById('authGate').style.display    = 'none';
-    document.getElementById('mainContent').style.display = 'block';
-    initStudentView(userData, role);
-    return;
-  }
-
-  // الطالبات وأي حد تاني — ممنوع
   window.location.href = '../html/home.html';
-});
+}
+
+async function bootLaravelAuth() {
+  const session = await resolveLaravelSession();
+  if (!session) { window.location.href = '../html/login.html'; return; }
+  const userData = session.raw || session;
+  const role = effectiveRole(userData, session.email);
+  const status = session.status || userData.status || '';
+  mountTestModeSwitcher(userData, session.email);
+  if (status === 'pending' || status === 'suspended') {
+    window.location.href = '../html/home.html';
+    return;
+  }
+  await runAuthGuard({ ...userData, subject: session.subject || userData.subject }, role);
+}
+
+async function bootFirebaseAuth() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ doc, getDoc, collection, getDocs, query, orderBy, setDoc, serverTimestamp } = firestore);
+  const { FIREBASE_CONFIG } = await import('./config.js');
+  const app = initializeApp(FIREBASE_CONFIG);
+  db = firestore.getFirestore(app);
+  const auth = getAuth(app);
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = '../html/login.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    const userData = snap.data();
+    const role = effectiveRole(userData, user.email);
+    const status = userData.status || '';
+    mountTestModeSwitcher(userData, user.email);
+    if (status === 'pending' || status === 'suspended') {
+      window.location.href = '../html/home.html';
+      return;
+    }
+    await runAuthGuard(userData, role);
+  });
+}
+
+if (useApi()) bootLaravelAuth();
+else bootFirebaseAuth();
 
 function initStudentView(userData = {}, effRole = userData.role || '') {
 
@@ -88,15 +119,46 @@ async function loadAll() {
   let studentId;
 
   if (studentDocId) {
-    // فتح مباشرة بالـ document ID (من صفحة الإدارة)
     studentId = studentDocId;
     history.replaceState(null, '', location.pathname);
+  } else if (useApi()) {
+    showError('الرابط غير صحيح');
+    return;
   } else {
-    // فتح بالرقم التسلسلي (الطريقة القديمة)
     const allSnap = await getDocs(query(collection(db, 'students'), orderBy('order')));
     if (allSnap.empty || studentNum > allSnap.docs.length) { showError(); return; }
     studentId = allSnap.docs[studentNum - 1].id;
     history.replaceState(null, '', location.pathname);
+  }
+
+  if (useApi()) {
+    const res = await api.students.list('?per_page=500');
+    const row = unwrapList(res).find(s => String(s.id) === String(studentId));
+    if (!row) {
+      document.getElementById('studentName').textContent = 'طالبة غير موجودة';
+      return;
+    }
+    const s = mapApiStudentRow(row);
+    if (effRole === 'teacher') {
+      const teacherSubjectAr = SUBJECT_MAP[userData.subject || ''] || userData.subject || '';
+      if (!s.enrolledSubjects.includes(teacherSubjectAr)) {
+        showError('ليس لديكِ صلاحية لعرض هذه الصفحة');
+        return;
+      }
+    }
+    document.title = 'سجل الطالبة — برنامج متين';
+    if (s.notes?.trim()) {
+      document.getElementById('notesCard').style.display = 'block';
+      document.getElementById('notesContent').textContent = s.notes;
+    }
+    document.getElementById('attendanceList').innerHTML = '<div class="empty-msg">سجل الحضور غير متاح بعد في وضع Laravel</div>';
+    document.getElementById('gradesCard').style.display = 'block';
+    document.getElementById('participationWrap').innerHTML = '';
+    document.getElementById('gradesList').innerHTML = '<div class="empty-msg">الدرجات غير متاحة بعد في وضع Laravel</div>';
+    document.getElementById('statPresent').textContent = '—';
+    document.getElementById('statAbsent').textContent = '—';
+    document.getElementById('statPct').textContent = '—';
+    return;
   }
 
   const studentRef = doc(db, 'students', studentId);
@@ -202,6 +264,7 @@ async function getExistingScore(sid, gradeId) {
 }
 
 window.savePartGrade = async (sid, subject) => {
+  if (useApi()) { alert('حفظ درجة المشاركة غير متاح بعد في وضع Laravel'); return; }
   const scoreInput = document.getElementById(`partScore-${sid}-${subject}`);
   if (!scoreInput) return;
   const raw = scoreInput.value.trim();
@@ -233,6 +296,7 @@ async function getPublishState(subjectAr) {
 }
 
 window.togglePublishParticipation = async (subjectAr) => {
+  if (useApi()) { alert('نشر الدرجات غير متاح بعد في وضع Laravel'); return; }
   const checkbox = document.getElementById(`publishToggle-${subjectAr}`);
   const label    = document.getElementById(`publishLabel-${subjectAr}`);
   if (!checkbox) return;

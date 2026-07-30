@@ -103,7 +103,18 @@ function playThemeWelcomeBurst(pattern) {
 // بتتنادى بعد ما نجيب بيانات المستخدم من Firestore — وبتخزن نسخة في
 // localStorage عشان الصفحات التانية تطبّق الثيم فورًا من غير ما تستنى Firestore
 export function applyCustomTheme(userData) {
-  const theme = userData && userData.customTheme;
+  let theme = userData && userData.customTheme;
+  if ((!theme || !Object.keys(theme).length) && userData?.theme_id) {
+    const preset = THEME_PRESETS.find(p => p.id === userData.theme_id);
+    if (preset) {
+      theme = {
+        greenDark: preset.greenDark,
+        gold: preset.gold,
+        beige: preset.beige,
+        pattern: userData.ornament_id || preset.pattern,
+      };
+    }
+  }
   const prevRaw = localStorage.getItem('mateenCustomTheme');
 
   if (!theme || Object.keys(theme).length === 0) {

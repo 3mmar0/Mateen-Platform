@@ -35,7 +35,16 @@ function getCurrentHijriYear() {
 export const CUR_HIJRI_YEAR  = getCurrentHijriYear();
 export const YEARS_HIJRI     = Array.from({ length: 11 }, (_, i) => CUR_HIJRI_YEAR - 5 + i);
 
-// Firebase config
+/**
+ * Backend cutover:
+ * - USE_LARAVEL_API=true → ALL app data/auth go through Laravel (API_BASE_URL).
+ * - Firebase is ONLY for FCM push (firebase-messaging) in that mode — not Auth, not Firestore.
+ * - USE_LARAVEL_API=false → legacy Firebase Auth/Firestore (rollback / migration only).
+ */
+export const USE_LARAVEL_API = true;
+export const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+
+// Firebase web config — FCM messaging when Laravel is on; full legacy backend when off
 export const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyBIVtK3tNHSnQW6Pfq-cZgSvLmTX6kaeTk",
   authDomain:        "mateen-a122d.firebaseapp.com",

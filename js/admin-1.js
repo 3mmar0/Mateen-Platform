@@ -1,22 +1,111 @@
 
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc,
-         onSnapshot, query, orderBy, where, getDoc, updateDoc, getDocs, serverTimestamp,
-         collectionGroup, deleteField }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi, getToken, getStoredUser, clearSession } from "./api.js";
 import { exportWord, exportPdf, exportAttendanceWord, exportAttendancePdf, exportAttendanceExcel } from "./export.js";
 import { fullDeleteUser } from "./delete-account.js";
 import { loadSubjectsFor } from "./subjects.js";
 import { uploadToCloudinary } from "./cloud-upload.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, where, getDoc, updateDoc, getDocs, serverTimestamp, collectionGroup, deleteField, onAuthStateChanged, signOut;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, where, getDoc, updateDoc, getDocs, serverTimestamp, collectionGroup, deleteField } = firestore);
+  ({ onAuthStateChanged, signOut } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+}
+
+function mapApiStudent(row) {
+  const p = row.student_profile || row.studentProfile || {};
+  const extra = p.extra || {};
+  let status = extra.status || '';
+  if (!status && p.status_class === 'mateen_girls') status = 'mateen';
+  if (!status && p.status_class === 'newcomer') status = 'new';
+  return {
+    id: String(row.id),
+    name: row.name || '',
+    email: row.email || '',
+    interview: p.interview_status === 'done' ? 'done' : 'pending',
+    accepted: extra.accepted || 'na',
+    status,
+    day: extra.day || '',
+    dateH: extra.dateH || '',
+    dateG: extra.dateG || '',
+    hour: extra.hour || '',
+    minute: extra.minute || '00',
+    ampm: extra.ampm || 'ص',
+    placementScore: extra.placementScore ?? null,
+    order: extra.order ?? row.id,
+    archived: !!extra.archived,
+    archivedAt: extra.archivedAt || null,
+    uid: extra.uid || '',
+  };
+}
+
+function studentExtraFrom(s, patch = {}) {
+  return {
+    order: patch.order ?? s.order,
+    day: patch.day ?? s.day,
+    dateH: patch.dateH ?? s.dateH,
+    dateG: patch.dateG ?? s.dateG,
+    hour: patch.hour ?? s.hour,
+    minute: patch.minute ?? s.minute,
+    ampm: patch.ampm ?? s.ampm,
+    accepted: patch.accepted ?? s.accepted,
+    placementScore: patch.placementScore ?? s.placementScore,
+    archived: patch.archived ?? s.archived,
+    archivedAt: patch.archivedAt ?? s.archivedAt,
+    uid: patch.uid ?? s.uid,
+    status: patch.status ?? s.status,
+  };
+}
+
+function mapStudentPatch(existing, fields) {
+  const merged = { ...existing, ...fields };
+  const payload = { extra: studentExtraFrom(existing, fields) };
+  if (fields.name !== undefined) payload.name = fields.name;
+  if (fields.interview !== undefined) {
+    payload.interview_status = fields.interview === 'done' ? 'done' : 'not_done';
+  }
+  if (fields.status !== undefined) {
+    payload.status_class = fields.status === 'mateen' ? 'mateen_girls'
+      : fields.status === 'new' ? 'newcomer' : null;
+  }
+  if (fields.accepted !== undefined) payload.extra.accepted = fields.accepted;
+  return payload;
+}
+
+async function refreshStudentsApi() {
+  const res = await api.students.list('?per_page=500');
+  allStudents = unwrapList(res).map(mapApiStudent);
+  renderStudents(allStudents.filter(s => !s.archived));
+  updateStuStats(allStudents.filter(s => !s.archived));
+}
+
+async function patchStudent(id, fields) {
+  const existing = allStudents.find(s => s.id === id) || {};
+  await api.students.update(id, mapStudentPatch(existing, fields));
+  await refreshStudentsApi();
+}
+
 let allMats = [];
 let currentUserRole = null;
 let currentViewerEmail = '';
@@ -60,8 +149,41 @@ function baSubjectsForCurrentDay() {
   return getDaySubjects(day);
 }
 
-// ── AUTH GUARD ────────────────────────────────────────
-onAuthStateChanged(auth, async user => {
+async function initAdminApi() {
+  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  let userData;
+  try {
+    const me = await api.me();
+    userData = (me?.data ?? me ?? getStoredUser()) || {};
+  } catch {
+    window.location.href = '../html/login.html'; return;
+  }
+  const role = effectiveRole(userData, userData.email || '') || 'student';
+  currentUserRole = role;
+  currentViewerEmail = (userData.email || '').toLowerCase();
+  if (role !== 'admin') {
+    window.location.href = '../html/home.html'; return;
+  }
+  mountTestModeSwitcher(userData, userData.email || '');
+  document.getElementById('navUserName').textContent = userData.name || 'الإدارة';
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('mainContent').classList.remove('main-content-hidden');
+  if (role === 'admin' || role === 'supervisor') {
+    document.getElementById('pendingSection').style.display = 'block';
+    document.getElementById('allUsersSection').style.display = 'block';
+    document.getElementById('deletionRequestsSection').style.display = 'block';
+  }
+  if (role !== 'admin') {
+    document.getElementById('studentsSection').style.display = 'none';
+  }
+  const testerEl = document.getElementById('siteTesterSection');
+  if (testerEl) testerEl.style.display = 'none';
+  loadSubjectOptions();
+}
+
+async function bootAdminFirebase() {
+  await ensureFirebase();
+  onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = '../html/login.html'; return; }
   const snap = await getDoc(doc(db, 'users', user.uid));
   const userData = snap.exists() ? snap.data() : {};
@@ -87,17 +209,46 @@ onAuthStateChanged(auth, async user => {
   if (role !== 'admin') {
     document.getElementById('studentsSection').style.display = 'none';
   }
-  // الأدمن لا يشوف قسم فحص الموقع
   const testerEl = document.getElementById('siteTesterSection');
   if (testerEl) testerEl.style.display = 'none';
   loadMats();
   loadSubjectOptions();
-  // loadTeachers تتشتغل بس لما تاب المعلمات يتفتح
-});
+  });
+}
+
+if (useApi()) {
+  initAdminApi();
+} else {
+  bootAdminFirebase();
+}
 
 
 // ── عرض الأرشيف ────────────────────────────────────────
 window.showArchive = async () => {
+  if (useApi()) {
+    const archived = allStudents.filter(s => s.archived);
+    if (!archived.length) { alert('لا توجد طالبات في الأرشيف'); return; }
+    const rows = archived.map(s => {
+      const arDate = s.archivedAt ? new Date(s.archivedAt).toLocaleDateString('ar-EG') : '—';
+      return `<tr>
+        <td style="font-weight:600">${esc(s.name||'—')}</td>
+        <td style="font-size:12px;color:var(--text-mid)">${arDate}</td>
+        <td>
+          <button onclick="restoreStudent('${s.id}')"
+            style="background:var(--green-dark);color:#e8c96a;border:none;border-radius:6px;padding:5px 12px;font-family:inherit;cursor:pointer;font-size:12px">
+            <i class="ti ti-restore"></i> استعادة
+          </button>
+          <button onclick="stuDeletePermanent('${s.id}')"
+            style="background:#fff0f0;color:#c0392b;border:1px solid #f5c6c6;border-radius:6px;padding:5px 12px;font-family:inherit;cursor:pointer;font-size:12px;margin-right:6px">
+            <i class="ti ti-trash"></i> حذف نهائي
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+    document.getElementById('archiveBody').innerHTML = rows;
+    document.getElementById('archiveModal').style.display = 'flex';
+    return;
+  }
   const snap = await getDocs(query(
     collection(db, 'students'),
     where('archived', '==', true),
@@ -134,7 +285,11 @@ window.showArchive = async () => {
 };
 
 window.restoreStudent = async id => {
-  await updateDoc(doc(db, 'students', id), { archived: false, archivedAt: null });
+  if (useApi()) {
+    await patchStudent(id, { archived: false, archivedAt: null });
+  } else {
+    await updateDoc(doc(db, 'students', id), { archived: false, archivedAt: null });
+  }
   showToast('✅ تمت استعادة الطالبة');
   document.getElementById('archiveModal').style.display = 'none';
 };
@@ -142,7 +297,14 @@ window.restoreStudent = async id => {
 window.closeArchiveModal = () => {
   document.getElementById('archiveModal').style.display = 'none';
 };
-window.doLogout = () => signOut(auth).then(() => window.location.href = '../html/login.html');
+window.doLogout = () => {
+  if (useApi()) {
+    clearSession();
+    window.location.href = '../html/login.html';
+  } else {
+    signOut(auth).then(() => window.location.href = '../html/login.html');
+  }
+};
 
 // ── ADD ───────────────────────────────────────────────
 window.doAdd = async () => {
@@ -608,12 +770,18 @@ function makeDatePicker(sid, dateStr) {
   </div>`;
 }
 
-const stuQuery = query(collection(db,'students'), orderBy('order'));
-onSnapshot(stuQuery, snap => {
-  allStudents = snap.docs.map(d=>({id:d.id,...d.data()}));
-  renderStudents(allStudents);
-  updateStuStats(allStudents);
-});
+if (useApi()) {
+  refreshStudentsApi().catch(e => console.error('students API load:', e));
+} else {
+  (async () => {
+    await ensureFirebase();
+    onSnapshot(query(collection(db,'students'), orderBy('order')), snap => {
+    allStudents = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderStudents(allStudents);
+    updateStuStats(allStudents);
+  });
+  })();
+}
 
 function updateStuStats(list) {
   document.getElementById('stuTotal').textContent    = list.length;
@@ -1192,19 +1360,51 @@ window.manageCADeleteEntry = async (studentId, entryId) => {
 };
 
 
-window.addStudentRow = async () => { await addDoc(collection(db,'students'), stuDefault()); };
+window.addStudentRow = async () => {
+  if (useApi()) {
+    const d = stuDefault();
+    await api.students.create({
+      name: d.name,
+      email: `student-${Date.now()}@mateen.local`,
+      interview_status: 'not_done',
+      extra: studentExtraFrom(d, { order: d.order, accepted: d.accepted, status: d.status }),
+    });
+    await refreshStudentsApi();
+    return;
+  }
+  await addDoc(collection(db,'students'), stuDefault());
+};
 
 window.addBulkNames = async () => {
   const txt = document.getElementById('bulkNames').value;
   if(!txt.trim()) return;
   const names = txt.split('\n').filter(n=>n.trim());
-  for(let i=0;i<names.length;i++) await addDoc(collection(db,'students'),{...stuDefault(),order:Date.now()+i,name:names[i].trim()});
+  if (useApi()) {
+    await api.students.bulk(names.map((name, i) => {
+      const d = { ...stuDefault(), order: Date.now() + i, name: name.trim() };
+      return {
+        name: d.name,
+        email: `student-${Date.now()}-${i}@mateen.local`,
+        interview_status: 'not_done',
+        extra: studentExtraFrom(d, { order: d.order, accepted: d.accepted }),
+      };
+    }));
+    await refreshStudentsApi();
+  } else {
+    for(let i=0;i<names.length;i++) await addDoc(collection(db,'students'),{...stuDefault(),order:Date.now()+i,name:names[i].trim()});
+  }
   document.getElementById('bulkNames').value='';
   showToast('✓ تمت إضافة الأسماء');
 };
 
-window.stuAutoName = async (id,v) => updateDoc(doc(db,'students',id),{name:v});
-window.stuField    = async (id,f,v) => updateDoc(doc(db,'students',id),{[f]:v});
+window.stuAutoName = async (id,v) => {
+  if (useApi()) return patchStudent(id, { name: v });
+  return updateDoc(doc(db,'students',id),{name:v});
+};
+window.stuField    = async (id,f,v) => {
+  if (useApi()) return patchStudent(id, { [f]: v });
+  return updateDoc(doc(db,'students',id),{[f]:v});
+};
 
 window.stuUpdateDatePart = async (id,key,value) => {
   const s = allStudents.find(s=>s.id===id)||{};
@@ -1214,21 +1414,32 @@ window.stuUpdateDatePart = async (id,key,value) => {
   const {d,m,y}=stuDateParts[id];
   const up={dateH:`${d}-${m}-${y}`};
   if(d&&m&&y){const gr=hijriToGregorian(d,m,y);if(gr)up.dateG=`${gr.d}-${gr.m}-${gr.y}`;}
+  if (useApi()) return patchStudent(id, up);
   await updateDoc(doc(db,'students',id),up);
 };
 
-window.stuToggleInterview = async (id,cur) => updateDoc(doc(db,'students',id),{interview:cur==='done'?'pending':'done'});
+window.stuToggleInterview = async (id,cur) => {
+  const next = cur==='done'?'pending':'done';
+  if (useApi()) return patchStudent(id, { interview: next });
+  return updateDoc(doc(db,'students',id),{interview:next});
+};
 
 window.stuToggleAccept = async (id,cur,interview) => {
   if(interview!=='done'){showToast('يجب إجراء المقابلة أولاً','err');return;}
   const order=['na','accepted','rejected'];
-  await updateDoc(doc(db,'students',id),{accepted:order[(order.indexOf(cur)+1)%3]});
+  const next = order[(order.indexOf(cur)+1)%3];
+  if (useApi()) return patchStudent(id, { accepted: next });
+  await updateDoc(doc(db,'students',id),{accepted:next});
 };
 
 window.stuDelete = async id => {
   // أرشفة بدل الحذف النهائي — لحماية البيانات من الحذف الخطأ
   if(!confirm('هل تريدين أرشفة هذه الطالبة؟\nيمكن استعادتها لاحقاً من قسم الأرشيف.')) return;
-  await updateDoc(doc(db, 'students', id), { archived: true, archivedAt: serverTimestamp() });
+  if (useApi()) {
+    await patchStudent(id, { archived: true, archivedAt: new Date().toISOString() });
+  } else {
+    await updateDoc(doc(db, 'students', id), { archived: true, archivedAt: serverTimestamp() });
+  }
   showToast('✅ تمت الأرشفة — يمكن الاستعادة من الأرشيف');
 };
 
@@ -1269,7 +1480,12 @@ window.applyBulkDateTime = async () => {
   if(hour) up.hour=hour;
   if(ampm) up.ampm=ampm;
   if(!Object.keys(up).length){showToast('حددي بيانات للتطبيق','err');return;}
-  for(const cb of checked) await updateDoc(doc(db,'students',cb.dataset.id),up);
+  if (useApi()) {
+    for (const cb of checked) await patchStudent(cb.dataset.id, up);
+    await refreshStudentsApi();
+  } else {
+    for(const cb of checked) await updateDoc(doc(db,'students',cb.dataset.id),up);
+  }
   showToast(`✓ تم التطبيق على ${checked.length} طالبة`);
   toggleSelectAll(false);
 };

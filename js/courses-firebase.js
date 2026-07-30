@@ -1,10 +1,5 @@
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, getDoc, doc, updateDoc, deleteDoc, arrayUnion, getDocs, setDoc }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi, getStoredUser } from "./api.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 import { renderAssignmentsSection, renderLectureAssignmentControls } from "./assignments-ui.js";
 import { deleteAssignmentsForMaterial } from "./assignments.js";
@@ -19,13 +14,104 @@ window.refreshAssignmentsFor = (materialId, course) => {
   });
 };
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-// ═══════════════════════════════════════════════════════
-// Seed: أضف Subjects الأساسية لـ Firebase If not/don't موجودة
-// ═══════════════════════════════════════════════════════
+let db = null, auth = null;
+let collection, query, orderBy, onSnapshot, addDoc, getDoc, doc, updateDoc, deleteDoc, arrayUnion, getDocs, setDoc, where, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, query, orderBy, onSnapshot, addDoc, getDoc, doc, updateDoc, deleteDoc, arrayUnion, getDocs, setDoc, where } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
+}
+
+const AR_TO_API_TYPE = {
+  'محاضرة': 'video', 'ملخص': 'pdf', 'واجب': 'article', 'اختبار': 'article',
+  'مرجع': 'pdf', 'فيديو': 'video', 'تسجيل صوتي': 'link', 'أخرى': 'link',
+};
+const API_TO_AR_TYPE = {
+  video: 'فيديو', pdf: 'ملخص', article: 'واجب', link: 'أخرى',
+};
+
+function mapApiSubject(s) {
+  return {
+    id: String(s.id),
+    slug: s.slug,
+    name: s.title,
+    desc: s.description || '',
+    subtitle: s.subtitle || '',
+    topics: s.axes || [],
+    level: s.subtitle || '',
+    inExams: true,
+    inAttendance: true,
+    inEnrollment: true,
+    addedAt: s.sort_order ?? 0,
+  };
+}
+
+function mapApiMaterial(m, subjectTitle) {
+  return {
+    id: String(m.id),
+    title: m.title,
+    course: subjectTitle || '',
+    type: API_TO_AR_TYPE[m.type] || m.type || 'أخرى',
+    url: m.url || '',
+    notes: m.body || '',
+    addedAt: m.sort_order ?? 0,
+  };
+}
+
+let apiSubjectsCache = [];
+
+async function findSubjectIdByCourseName(courseName) {
+  if (!apiSubjectsCache.length) {
+    apiSubjectsCache = unwrapList(await api.subjects.list()).map(mapApiSubject);
+  }
+  const hit = apiSubjectsCache.find(s => s.name === courseName);
+  return hit ? hit.id : null;
+}
+
+async function loadAllMaterialsApi() {
+  const subjects = unwrapList(await api.subjects.list()).map(mapApiSubject);
+  apiSubjectsCache = subjects;
+  const mats = [];
+  for (const s of subjects) {
+    const items = unwrapList(await api.subjects.materials(s.id));
+    items.forEach(m => mats.push(mapApiMaterial(m, s.name)));
+  }
+  allMats = mats.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+}
+
+async function loadAllSubjectsApi() {
+  allSubjects = unwrapList(await api.subjects.list()).map(mapApiSubject);
+  apiSubjectsCache = allSubjects;
+}
+
+async function refreshApiCoursesData() {
+  await Promise.all([loadAllMaterialsApi(), loadAllSubjectsApi()]);
+  renderSubjects();
+  if (authReady) {
+    window.filterMats();
+    renderModalMats();
+  } else {
+    pendingRender = true;
+  }
+}
+
 const SEED_SUBJECTS = [
   { id:'tafseer', name:'التفسير', icon:'📖', color:'linear-gradient(135deg,#5c3d2e,#8a5e3c)', desc:'دراسة معاني كتاب الله وفهم آياته والاستنباط منها وفق منهج السلف الصالح.', meetings:'٣ لقاءات أسبوعياً', weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['مقدمات في علم التفسير','أسباب النزول','الناسخ والمنسوخ','تفسير المفردات','الاستنباط الفقهي','التدبر والتطبيق'], addedAt:1000 },
   { id:'fiqh',    name:'الفقه',    icon:'⚖️',  color:'linear-gradient(135deg,#1a3a5c,#2a5298)', desc:'تعلّم أحكام العبادات والمعاملات وفق المذهب الفقهي مع الأدلة الشرعية والتطبيق العملي.', meetings:'٣ لقاءات أسبوعياً', weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['الطهارة والصلاة','الزكاة والصيام','الحج والعمرة','فقه الأسرة','المعاملات المالية','الفقه المعاصر'], addedAt:1001 },
@@ -35,6 +121,7 @@ const SEED_SUBJECTS = [
 ];
 
 async function seedSubjects() {
+  await ensureFirebase();
   for (const s of SEED_SUBJECTS) {
     const ref = doc(db, 'subjects', s.id);
     const snap = await getDoc(ref);
@@ -44,9 +131,12 @@ async function seedSubjects() {
     }
   }
 }
-seedSubjects().catch(e => console.warn('[Seed] خطأ:', e));
+if (!useApi()) seedSubjects().catch(e => console.warn('[Seed] خطأ:', e));
 
 let allMats = [];
+let allSubjects = [];
+let authReady = false;
+let pendingRender = false;
 let currentUserRole = null;
 let currentUserSubjects = [];
 const MAIN_SUBJECTS = ['التفسير', 'الفقه', 'العقيدة', 'الحديث', 'مقرأة متين'];
@@ -474,8 +564,16 @@ window.submitEditCourse = async () => {
   btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحفظ...';
 
   try {
-    await updateDoc(doc(db, 'materials', id), { title, course, type, url, notes });
+    if (useApi()) {
+      await api.materials.update(id, {
+        title, url, body: notes,
+        type: AR_TO_API_TYPE[type] || 'link',
+      });
+    } else {
+      await updateDoc(doc(db, 'materials', id), { title, course, type, url, notes });
+    }
     document.getElementById('editCourseModal').style.display = 'none';
+    if (useApi()) await refreshApiCoursesData();
   } catch(e) {
     err.style.display = 'block';
     err.textContent = 'حدث خطأ، حاولي مرة أخرى';
@@ -500,7 +598,12 @@ window.executeDeleteMat = async () => {
 
   try {
     await deleteAssignmentsForMaterial(id);
-    await deleteDoc(doc(db, 'materials', id));
+    if (useApi()) {
+      await api.materials.remove(id);
+      await refreshApiCoursesData();
+    } else {
+      await deleteDoc(doc(db, 'materials', id));
+    }
     document.getElementById('deleteConfirmModal').style.display = 'none';
   } catch(e) {
     alert('حدث خطأ أثناء الحذف، حاولي مرة أخرى');
@@ -518,8 +621,39 @@ const SUBJECT_ID_TO_AR = {
   quran1: 'مقرأة متين', quran2: 'مقرأة متين', ithraiyat: 'الإثرائيات',
 };
 
-// تحthisد دور Userة
-onAuthStateChanged(auth, async user => {
+async function initCoursesAuthApi() {
+  const stored = getStoredUser();
+  if (stored) {
+    currentUserRole = stored.role || null;
+    mountTestModeSwitcher(stored, stored.email || '');
+    if (stored.role === 'teacher' && stored.subject_id) {
+      try {
+        const subj = unwrapList(await api.subjects.list()).find(s => s.id === stored.subject_id);
+        currentUserSubjects = subj ? [subj.title] : [];
+      } catch {
+        currentUserSubjects = [];
+      }
+    } else {
+      currentUserSubjects = [];
+    }
+    if (isAdmin()) {
+      const btns = document.getElementById('adminBtns');
+      if (btns) btns.style.display = 'flex';
+    }
+  } else {
+    currentUserRole = null;
+    currentUserSubjects = [];
+  }
+  authReady = true;
+  await refreshApiCoursesData();
+  updateEnrollButtons();
+  window.filterMats();
+  renderModalMats();
+}
+
+async function bootCoursesFirebase() {
+  await ensureFirebase();
+  onAuthStateChanged(auth, async user => {
   if (!user) {
     currentUserRole = null;
     currentUserSubjects = [];
@@ -552,13 +686,37 @@ onAuthStateChanged(auth, async user => {
   window.filterMats();
   renderModalMats();
 
-  // If الـ snapshot وصل قبل الـ auth — اعمل render تاني
   if (pendingRender) {
     pendingRender = false;
     window.filterMats();
     renderModalMats();
   }
-});
+  });
+}
+
+async function bootCoursesSnapshots() {
+  await ensureFirebase();
+  onSnapshot(query(collection(db, 'materials'), orderBy('addedAt', 'desc')), snap => {
+    allMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (authReady) {
+      window.filterMats();
+      renderModalMats();
+    } else {
+      pendingRender = true;
+    }
+  });
+  onSnapshot(query(collection(db, 'subjects'), orderBy('addedAt', 'asc')), snap => {
+    allSubjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderSubjects();
+  });
+}
+
+if (useApi()) {
+  initCoursesAuthApi().catch(e => console.warn('[API] courses auth error:', e));
+} else {
+  bootCoursesFirebase();
+  bootCoursesSnapshots().catch(e => console.warn('[Firebase] courses snapshot error:', e));
+}
 
 const SUBJ_MODAL_IDS = {
   'التفسير': 'tafseer', 'الفقه': 'fiqh', 'العقيدة': 'aqeedah',
@@ -572,8 +730,9 @@ function updateEnrollButtons() {
     if (!btn) return;
 
     const joined = currentUserSubjects.includes(subj);
+    const loggedIn = useApi() ? !!getStoredUser() : !!(auth && auth.currentUser);
 
-    if (!auth.currentUser) {
+    if (!loggedIn) {
       btn.textContent = 'سجّلي / اشتركي للالتحاق بالمادة';
       btn.disabled = false;
       btn.onclick = () => location.href = 'login.html';
@@ -641,12 +800,24 @@ window.submitNewCourse = async () => {
   btn.innerHTML = '<i class="ti ti-loader"></i> جاري الإضافة...';
 
   try {
-    await addDoc(collection(db, 'materials'), {
-      title: finalTitle, course, type, url, notes,
-      ...(lectureNumber != null ? { lectureNumber } : {}),
-      addedAt: Date.now(),
-      addedBy: auth.currentUser.email,
-    });
+    if (useApi()) {
+      const subjectId = await findSubjectIdByCourseName(course);
+      if (!subjectId) throw new Error('المادة غير موجودة');
+      await api.subjects.addMaterial(subjectId, {
+        title: finalTitle,
+        url,
+        body: notes,
+        type: AR_TO_API_TYPE[type] || 'link',
+      });
+      await refreshApiCoursesData();
+    } else {
+      await addDoc(collection(db, 'materials'), {
+        title: finalTitle, course, type, url, notes,
+        ...(lectureNumber != null ? { lectureNumber } : {}),
+        addedAt: Date.now(),
+        addedBy: auth.currentUser.email,
+      });
+    }
 
     // reset all fields
     ['newCourseTitle','newCourseCat','newCourseUrl','newCourseNotes','newCourseLecture','newLectureNumInput'].forEach(id => {
@@ -665,27 +836,10 @@ window.submitNewCourse = async () => {
   btn.innerHTML = '<i class="ti ti-circle-plus"></i> إضافة المادة';
 };
 
-let authReady = false;
-let pendingRender = false;
-
-onSnapshot(query(collection(db, 'materials'), orderBy('addedAt', 'desc')), snap => {
-  allMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  if (authReady) {
-    window.filterMats();
-    renderModalMats();
-  } else {
-    pendingRender = true;
-  }
-});
-
 // =============================================
 // إدارة Subjects الرئيسية (subjects collection)
 // =============================================
 
-let allSubjects = [];
-
-// الصور بتترفع بحجمها الأصلي على Cloudinary من غير ضغط، فبتاخد وقت كبير عشان تحمّل خصوصًا في الكروت الصغيرة.
-// الدالة دي بتضيف تحويل تلقائي (w=العرض المطلوب, ضغط تلقائي, أفضل صيغة زي webp) لو الرابط من Cloudinary.
 function optimizedImg(url, width = 500) {
   if (!url) return url;
   if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
@@ -836,15 +990,26 @@ window.submitNewSubject = async () => {
     const iconData = document.getElementById('sbjIconData').value || '';
     const iconUrl  = document.getElementById('sbjIconUrl').value.trim() || '';
     const colorVal = document.getElementById('sbjColorVal').value;
-    await addDoc(collection(db, 'subjects'), {
-      name, iconData, iconUrl, color: colorVal, desc, meetings, weeks, level,
-      topics: topics.split('\n').filter(Boolean),
-      inExams: document.getElementById('sbjFlagExams').checked,
-      inAttendance: document.getElementById('sbjFlagAttendance').checked,
-      inEnrollment: document.getElementById('sbjFlagEnrollment').checked,
-      addedAt: Date.now(),
-      addedBy: auth.currentUser.email,
-    });
+    if (useApi()) {
+      await api.subjects.create({
+        title: name,
+        slug: name.replace(/\s+/g, '-').toLowerCase(),
+        description: desc,
+        subtitle: level,
+        axes: topics.split('\n').filter(Boolean),
+      });
+      await refreshApiCoursesData();
+    } else {
+      await addDoc(collection(db, 'subjects'), {
+        name, iconData, iconUrl, color: colorVal, desc, meetings, weeks, level,
+        topics: topics.split('\n').filter(Boolean),
+        inExams: document.getElementById('sbjFlagExams').checked,
+        inAttendance: document.getElementById('sbjFlagAttendance').checked,
+        inEnrollment: document.getElementById('sbjFlagEnrollment').checked,
+        addedAt: Date.now(),
+        addedBy: auth.currentUser.email,
+      });
+    }
     ['sbjName','sbjIconData','sbjIconUrl','sbjDesc','sbjMeetings','sbjWeeks','sbjLevel','sbjTopics'].forEach(id => {
       document.getElementById(id).value = '';
     });
@@ -916,13 +1081,23 @@ window.submitEditSubject = async () => {
     const iconData = document.getElementById('editSbjIconData').value || '';
     const iconUrl  = document.getElementById('editSbjIconUrl').value.trim() || '';
     const colorVal = document.getElementById('editSbjColorVal').value;
-    await updateDoc(doc(db, 'subjects', id), {
-      name, iconData, iconUrl, color: colorVal, desc, meetings, weeks, level,
-      topics: topics.split('\n').filter(Boolean),
-      inExams: document.getElementById('editSbjFlagExams').checked,
-      inAttendance: document.getElementById('editSbjFlagAttendance').checked,
-      inEnrollment: document.getElementById('editSbjFlagEnrollment').checked,
-    });
+    if (useApi()) {
+      await api.subjects.update(id, {
+        title: name,
+        description: desc,
+        subtitle: level,
+        axes: topics.split('\n').filter(Boolean),
+      });
+      await refreshApiCoursesData();
+    } else {
+      await updateDoc(doc(db, 'subjects', id), {
+        name, iconData, iconUrl, color: colorVal, desc, meetings, weeks, level,
+        topics: topics.split('\n').filter(Boolean),
+        inExams: document.getElementById('editSbjFlagExams').checked,
+        inAttendance: document.getElementById('editSbjFlagAttendance').checked,
+        inEnrollment: document.getElementById('editSbjFlagEnrollment').checked,
+      });
+    }
     document.getElementById('editSubjectModal').style.display = 'none';
   } catch(e) {
     err.style.display='block'; err.textContent='حدث خطأ، حاولي مرة أخرى';
@@ -945,20 +1120,32 @@ window.executeDeleteSubject = async () => {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحذف...';
   try {
-    // 1. اDelete اWhenدة الرئيسية
-    await deleteDoc(doc(db, 'subjects', id));
+    if (useApi()) {
+      const subject = allSubjects.find(s => String(s.id) === String(id));
+      if (subject) {
+        const mats = allMats.filter(m => m.course === subject.name);
+        for (const m of mats) {
+          await deleteAssignmentsForMaterial(m.id);
+          await api.materials.remove(m.id);
+        }
+      }
+      await refreshApiCoursesData();
+    } else {
+      // 1. اDelete اWhenدة الرئيسية
+      await deleteDoc(doc(db, 'subjects', id));
 
-    // 2. اDelete كل Content المرتبط بها من materials collection (+ أي واجبات وتسليمات مرتبطة بيها)
-    const matsSnap = await getDocs(query(
-      collection(db, 'materials'),
-      where('course', '==', subjectName)
-    ));
-    const deletePromises = matsSnap.docs.map(async d => {
-      await deleteAssignmentsForMaterial(d.id);
-      await deleteDoc(d.ref);
-    });
-    await Promise.all(deletePromises);
-    console.log(`[حذف] تم حذف ${matsSnap.docs.length} ملف مرتبط بـ "${subjectName}"`);
+      // 2. اDelete كل Content المرتبط بها من materials collection (+ أي واجبات وتسليمات مرتبطة بيها)
+      const matsSnap = await getDocs(query(
+        collection(db, 'materials'),
+        where('course', '==', subjectName)
+      ));
+      const deletePromises = matsSnap.docs.map(async d => {
+        await deleteAssignmentsForMaterial(d.id);
+        await deleteDoc(d.ref);
+      });
+      await Promise.all(deletePromises);
+      console.log(`[حذف] تم حذف ${matsSnap.docs.length} ملف مرتبط بـ "${subjectName}"`);
+    }
 
     document.getElementById('deleteSubjectModal').style.display = 'none';
   } catch(e) {
@@ -968,12 +1155,6 @@ window.executeDeleteSubject = async () => {
   btn.disabled = false;
   btn.innerHTML = '<i class="ti ti-trash"></i> تأكيد الحذف';
 };
-
-// Load Subjects الرئيسية من Firebase
-onSnapshot(query(collection(db, 'subjects'), orderBy('addedAt', 'asc')), snap => {
-  allSubjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  renderSubjects();
-});
 
 // Show Buttons Admin
 function showAdminBtns() {

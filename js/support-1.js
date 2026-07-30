@@ -1,16 +1,26 @@
-import { initializeApp, getApps, getApp }   from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, collection,
-         addDoc, serverTimestamp, query, orderBy, updateDoc }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, clearSession, getStoredUser, getToken, isLaravelApi } from "./api.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 import { applyCustomTheme, THEME_PRESETS } from "./custom-theme.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let doc, getDoc, getDocs, collection, addDoc, serverTimestamp, query, orderBy, updateDoc, onAuthStateChanged, signOut;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ doc, getDoc, getDocs, collection, addDoc, serverTimestamp, query, orderBy, updateDoc } = firestore);
+  ({ onAuthStateChanged, signOut } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
 
 const ROLE_LABELS = {
   mateen: 'بنت متين', teacher: 'معلمة', supervisor: 'مشرفة',
@@ -26,38 +36,89 @@ let currentFilter = 'all';
 let selectedUser  = null;
 let currentViewerEmail = '';
 
-// ── Auth Gate ──
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
+function mapApiUser(u) {
+  return {
+    id: String(u.id),
+    name: u.name || '',
+    email: u.email || '',
+    phone: u.phone || '',
+    role: u.role || '',
+    status: u.is_active === false ? 'suspended' : 'active',
+    subject: u.subject_id != null ? String(u.subject_id) : '',
+    customTheme: u.customTheme || null,
+    theme_id: u.theme_id || null,
+    ornament_id: u.ornament_id || null,
+  };
+}
 
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  const userData = snap.exists() ? snap.data() : {};
-  const role = effectiveRole(userData, user.email);
-  currentViewerEmail = (user.email || '').toLowerCase();
-
+async function initSupportApi() {
+  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  let userData;
+  try {
+    const me = await api.me();
+    userData = (me?.data ?? me ?? getStoredUser()) || {};
+  } catch {
+    window.location.href = '../html/login.html'; return;
+  }
+  const role = effectiveRole(userData, userData.email || '');
+  currentViewerEmail = (userData.email || '').toLowerCase();
   if (role !== 'support' && role !== 'admin') {
     window.location.href = '../html/home.html'; return;
   }
-  mountTestModeSwitcher(userData, user.email);
+  mountTestModeSwitcher(userData, userData.email || '');
   applyCustomTheme(userData);
-
-  const name = userData.name || user.email;
   const nameEl = document.getElementById('navUserName');
-  if (nameEl) nameEl.textContent = name;
-
+  if (nameEl) nameEl.textContent = userData.name || userData.email || '';
   document.getElementById('authGate').style.display = 'none';
   document.getElementById('mainContent').classList.remove('main-content-hidden');
-
   loadUsers();
-});
+}
+
+// ── Auth Gate ──
+if (useApi()) {
+  initSupportApi();
+} else {
+  (async () => {
+    await ensureFirebase();
+    onAuthStateChanged(auth, async user => {
+      if (!user) { window.location.href = '../html/login.html'; return; }
+
+      const snap = await getDoc(doc(db, 'users', user.uid));
+    const userData = snap.exists() ? snap.data() : {};
+    const role = effectiveRole(userData, user.email);
+    currentViewerEmail = (user.email || '').toLowerCase();
+
+    if (role !== 'support' && role !== 'admin') {
+      window.location.href = '../html/home.html'; return;
+    }
+    mountTestModeSwitcher(userData, user.email);
+    applyCustomTheme(userData);
+
+    const name = userData.name || user.email;
+    const nameEl = document.getElementById('navUserName');
+    if (nameEl) nameEl.textContent = name;
+
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('mainContent').classList.remove('main-content-hidden');
+
+    loadUsers();
+    });
+  })();
+}
 
 // ── Load Users ──
 async function loadUsers() {
   try {
-    const snap = await getDocs(collection(db, 'users'));
-    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // الترتيب هنا بدل الاستعلام عشان أي حساب مالوش createdAt يفضل ظاهر
-    allUsers.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    if (useApi()) {
+      const res = await api.support.users();
+      const items = res?.data || [];
+      allUsers = items.map(mapApiUser);
+    } else {
+      await ensureFirebase();
+      const snap = await getDocs(collection(db, 'users'));
+      allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allUsers.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    }
     updateStats();
     renderUsers();
   } catch(e) {
@@ -215,7 +276,17 @@ window.saveCustomTheme = async function() {
     beige: document.getElementById('themeBeige').value,
     pattern: document.getElementById('themePattern').value,
   };
-  await updateDoc(doc(db, 'users', selectedUser.id), { customTheme });
+  if (useApi()) {
+    const preset = THEME_PRESETS.find(p =>
+      p.greenDark === customTheme.greenDark && p.gold === customTheme.gold && p.beige === customTheme.beige
+    );
+    await api.support.setTheme(selectedUser.id, {
+      theme_id: preset?.id || 'custom',
+      ornament_id: customTheme.pattern,
+    });
+  } else {
+    await updateDoc(doc(db, 'users', selectedUser.id), { customTheme });
+  }
   selectedUser.customTheme = customTheme;
   document.getElementById('customThemeModal')?.remove();
   alert('✅ اتحفظ الثيم — هيظهر للحساب أول ما يسجل دخول تاني');
@@ -223,7 +294,11 @@ window.saveCustomTheme = async function() {
 
 window.resetCustomTheme = async function() {
   if (!selectedUser) return;
-  await updateDoc(doc(db, 'users', selectedUser.id), { customTheme: {} });
+  if (useApi()) {
+    await api.support.setTheme(selectedUser.id, { theme_id: null, ornament_id: null });
+  } else {
+    await updateDoc(doc(db, 'users', selectedUser.id), { customTheme: {} });
+  }
   selectedUser.customTheme = {};
   document.getElementById('customThemeModal')?.remove();
   alert('تم استرجاع الألوان الافتراضية');
@@ -282,7 +357,16 @@ window.sendMessage = async function() {
 };
 
 // ── Logout ──
-window.doLogout = () => signOut(auth).then(() => window.location.href = '../html/login.html');
+window.doLogout = () => {
+  if (useApi()) {
+    api.logout().catch(() => {}).finally(() => {
+      clearSession();
+      window.location.href = '../html/login.html';
+    });
+    return;
+  }
+  signOut(auth).then(() => window.location.href = '../html/login.html');
+};
 
 // Close modal on overlay click
 document.getElementById('userModal').addEventListener('click', function(e) {

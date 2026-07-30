@@ -1,19 +1,131 @@
 
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { exportWord, exportPdf } from "./export.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi, getToken, getStoredUser, clearSession } from "./api.js";
 import { fullDeleteUser } from "./delete-account.js";
 import { loadSubjectsFor } from "./subjects.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 import { applyCustomTheme } from "./custom-theme.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-onAuthStateChanged(auth, async user => {
+let db = null, auth = null;
+let collection, doc, getDoc, getDocs, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, addDoc, Timestamp, onAuthStateChanged, signOut;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, doc, getDoc, getDocs, onSnapshot, query, where, orderBy, updateDoc, deleteDoc, addDoc, Timestamp } = firestore);
+  ({ onAuthStateChanged, signOut } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.data)) return res.data.data;
+  return [];
+}
+
+function mapApiStudent(row) {
+  const p = row.student_profile || row.studentProfile || {};
+  const extra = p.extra || {};
+  let status = extra.status || '';
+  if (!status && p.status_class === 'mateen_girls') status = 'mateen';
+  if (!status && p.status_class === 'newcomer') status = 'new';
+  return {
+    id: String(row.id),
+    name: row.name || '',
+    interview: p.interview_status === 'done' ? 'done' : 'pending',
+    accepted: extra.accepted || 'na',
+    status,
+    day: extra.day || '',
+    dateH: extra.dateH || '',
+    dateG: extra.dateG || '',
+    hour: extra.hour || '',
+    minute: extra.minute || '00',
+    ampm: extra.ampm || 'ص',
+    placementScore: extra.placementScore ?? null,
+    order: extra.order ?? row.id,
+    archived: !!extra.archived,
+    uid: extra.uid || '',
+  };
+}
+
+function studentExtraFrom(s, patch = {}) {
+  return {
+    order: patch.order ?? s.order,
+    day: patch.day ?? s.day,
+    dateH: patch.dateH ?? s.dateH,
+    dateG: patch.dateG ?? s.dateG,
+    hour: patch.hour ?? s.hour,
+    minute: patch.minute ?? s.minute,
+    ampm: patch.ampm ?? s.ampm,
+    accepted: patch.accepted ?? s.accepted,
+    placementScore: patch.placementScore ?? s.placementScore,
+    archived: patch.archived ?? s.archived,
+    uid: patch.uid ?? s.uid,
+    status: patch.status ?? s.status,
+  };
+}
+
+function mapStudentPatch(existing, fields) {
+  const payload = { extra: studentExtraFrom(existing, fields) };
+  if (fields.name !== undefined) payload.name = fields.name;
+  if (fields.interview !== undefined) {
+    payload.interview_status = fields.interview === 'done' ? 'done' : 'not_done';
+  }
+  if (fields.status !== undefined) {
+    payload.status_class = fields.status === 'mateen' ? 'mateen_girls'
+      : fields.status === 'new' ? 'newcomer' : null;
+  }
+  if (fields.accepted !== undefined) payload.extra.accepted = fields.accepted;
+  return payload;
+}
+
+async function refreshStudentsApi() {
+  const res = await api.students.list('?per_page=500');
+  allStudents = unwrapList(res).map(mapApiStudent).filter(s => !s.archived);
+  renderStudents(allStudents);
+  updateStuStats(allStudents);
+  window._allStudentsUnlinked = allStudents.filter(s => !s.uid).map(s => ({ id: s.id, name: s.name || s.id }));
+}
+
+async function patchStudent(id, fields) {
+  const existing = allStudents.find(s => s.id === id) || {};
+  await api.students.update(id, mapStudentPatch(existing, fields));
+  await refreshStudentsApi();
+}
+
+async function initSupervisorApi() {
+  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  let userData;
+  try {
+    const me = await api.me();
+    userData = (me?.data ?? me ?? getStoredUser()) || {};
+  } catch {
+    window.location.href = '../html/login.html'; return;
+  }
+  const role = effectiveRole(userData, userData.email || '');
+  window._userRole = role;
+  if (role !== 'supervisor' && role !== 'admin') { window.location.href = '../html/login.html'; return; }
+  mountTestModeSwitcher(userData, userData.email || '');
+  applyCustomTheme(userData);
+  document.getElementById('navUserName').textContent = userData.name || (userData.email || '').split('@')[0];
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'flex';
+  initStudentsSnapshot();
+}
+
+async function bootSupervisorFirebase() {
+  await ensureFirebase();
+  onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = '../html/login.html'; return; }
   const snap = await getDoc(doc(db, 'users', user.uid));
   const userData = snap.exists() ? snap.data() : {};
@@ -28,9 +140,23 @@ onAuthStateChanged(auth, async user => {
   loadData();
   initSupervisorFeatures();
   initStudentsSnapshot();
-});
+  });
+}
 
-window.doLogout = () => signOut(auth).then(() => window.location.href = '../html/login.html');
+if (useApi()) {
+  initSupervisorApi();
+} else {
+  bootSupervisorFirebase();
+}
+
+window.doLogout = () => {
+  if (useApi()) {
+    clearSession();
+    window.location.href = '../html/login.html';
+  } else {
+    signOut(auth).then(() => window.location.href = '../html/login.html');
+  }
+};
 
 function loadData() {
   const mateenQuery = query(collection(db,'users'), where('role','==','mateen'), orderBy('createdAt','desc'));
@@ -506,6 +632,11 @@ function makeDatePicker(sid, dateStr) {
 }
 
 function initStudentsSnapshot() {
+  if (useApi()) {
+    refreshStudentsApi().catch(e => console.error('students API load:', e));
+    return;
+  }
+  ensureFirebase().then(() => {
   const stuQuery2 = query(collection(db,'students'), orderBy('order'));
   onSnapshot(stuQuery2, snap => {
     allStudents = snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -514,7 +645,8 @@ function initStudentsSnapshot() {
     window._allStudentsUnlinked = snap.docs
       .filter(d => !d.data().userId)
       .map(d => ({ id: d.id, name: d.data().name||d.data().fullName||d.id }));
-});
+  });
+  });
 }
 
 function updateStuStats(list) {
@@ -727,19 +859,54 @@ window.doAttExport = async () => {
 // ── Student CRUD ──────────────────────────────────────────────
 const stuDefault = () => ({order:Date.now(), name:'طالبة جديدة', status:'', day:'', dateH:'', dateG:'', hour:'', minute:'00', ampm:'ص', interview:'pending', accepted:'na'});
 
-window.addStudentRow = async () => { if (window._userRole !== 'admin') return; await addDoc(collection(db,'students'), stuDefault()); };
+window.addStudentRow = async () => {
+  if (window._userRole !== 'admin') return;
+  if (useApi()) {
+    const d = stuDefault();
+    await api.students.create({
+      name: d.name,
+      email: `student-${Date.now()}@mateen.local`,
+      interview_status: 'not_done',
+      extra: studentExtraFrom(d, { order: d.order, accepted: d.accepted }),
+    });
+    await refreshStudentsApi();
+    return;
+  }
+  await addDoc(collection(db,'students'), stuDefault());
+};
 
 window.addBulkNames = async () => {
   const txt = document.getElementById('bulkNames').value;
   if(!txt.trim()) return;
   const names = txt.split('\n').filter(n=>n.trim());
-  for(let i=0;i<names.length;i++) await addDoc(collection(db,'students'),{...stuDefault(),order:Date.now()+i,name:names[i].trim()});
+  if (useApi()) {
+    await api.students.bulk(names.map((name, i) => {
+      const d = { ...stuDefault(), order: Date.now() + i, name: name.trim() };
+      return {
+        name: d.name,
+        email: `student-${Date.now()}-${i}@mateen.local`,
+        interview_status: 'not_done',
+        extra: studentExtraFrom(d, { order: d.order, accepted: d.accepted }),
+      };
+    }));
+    await refreshStudentsApi();
+  } else {
+    for(let i=0;i<names.length;i++) await addDoc(collection(db,'students'),{...stuDefault(),order:Date.now()+i,name:names[i].trim()});
+  }
   document.getElementById('bulkNames').value='';
   showToast('✓ تمت إضافة الأسماء');
 };
 
-window.stuAutoName = async (id,v) => { if (window._userRole !== 'admin') return; await updateDoc(doc(db,'students',id),{name:v}); };
-window.stuField    = async (id,f,v) => { if (window._userRole !== 'admin') return; await updateDoc(doc(db,'students',id),{[f]:v}); };
+window.stuAutoName = async (id,v) => {
+  if (window._userRole !== 'admin') return;
+  if (useApi()) return patchStudent(id, { name: v });
+  await updateDoc(doc(db,'students',id),{name:v});
+};
+window.stuField    = async (id,f,v) => {
+  if (window._userRole !== 'admin') return;
+  if (useApi()) return patchStudent(id, { [f]: v });
+  await updateDoc(doc(db,'students',id),{[f]:v});
+};
 
 window.stuUpdateDatePart = async (id,key,value) => {
   if (window._userRole !== 'admin') return;
@@ -750,20 +917,32 @@ window.stuUpdateDatePart = async (id,key,value) => {
   const {d,m,y}=stuDateParts[id];
   const up={dateH:`${d}-${m}-${y}`};
   if(d&&m&&y){const gr=hijriToGregorian(d,m,y);if(gr)up.dateG=`${gr.d}-${gr.m}-${gr.y}`;}
+  if (useApi()) return patchStudent(id, up);
   await updateDoc(doc(db,'students',id),up);
 };
 
-window.stuToggleInterview = async (id,cur) => updateDoc(doc(db,'students',id),{interview:cur==='done'?'pending':'done'});
+window.stuToggleInterview = async (id,cur) => {
+  const next = cur==='done'?'pending':'done';
+  if (useApi()) return patchStudent(id, { interview: next });
+  return updateDoc(doc(db,'students',id),{interview:next});
+};
 
 window.stuToggleAccept = async (id,cur,interview) => {
   if(interview!=='done'){showToast('يجب إجراء المقابلة أولاً','err');return;}
   const order=['na','accepted','rejected'];
-  await updateDoc(doc(db,'students',id),{accepted:order[(order.indexOf(cur)+1)%3]});
+  const next = order[(order.indexOf(cur)+1)%3];
+  if (useApi()) return patchStudent(id, { accepted: next });
+  await updateDoc(doc(db,'students',id),{accepted:next});
 };
 
 window.stuDelete = async id => {
   if(!confirm('حذف الطالبة وكل بياناتها نهائياً؟')) return;
-  await deleteDoc(doc(db,'students',id));
+  if (useApi()) {
+    await patchStudent(id, { archived: true, archivedAt: new Date().toISOString() });
+    await refreshStudentsApi();
+  } else {
+    await deleteDoc(doc(db,'students',id));
+  }
   showToast('تم الحذف');
 };
 
@@ -798,7 +977,12 @@ window.applyBulkDateTime = async () => {
   if(hour) up.hour=hour;
   if(ampm) up.ampm=ampm;
   if(!Object.keys(up).length){showToast('حددي بيانات للتطبيق','err');return;}
-  for(const cb of checked) await updateDoc(doc(db,'students',cb.dataset.id),up);
+  if (useApi()) {
+    for (const cb of checked) await patchStudent(cb.dataset.id, up);
+    await refreshStudentsApi();
+  } else {
+    for(const cb of checked) await updateDoc(doc(db,'students',cb.dataset.id),up);
+  }
   showToast(`✓ تم التطبيق على ${checked.length} طالبة`);
   toggleSelectAll(false);
 };

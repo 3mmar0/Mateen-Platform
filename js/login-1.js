@@ -7,14 +7,18 @@ import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail,
 import { getFirestore, doc, getDoc, setDoc, addDoc, serverTimestamp,
          collection, getDocs, query, orderBy, where, deleteDoc }
   from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, setSession, clearSession, getToken, getStoredUser, isLaravelApi } from "./api.js";
 
-const app  = initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
-// ضمان حفظ Session في localStorage
-setPersistence(auth, browserLocalPersistence);
+let app, auth, db;
+if (!useApi()) {
+  app  = initializeApp(FIREBASE_CONFIG);
+  auth = getAuth(app);
+  db   = getFirestore(app);
+  setPersistence(auth, browserLocalPersistence);
+}
 
 // ══════════════════════════════════════════════════════════════
 // دالتين مشتركتين بين إعادة التوجيه التلقائي (auto-redirect) وتسجيل
@@ -38,34 +42,40 @@ function computeBaseRedirect(role, subject) {
 }
 
 // If Userة مسجلة دخول بالفعل — حوّليها بعيداً عن Page الدخول
-onAuthStateChanged(auth, async user => {
-  if (!user) return;
-  if (window.location.hash === '#noredirect') return;
-  try {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    const data = snap.exists() ? snap.data() : {};
-    const status = data.status || 'active';
+if (!useApi()) {
+  onAuthStateChanged(auth, async user => {
+    if (!user) return;
+    if (window.location.hash === '#noredirect') return;
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const data = snap.exists() ? snap.data() : {};
+      const status = data.status || 'active';
 
-    const check = checkAccountStatus(status);
-    if (check.blocked) {
-      // pending: سيبيها زي ما هي من غير signOut ولا redirect (بيتم التعامل معاها في doRegister)
-      // rejected/suspended: سجّلي خروجها فورًا عشان محدش يوصل للـ home.html بالغلط
-      if (!check.pending) await auth.signOut();
-      return;
+      const check = checkAccountStatus(status);
+      if (check.blocked) {
+        if (!check.pending) await auth.signOut();
+        return;
+      }
+
+      const role = data.role || 'student';
+      const redirect = computeBaseRedirect(role, data.subject || '');
+
+      localStorage.setItem('userRole', role);
+      localStorage.setItem('userSubject', data.subject || '');
+      localStorage.setItem('ob_redirect', redirect);
+      window.location.replace('onboarding.html');
+    } catch(e) {
+      window.location.replace('home.html');
     }
-
-    const role = data.role || 'student';
-    const redirect = computeBaseRedirect(role, data.subject || '');
-
-    // وجّهيه for the  onboarding دايماً بعد Login
-    localStorage.setItem('userRole', role);
-    localStorage.setItem('userSubject', data.subject || '');
-    localStorage.setItem('ob_redirect', redirect);
-    window.location.replace('onboarding.html');
-  } catch(e) {
-    window.location.replace('home.html');
-  }
-});
+  });
+} else if (getToken() && getStoredUser() && window.location.hash !== '#noredirect') {
+  const data = getStoredUser();
+  const role = data.role || 'student';
+  const redirect = computeBaseRedirect(role, '');
+  localStorage.setItem('userRole', role);
+  localStorage.setItem('ob_redirect', redirect);
+  window.location.replace('onboarding.html');
+}
 
 let loginRole = 'student';
 let regRole   = 'mateen';
@@ -168,6 +178,18 @@ window.doLogin = async () => {
 
   setLoading('loginBtn', true);
   try {
+    if (useApi()) {
+      const res = await api.login({ email, password: pass, expected_role: loginRole });
+      const data = res.user || {};
+      const role = data.role || 'student';
+      setSession(res.token, data);
+      let redirect = computeBaseRedirect(role, '');
+      if (role === 'student') redirect = 'student.html';
+      showSuccess('أهلاً بكِ! 🎉', 'تم الدخول بنجاح، جارٍ التحويل...');
+      setTimeout(() => window.location.href = redirect, 1500);
+      return;
+    }
+
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const snap = await getDoc(doc(db, 'users', cred.user.uid));
     if (!snap.exists()) {
@@ -181,7 +203,6 @@ window.doLogin = async () => {
     const role   = data.role   || 'student';
     const status = data.status || 'active';
 
-    /* Validation إن الRowة المختارة تطابق الـ role الفعلي */
     if (loginRole !== role) {
       await auth.signOut();
       const roleNames = { student:'أصدقاء متين', mateen:'بنات متين', teacher:'معلمة', supervisor:'مشرفة', admin:'إدارة', support:'الدعم الفني' };
@@ -190,7 +211,6 @@ window.doLogin = async () => {
       return;
     }
 
-    /* Validation من حالة الحساب — نفس الدالة المستخدمة في إعادة التوجيه التلقائي */
     const check = checkAccountStatus(status);
     if (check.blocked) {
       await auth.signOut();
@@ -199,10 +219,8 @@ window.doLogin = async () => {
       return;
     }
 
-    /* التوجيه حسب الـ role — نفس الدالة المستخدمة في إعادة التوجيه التلقائي */
     let redirect = computeBaseRedirect(role, data.subject || '');
 
-    /* Student (f) العاثية (student): البحث عنها في students collection */
     if (role === 'student') {
       const fullName  = (data.name || '').trim();
       const firstName = fullName.split(/\s+/)[0].toLowerCase();
@@ -223,7 +241,10 @@ window.doLogin = async () => {
     setTimeout(() => window.location.href = redirect, 1500);
 
   } catch(e) {
-    showError(ERRORS[e.code] || 'حدث خطأ، حاولي مجدداً');
+    const msg = useApi()
+      ? (e.status === 403 ? (e.message || 'الدور المحدد غير مطابق') : (e.data?.message || e.message || 'حدث خطأ، حاولي مجدداً'))
+      : (ERRORS[e.code] || 'حدث خطأ، حاولي مجدداً');
+    showError(msg);
     setLoading('loginBtn', false, '<i class="ti ti-login"></i> دخول');
   }
 };
@@ -251,13 +272,33 @@ window.doRegister = async () => {
   }
   if (!email)           { showError('يرجى إدخال البريد الإلكتروني'); return; }
   if (!pass)            { showError('يرجى إدخال كلمة المرور'); return; }
-  if (pass.length < 6)  { showError('كلمة المرور ضعيفة، يجب أن تكون ٦ أحرف على الأقل'); return; }
+  const minPass = useApi() ? 8 : 6;
+  if (pass.length < minPass)  { showError(useApi() ? 'كلمة المرور ضعيفة، يجب أن تكون ٨ أحرف على الأقل' : 'كلمة المرور ضعيفة، يجب أن تكون ٦ أحرف على الأقل'); return; }
   if (pass !== pass2)   { showError('كلمتا المرور غير متطابقتين'); return; }
 
   const cfg = ROLE_CONFIG[regRole];
 
   setLoading('registerBtn', true);
   try {
+    if (useApi()) {
+      const payload = { name, email, password: pass, phone, role: regRole };
+      if (regRole === 'teacher') {
+        payload.subject = document.getElementById('regSubject').value;
+      }
+      const res = await api.register(payload);
+      if (!cfg.needsApproval && res.token) setSession(res.token, res.user);
+      const roleLabelsApi = {
+        student:    { title:'مرحباً! 🎉',           msg:'تم إنشاء حسابك بنجاح، يمكنك الدخول الآن.' },
+        mateen:     { title:'أهلاً ببنت متين! 📖',  msg:'تم إنشاء حسابك بنجاح.\nسيتم مراجعته من قِبَل الإدارة وتفعيله قريباً إن شاء الله.' },
+        teacher:    { title:'أهلاً معلمتنا الحبيبة! 🧕',    msg:'تم إنشاء حسابك بنجاح.\nسيتم مراجعته من قِبَل الإدارة وتفعيله قريباً إن شاء الله.' },
+        supervisor: { title:'أهلاً مشرفنا الحبيبة ! 🛡️',    msg:'تم إنشاء حسابك بنجاح.\nسيتم مراجعته من قِبَل الإدارة وتفعيله قريباً إن شاء الله.' },
+      };
+      const lbl = roleLabelsApi[regRole] || roleLabelsApi.student;
+      showSuccess(lbl.title, lbl.msg);
+      if (!cfg.needsApproval) setTimeout(() => window.location.href = cfg.redirect, 1800);
+      return;
+    }
+
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     const uid  = cred.user.uid;
 
@@ -317,7 +358,10 @@ window.doRegister = async () => {
     }
 
   } catch(e) {
-    showError(ERRORS[e.code] || 'حدث خطأ أثناء إنشاء الحساب');
+    const msg = useApi()
+      ? (e.data?.message || e.message || 'حدث خطأ أثناء إنشاء الحساب')
+      : (ERRORS[e.code] || 'حدث خطأ أثناء إنشاء الحساب');
+    showError(msg);
     setLoading('registerBtn', false, '<i class="ti ti-user-plus"></i> إنشاء الحساب');
   }
 };
@@ -331,6 +375,12 @@ window.doReset = async () => {
   if (!email) { showError('أدخلي بريدك الإلكتروني'); return; }
   setLoading('resetBtn', true);
   try {
+    if (useApi()) {
+      await api.forgotPassword(email);
+      showSuccess('تم الإرسال ✅', `إذا كان البريد مسجلاً فسيصل رابط الاستعادة إلى\n${email}`);
+      return;
+    }
+
     await sendPasswordResetEmail(auth, email);
     showSuccess('تم الإرسال ✅', `أُرسل رابط الاستعادة إلى\n${email}`);
 
@@ -351,7 +401,8 @@ window.doReset = async () => {
     } catch(notifErr) { console.error('reset notif error:', notifErr); }
 
   } catch(e) {
-    showError(ERRORS[e.code] || 'تعذر الإرسال');
+    const msg = useApi() ? (e.data?.message || e.message || 'تعذر الإرسال') : (ERRORS[e.code] || 'تعذر الإرسال');
+    showError(msg);
     setLoading('resetBtn', false, '<i class="ti ti-send"></i> إرسال رابط الاستعادة');
   }
 };

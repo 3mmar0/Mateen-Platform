@@ -2,36 +2,90 @@
 //  Page الStatistics
 // ===========================
 
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, orderBy, doc, getDoc }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from './config.js';
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from './config.js';
+import { api, clearSession, getStoredUser, getToken, isLaravelApi } from './api.js';
 import { loadSubjects } from './subjects.js';
-import { exportAttendanceExcel, exportAttendanceWord, exportAttendancePdf, exportGenericExcel, exportGenericWord, exportGenericPdf } from './export.js';
+import { exportAttendanceExcel, exportAttendanceWord, exportAttendancePdf, exportGenericExcel, exportGenericWord, exportGenericPdf, downloadApiStatsExport } from './export.js';
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const db   = getFirestore(app);
-const auth = getAuth(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let collection, getDocs, query, orderBy, doc, getDoc, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, getDocs, query, orderBy, doc, getDoc } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
 
 // ── AUTH GUARD — للإدارة/الnot/don'tرفة/Teacher (f) only ───────────────
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  const role = snap.exists() ? snap.data().role : '';
+async function initStatsApi() {
+  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  let role = '';
+  try {
+    const me = await api.me();
+    role = (me?.data ?? me)?.role || '';
+  } catch {
+    window.location.href = '../html/login.html'; return;
+  }
   if (!['admin', 'supervisor', 'teacher'].includes(role)) {
     window.location.href = '../html/home.html'; return;
   }
-  loadAll();
-});
+  loadAllApi();
+}
+
+if (useApi()) {
+  initStatsApi();
+} else {
+  (async () => {
+    await ensureFirebase();
+    onAuthStateChanged(auth, async user => {
+      if (!user) { window.location.href = '../html/login.html'; return; }
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const role = snap.exists() ? snap.data().role : '';
+      if (!['admin', 'supervisor', 'teacher'].includes(role)) {
+        window.location.href = '../html/home.html'; return;
+      }
+      loadAll();
+    });
+  })();
+}
+
+async function loadAllApi() {
+  try {
+    const res = await api.stats.summary();
+    const s = res?.data || {};
+    document.getElementById('loadingMsg').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    document.getElementById('sumStudents').textContent = '—';
+    document.getElementById('sumSessions').textContent = s.attendance_total ?? '—';
+    document.getElementById('sumAvgAtt').textContent = s.attendance_rate != null ? `${s.attendance_rate}%` : '—';
+    document.getElementById('sumAvgGrade').textContent = s.grade_average != null ? `${Math.round(s.grade_average)}%` : '—';
+    allStudents = [];
+    ['attList', 'gradesList', 'subjectsList', 'rankAttList', 'rankGradeList', 'rankAbsentList'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div class="empty-bar">التفاصيل الكاملة متاحة عبر Firebase حالياً — الملخص من Laravel API</div>';
+    });
+  } catch (e) {
+    console.error('loadAllApi:', e);
+    document.getElementById('loadingMsg').textContent = 'تعذر تحميل الإحصائيات';
+  }
+}
 
 // ── Global Data ──────────────────────────────
 let allStudents = [];   // [{ id, name, sessions:[], grades:[] }]
 
 // ── Load All Data ────────────────────────────
 async function loadAll() {
+  await ensureFirebase();
   const studSnap = await getDocs(query(collection(db, 'students'), orderBy('order')));
   const rawDocs = studSnap.docs
     .map(d => ({ id: d.id, ...d.data(), sessions: [], grades: [] }))
@@ -589,6 +643,10 @@ document.addEventListener('click', (e) => {
 // ── الحضور التفصيلي (زي ما كان) ──
 window.statsExport = async function (type) {
   document.getElementById('statsExportMenu').style.display = 'none';
+  if (useApi()) {
+    try { await downloadApiStatsExport(type); } catch (e) { alert(e.message || 'تعذر التصدير'); }
+    return;
+  }
   if (!allStudents.length) { alert('لا توجد بيانات للتصدير بعد'); return; }
   if (type === 'excel') await exportAttendanceExcel(allStudents);
   else if (type === 'word') await exportAttendanceWord(allStudents);
@@ -605,6 +663,10 @@ function buildGradesRows() {
 }
 window.statsExportGrades = async function (format) {
   document.getElementById('statsExportMenu').style.display = 'none';
+  if (useApi()) {
+    try { await downloadApiStatsExport(format); } catch (e) { alert(e.message || 'تعذر التصدير'); }
+    return;
+  }
   const rows = buildGradesRows();
   const headers = ['#', 'الطالبة', 'المتوسط'];
   if (!rows.length) { alert('لا توجد درجات للتصدير بعد'); return; }
@@ -623,6 +685,10 @@ function buildTopAttendanceRows() {
 }
 window.statsExportTopAttendance = async function (format) {
   document.getElementById('statsExportMenu').style.display = 'none';
+  if (useApi()) {
+    try { await downloadApiStatsExport(format); } catch (e) { alert(e.message || 'تعذر التصدير'); }
+    return;
+  }
   const rows = buildTopAttendanceRows();
   const headers = ['#', 'الطالبة', 'نسبة الحضور'];
   if (!rows.length) { alert('لا توجد بيانات حضور للتصدير بعد'); return; }
@@ -641,6 +707,10 @@ function buildMostAbsentRows() {
 }
 window.statsExportMostAbsent = async function (format) {
   document.getElementById('statsExportMenu').style.display = 'none';
+  if (useApi()) {
+    try { await downloadApiStatsExport(format); } catch (e) { alert(e.message || 'تعذر التصدير'); }
+    return;
+  }
   const rows = buildMostAbsentRows();
   const headers = ['#', 'الطالبة', 'عدد أيام الغياب'];
   if (!rows.length) { alert('لا توجد غيابات مسجلة للتصدير'); return; }
@@ -674,6 +744,10 @@ function buildSubjectsRows() {
 }
 window.statsExportSubjects = async function (format) {
   document.getElementById('statsExportMenu').style.display = 'none';
+  if (useApi()) {
+    try { await downloadApiStatsExport(format); } catch (e) { alert(e.message || 'تعذر التصدير'); }
+    return;
+  }
   const rows = buildSubjectsRows();
   const headers = ['المادة', 'حضور', 'غياب', 'نسبة الحضور'];
   if (format === 'excel') await exportGenericExcel('إحصائيات_المواد', 'المواد', headers, rows);

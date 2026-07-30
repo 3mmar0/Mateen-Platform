@@ -1,55 +1,102 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi } from "./api.js";
+import { logoutApp, resolveLaravelSession } from "./session.js";
 
-const app  = initializeApp(FIREBASE_CONFIG);
-const db   = getFirestore(app);
-const auth = getAuth(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 
 let teacherSubject = '';
-let allResources   = [];
-let currentFilter  = 'all';
+let allResources = [];
+let currentFilter = 'all';
+let db = null;
+let auth = null;
+let collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, orderBy, serverTimestamp;
 
 const RES_ICONS = { pdf: '📄', link: '🔗', note: '📝' };
 const RES_LABELS = { pdf: 'PDF', link: 'رابط', note: 'ملاحظة' };
 
-onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
-
-  const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
-
-  const data   = snap.data();
-  const role   = data.role   || '';
-  const status = data.status || '';
-
+async function showLibrary(session) {
+  const data = session.raw || session;
+  const role = data.role || session.role || '';
+  const status = session.status || data.status || '';
   if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '../html/home.html';
+    return;
   }
   if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '../html/home.html';
+    return;
   }
-
-  teacherSubject = data.subject || user.uid;
-  document.getElementById('teacherName').textContent = data.name || user.email;
-  document.getElementById('authGate').style.display   = 'none';
+  teacherSubject = data.subject || session.subject || String(session.id);
+  document.getElementById('teacherName').textContent = session.name || session.email;
+  document.getElementById('authGate').style.display = 'none';
   document.getElementById('mainContent').style.display = 'block';
-
   loadResources();
-});
+}
 
-window.doLogout = () => signOut(auth).then(() => window.location.href = '../html/login.html');
+async function bootLaravel() {
+  const session = await resolveLaravelSession();
+  if (!session) { window.location.href = '../html/login.html'; return; }
+  await showLibrary(session);
+  window.doLogout = () => logoutApp('../html/login.html');
+}
+
+async function bootFirebase() {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const { getAuth, onAuthStateChanged, signOut } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, orderBy, serverTimestamp } = firestore);
+  const { FIREBASE_CONFIG } = await import("./config.js");
+  const app = initializeApp(FIREBASE_CONFIG);
+  db = firestore.getFirestore(app);
+  auth = getAuth(app);
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) { window.location.href = '../html/login.html'; return; }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    const data = snap.data();
+    const role = data.role || '';
+    const status = data.status || '';
+    if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
+      window.location.href = '../html/home.html';
+      return;
+    }
+    if (status === 'pending' || status === 'suspended') {
+      window.location.href = '../html/home.html';
+      return;
+    }
+    teacherSubject = data.subject || user.uid;
+    document.getElementById('teacherName').textContent = data.name || user.email;
+    document.getElementById('authGate').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    loadResources();
+  });
+  window.doLogout = () => signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+}
+
+if (useApi()) bootLaravel();
+else bootFirebase();
 
 async function loadResources() {
   const el = document.getElementById('resourcesList');
   try {
-    const q = query(collection(db, 'teachers', teacherSubject, 'library'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    allResources = [];
-    snap.forEach(d => allResources.push({ id: d.id, ...d.data() }));
+    if (useApi()) {
+      const res = await api.library.list();
+      const items = Array.isArray(res?.data) ? res.data : [];
+      allResources = items.map(i => ({
+        id: String(i.id),
+        title: i.title,
+        type: i.type || i.media_type || 'link',
+        content: i.url || i.body || i.content || '',
+      }));
+    } else {
+      const q = query(collection(db, 'teachers', teacherSubject, 'library'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      allResources = [];
+      snap.forEach(d => allResources.push({ id: d.id, ...d.data() }));
+    }
     renderResources();
-  } catch(e) {
+  } catch (e) {
     el.innerHTML = '<div class="empty-state">حدث خطأ أثناء التحميل</div>';
   }
 }
@@ -83,32 +130,45 @@ window.filterRes = (btn, type) => {
   renderResources();
 };
 
-window.showAddResource = () => {
-  document.getElementById('addResourceForm').style.display = 'block';
+window.openAddRes = () => {
+  document.getElementById('resTitle').value = '';
+  document.getElementById('resContent').value = '';
+  document.getElementById('resType').value = 'link';
+  document.getElementById('resModal').classList.add('open');
 };
 
 window.saveResource = async () => {
-  const title   = document.getElementById('resTitle').value.trim();
-  const type    = document.getElementById('resType').value;
+  const title = document.getElementById('resTitle').value.trim();
+  const type = document.getElementById('resType').value;
   const content = document.getElementById('resContent').value.trim();
-
-  if (!title) { alert('يرجى إدخال العنوان'); return; }
-
+  if (!title) return;
   try {
-    await addDoc(collection(db, 'teachers', teacherSubject, 'library'), {
-      title, type, content, createdAt: serverTimestamp()
-    });
-    document.getElementById('addResourceForm').style.display = 'none';
-    document.getElementById('resTitle').value   = '';
-    document.getElementById('resContent').value = '';
+    if (useApi()) {
+      await api.library.create({ title, section: 'teacher', type, url: type === 'link' ? content : undefined, body: type !== 'link' ? content : undefined });
+    } else {
+      await addDoc(collection(db, 'teachers', teacherSubject, 'library'), {
+        title, type, content, createdAt: serverTimestamp(),
+      });
+    }
+    document.getElementById('resModal').classList.remove('open');
     loadResources();
-  } catch(e) {
+  } catch (e) {
     alert('حدث خطأ أثناء الحفظ');
   }
 };
 
-window.deleteResource = async id => {
+window.deleteResource = async (id) => {
   if (!confirm('حذف هذا المرجع؟')) return;
-  await deleteDoc(doc(db, 'teachers', teacherSubject, 'library', id));
-  loadResources();
+  try {
+    if (useApi()) {
+      await api.library.remove(id);
+    } else {
+      await deleteDoc(doc(db, 'teachers', teacherSubject, 'library', id));
+    }
+    loadResources();
+  } catch (e) {
+    alert('حدث خطأ أثناء الحذف');
+  }
 };
+
+window.closeResModal = () => document.getElementById('resModal').classList.remove('open');

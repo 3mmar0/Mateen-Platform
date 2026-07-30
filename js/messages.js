@@ -1,19 +1,166 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, setDoc, deleteField } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { FIREBASE_CONFIG } from "./config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, clearSession, getStoredUser, getToken, isLaravelApi } from "./api.js";
 import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
 import { deletePendingNotificationsForConv } from "./notifications.js";
+import { uploadToCloudinary, uploadBlobToCloudinary } from "./cloud-upload.js";
 
-const app  = initializeApp(FIREBASE_CONFIG);
-const db   = getFirestore(app);
-const auth = getAuth(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let app = null;
+let db = null;
+let auth = null;
+let firebaseReady = null;
+let doc, getDoc, getDocs, collection, addDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, setDoc, deleteField, onAuthStateChanged, signOut;
+
+async function ensureFirebase() {
+  if (firebaseReady) return firebaseReady;
+  firebaseReady = (async () => {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+    const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+    const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+    ({ doc, getDoc, getDocs, collection, addDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, updateDoc, setDoc, deleteField } = firestore);
+    ({ onAuthStateChanged, signOut } = firebaseAuth);
+    app = initializeApp(FIREBASE_CONFIG);
+    db = firestore.getFirestore(app);
+    auth = firebaseAuth.getAuth(app);
+    return { app, db, auth };
+  })();
+  return firebaseReady;
+}
+
+let apiPollTimer = null;
+
+function mapApiMessage(m, myId) {
+  const sec = m.created_at ? Math.floor(Date.parse(m.created_at) / 1000) : 0;
+  const isFile = m.media_url && !m.media_type;
+  return {
+    id: String(m.id),
+    text: m.body || '',
+    senderId: String(m.sender_id || ''),
+    senderName: m.sender_display || '',
+    sentAt: sec ? { seconds: sec } : null,
+    type: m.media_type || (isFile ? 'file' : null),
+    url: m.media_url || null,
+    fileUrl: m.media_url || null,
+    read: m.read || false,
+  };
+}
+
+function mapApiConversation(c, myId) {
+  const other = (c.participants || []).find(p => String(p.id) !== String(myId));
+  const last = (c.messages || [])[0];
+  const lastSec = last?.created_at ? Math.floor(Date.parse(last.created_at) / 1000) : 0;
+  return {
+    id: String(c.id),
+    participants: (c.participants || []).map(p => String(p.id)),
+    otherId: other ? String(other.id) : '',
+    otherName: other?.name || 'الإدارة',
+    otherRole: other?.role || '',
+    lastMsg: last?.body || (last?.media_url ? '📎 مرفق' : ''),
+    lastAt: lastSec ? { seconds: lastSec } : null,
+    unread: 0,
+  };
+}
+
+async function refreshConversationsApi() {
+  const me = getStoredUser();
+  if (!me?.id) return;
+  try {
+    const res = await api.conversations.list();
+    allConvs = (res?.data || []).map(c => mapApiConversation(c, me.id));
+    renderConvList(allConvs);
+  } catch (e) {
+    console.error('refreshConversationsApi:', e);
+  }
+}
+
+async function refreshMessagesApi(convId) {
+  try {
+    const res = await api.conversations.messages(convId);
+    const items = (res?.data?.data || res?.data || []).slice().reverse();
+    const me = getStoredUser();
+    const other = allConvs.find(c => c.id === convId);
+    const otherName = other?.otherName || '';
+    const otherRole = other?.otherRole || '';
+    const sorted = items.map(m => mapApiMessage(m, me?.id));
+    const bubbles = document.getElementById('msgBubbles');
+    if (!bubbles) return;
+    bubbles.innerHTML = sorted.map(m => {
+      const mine = String(m.senderId) === String(me?.id);
+      const time = m.sentAt?.seconds ? new Date(m.sentAt.seconds * 1000).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="msg-row ${mine ? 'mine' : 'theirs'}"><div class="msg-bubble-wrap"><div class="msg-bubble ${mine ? 'mine' : 'theirs'}"><span class="msg-text">${escapeHtml(m.text || (m.url ? 'مرفق' : ''))}</span><span class="msg-time">${time}</span></div></div></div>`;
+    }).join('');
+    bubbles.scrollTop = bubbles.scrollHeight;
+  } catch (e) {
+    console.error('refreshMessagesApi:', e);
+  }
+}
+
+async function initMessagesApi() {
+  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  let data;
+  try {
+    const me = await api.me();
+    data = (me?.data ?? me ?? getStoredUser()) || {};
+  } catch {
+    window.location.href = '../html/login.html'; return;
+  }
+  if (data.status === 'pending' || data.status === 'suspended') {
+    window.location.href = '../html/home.html'; return;
+  }
+  data.role = effectiveRole(data, data.email || '');
+  currentUser = { uid: String(data.id), email: data.email };
+  currentUserData = data;
+  mountTestModeSwitcher(data, data.email || '');
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  const roleBadge = document.getElementById('myRoleBadge');
+  if (roleBadge) {
+    roleBadge.textContent = ROLE_LABELS[data.role] || data.role;
+    roleBadge.style.background = ROLE_INITIALS_BG[data.role] || '#f0f0f0';
+    roleBadge.style.color = ROLE_COLORS[data.role] || '#333';
+  }
+  const myNameEl = document.getElementById('myName');
+  if (myNameEl) myNameEl.textContent = data.name || '';
+  await loadAllUsersApi();
+  await refreshConversationsApi();
+  apiPollTimer = setInterval(() => {
+    refreshConversationsApi();
+    if (activeConvId) refreshMessagesApi(activeConvId);
+  }, 8000);
+}
+
+async function loadAllUsersApi() {
+  allUsers = [];
+  const me = getStoredUser();
+  try {
+    if (['admin', 'support'].includes(me?.role)) {
+      const res = await api.support.users();
+      allUsers = (res?.data || []).filter(u => String(u.id) !== String(me.id)).map(u => ({
+        id: String(u.id), name: u.name, email: u.email, role: u.role, status: u.is_active === false ? 'suspended' : 'active',
+      }));
+    } else {
+      const res = await api.students.list();
+      allUsers = (res?.data?.data || res?.data || []).filter(u => String(u.id) !== String(me.id)).map(u => ({
+        id: String(u.id), name: u.name, email: u.email, role: u.role, status: 'active',
+      }));
+    }
+  } catch (e) {
+    console.warn('loadAllUsersApi:', e);
+  }
+  allUsers.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+}
 
 // ── Cloudinary upload instead of Firebase Storage ──
 const CLOUD_NAME    = 'dqqtznoqt';
 const UPLOAD_PRESET = 'mateen_uploads';
 
 async function uploadMedia(blob, mediaType) {
+  if (useApi()) {
+    const resourceType = mediaType === 'audio' ? 'video' : 'image';
+    if (blob instanceof File) return uploadToCloudinary(blob);
+    return uploadBlobToCloudinary(blob, { resourceType });
+  }
   const fd = new FormData();
   fd.append('file', blob);
   fd.append('upload_preset', UPLOAD_PRESET);
@@ -90,6 +237,10 @@ function markConvRead(cid) {
 let viewOnceMode    = false;
 
 // ── Auth ───────────────────────────────────────────────────────────────────
+if (useApi()) {
+  initMessagesApi();
+} else {
+ensureFirebase().then(() => {
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = '../html/login.html'; return; }
 
@@ -165,6 +316,8 @@ onAuthStateChanged(auth, async user => {
     setTimeout(() => window.showNewConv && window.showNewConv(), 600);
   }
 });
+});
+}
 
 // ── تفعيل واجهة "وضع العرض فقط" ─────────────────────────────────────────────
 function activateViewOnlyUi() {
@@ -179,7 +332,19 @@ function activateViewOnlyUi() {
   if (broadcastBtn) broadcastBtn.style.display = 'none';
 }
 
-window.doLogout = () => signOut(auth).then(() => window.location.href = '../html/login.html');
+window.doLogout = () => {
+  if (useApi()) {
+    if (apiPollTimer) clearInterval(apiPollTimer);
+    api.logout().catch(() => {}).finally(() => {
+      clearSession();
+      window.location.href = '../html/login.html';
+    });
+    return;
+  }
+  ensureFirebase().then(() => {
+    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+  });
+};
 
 // ── Conv ID helper ─────────────────────────────────────────────────────────
 function convId(uid1, uid2) { return [uid1, uid2].sort().join('__'); }
@@ -392,19 +557,23 @@ window.openConv = async (cid, otherId, otherName, otherRole) => {
   const convEl = document.getElementById('msgConv');
   convEl.style.display = 'flex';
 
-  // على الموبايل — اخبي القايمة وظهّر الشات
   if (window.innerWidth <= 700) {
     document.getElementById('msgSidebar')?.classList.add('mob-hidden');
     document.querySelector('.msg-main')?.classList.add('mob-visible');
   }
 
-  // Header
   document.getElementById('convHeaderAvatar').innerHTML = avatarHtml(otherName, otherRole, 38);
   document.getElementById('convName').textContent  = otherName;
   document.getElementById('convRole').textContent  = ROLE_LABELS[otherRole] || otherRole;
   document.getElementById('convRole').style.color  = ROLE_COLORS[otherRole] || 'var(--text-mid)';
 
-  // Mark as read — صفّر الـ unread في Firestore مباشرة (مش في وضع العرض فقط)
+  if (useApi()) {
+    markConvRead(cid);
+    await refreshMessagesApi(cid);
+    renderConvList(allConvs);
+    return;
+  }
+
   if (!viewOnlyMode) {
     markConvRead(cid);
     await updateDoc(doc(db, 'conversations', cid), {
@@ -530,6 +699,13 @@ window.sendMsg = async () => {
   input.value = '';
   input.style.height = 'auto';
 
+  if (useApi()) {
+    await api.conversations.send(activeConvId, { body: text });
+    await refreshConversationsApi();
+    await refreshMessagesApi(activeConvId);
+    return;
+  }
+
   const otherId = allConvs.find(c => c.id === activeConvId)?.otherId;
 
   await addDoc(collection(db, 'conversations', activeConvId, 'messages'), {
@@ -621,6 +797,12 @@ window.searchUsers = () => {
 
 window.startConv = async (otherId, otherName, otherRole) => {
   closeNewConv();
+  if (useApi()) {
+    const res = await api.conversations.create({ participant_id: Number(otherId) || otherId });
+    const conv = res?.data ?? res;
+    openConv(String(conv.id), otherId, otherName, otherRole);
+    return;
+  }
   const cid = convId(currentUser.uid, otherId);
   await setDoc(doc(db, 'conversations', cid), {
     participants: [currentUser.uid, otherId],
@@ -860,6 +1042,13 @@ window.sendImage = async (input) => {
     hideUploadIndicator();
   }
 
+  if (useApi()) {
+    await api.conversations.send(activeConvId, { body: '📷 صورة', media_url: url, media_type: 'image' });
+    await refreshConversationsApi();
+    await refreshMessagesApi(activeConvId);
+    return;
+  }
+
   const otherId = allConvs.find(c => c.id === activeConvId)?.otherId;
   await addDoc(collection(db, 'conversations', activeConvId, 'messages'), {
     type: 'image', url, text: '📷 صورة',
@@ -900,31 +1089,40 @@ window.sendFile = async (input) => {
     return;
   }
 
-  // رفع الملف على Cloudinary — استخدام /auto/upload عشان يكتشف نوع الملف صح
-  // (image/upload كان بيرفض أي ملف مش صورة فعلية زي docx أو zip)
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', UPLOAD_PRESET);
-  const endpoint = 'auto';
-  let data;
+  // رفع الملف على Cloudinary
+  let url;
   showUploadIndicator('جارٍ رفع الملف...');
   try {
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${endpoint}/upload`,
-      { method: 'POST', body: fd }
-    );
-    data = await res.json();
+    if (useApi()) {
+      url = await uploadToCloudinary(file);
+    } else {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', UPLOAD_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
+        { method: 'POST', body: fd }
+      );
+      const data = await res.json();
+      if (!data.secure_url) throw new Error(data.error?.message || 'فشل رفع الملف');
+      url = data.secure_url;
+    }
   } catch(e) {
     hideUploadIndicator();
     alert('فشل رفع الملف — تحقق من اتصالك بالإنترنت');
     return;
   }
   hideUploadIndicator();
-  if (!data.secure_url) { alert('فشل رفع الملف: ' + (data.error?.message || 'خطأ غير معروف')); return; }
 
-  const url      = data.secure_url;
   const fileName = file.name;
   const fileSize = (file.size / 1024).toFixed(1) + ' KB';
+
+  if (useApi()) {
+    await api.conversations.send(activeConvId, { body: `📎 ${fileName}`, media_url: url });
+    await refreshConversationsApi();
+    await refreshMessagesApi(activeConvId);
+    return;
+  }
 
   const otherId = allConvs.find(cv => cv.id === activeConvId)?.otherId;
   await addDoc(collection(db, 'conversations', activeConvId, 'messages'), {
