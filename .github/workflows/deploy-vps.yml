@@ -8,19 +8,19 @@ on:
       target:
         description: 'Deploy target'
         required: true
-        default: staging
+        default: production
         type: choice
         options:
           - staging
           - production
 
 concurrency:
-  group: deploy-${{ github.event.inputs.target || 'staging' }}
+  group: deploy-${{ github.event.inputs.target || 'production' }}
   cancel-in-progress: false
 
 jobs:
   deploy-staging:
-    if: github.event_name == 'push' || github.event.inputs.target == 'staging'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging'
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -36,41 +36,53 @@ jobs:
             APP_DIR="${{ secrets.STAGING_APP_DIR }}"
             REPO="https://github.com/3mmar0/Mateen-Platform.git"
             mkdir -p "$(dirname "$APP_DIR")"
-            if [ -f "$APP_DIR/backend/.env" ]; then
+            if [ -f "$APP_DIR/.env" ]; then
+              cp "$APP_DIR/.env" /tmp/mateen.env.bak
+            elif [ -f "$APP_DIR/backend/.env" ]; then
               cp "$APP_DIR/backend/.env" /tmp/mateen.env.bak
             fi
             rm -rf /tmp/mateen-release
             git clone --depth 1 --branch main "$REPO" /tmp/mateen-release
             rsync -a --delete \
-              --exclude 'backend/.env' \
-              --exclude 'backend/storage/logs/' \
-              --exclude 'backend/storage/framework/cache/' \
-              --exclude 'backend/storage/framework/sessions/' \
-              --exclude 'backend/storage/framework/views/' \
-              --exclude 'backend/vendor/' \
+              --exclude '.env' \
+              --exclude 'storage/logs/' \
+              --exclude 'storage/framework/cache/' \
+              --exclude 'storage/framework/sessions/' \
+              --exclude 'storage/framework/views/' \
+              --exclude 'vendor/' \
+              --exclude '_obsolete/' \
+              --exclude 'specs/' \
               /tmp/mateen-release/ "$APP_DIR/"
             if [ -f /tmp/mateen.env.bak ]; then
-              cp /tmp/mateen.env.bak "$APP_DIR/backend/.env"
+              cp /tmp/mateen.env.bak "$APP_DIR/.env"
             fi
-            cd "$APP_DIR/backend"
+            cd "$APP_DIR"
             composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
             php artisan migrate --force
+            php artisan db:seed --force || true
             php artisan config:clear
             php artisan route:clear
+            for conf in /etc/nginx/sites-enabled/mateen.ammarelgndy.cloud.conf /etc/nginx/sites-available/mateen.ammarelgndy.cloud.conf; do
+              if [ -f "$conf" ]; then
+                sed -i 's|root /var/www/clients/mateen.ammarelgndy.cloud/public;|root '"$APP_DIR"'/public;|g' "$conf"
+                sed -i 's|root /var/www/mateen/backend/public;|root '"$APP_DIR"'/public;|g' "$conf"
+              fi
+            done
+            rm -rf /var/www/clients/mateen.ammarelgndy.cloud
             chown -R www-data:www-data storage bootstrap/cache
             chmod -R ug+rwx storage bootstrap/cache
+            nginx -t && systemctl reload nginx || true
             systemctl reload php8.4-fpm || systemctl reload php8.3-fpm || true
-            curl -fsS -X POST "http://127.0.0.1/api/v1/auth/login" \
-              -H 'Content-Type: application/json' -H 'Accept: application/json' \
-              -d '{"email":"admin@mateen.test","password":"password"}' >/dev/null
+            curl -fsS -o /dev/null "http://127.0.0.1/Mateen/html/login.html"
+            curl -fsS -o /dev/null "http://127.0.0.1/api/v1/subjects"
             echo "Staging deploy OK"
 
   deploy-production:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
+    if: github.event_name == 'push' || github.event.inputs.target == 'production'
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Deploy to production via SSH
+      - name: Deploy to production (mateen.academy) via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.PRODUCTION_SSH_HOST }}
@@ -82,28 +94,79 @@ jobs:
             APP_DIR="${{ secrets.PRODUCTION_APP_DIR }}"
             REPO="https://github.com/3mmar0/Mateen-Platform.git"
             mkdir -p "$(dirname "$APP_DIR")"
-            if [ -f "$APP_DIR/backend/.env" ]; then
+            if [ -f "$APP_DIR/.env" ]; then
+              cp "$APP_DIR/.env" /tmp/mateen.env.bak
+            elif [ -f "$APP_DIR/backend/.env" ]; then
               cp "$APP_DIR/backend/.env" /tmp/mateen.env.bak
             fi
             rm -rf /tmp/mateen-release
             git clone --depth 1 --branch main "$REPO" /tmp/mateen-release
             rsync -a --delete \
-              --exclude 'backend/.env' \
-              --exclude 'backend/storage/logs/' \
-              --exclude 'backend/storage/framework/cache/' \
-              --exclude 'backend/storage/framework/sessions/' \
-              --exclude 'backend/storage/framework/views/' \
-              --exclude 'backend/vendor/' \
+              --exclude '.env' \
+              --exclude 'storage/logs/' \
+              --exclude 'storage/framework/cache/' \
+              --exclude 'storage/framework/sessions/' \
+              --exclude 'storage/framework/views/' \
+              --exclude 'vendor/' \
+              --exclude '_obsolete/' \
+              --exclude 'specs/' \
               /tmp/mateen-release/ "$APP_DIR/"
             if [ -f /tmp/mateen.env.bak ]; then
-              cp /tmp/mateen.env.bak "$APP_DIR/backend/.env"
+              cp /tmp/mateen.env.bak "$APP_DIR/.env"
+            else
+              cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+              php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*/m', 'APP_KEY=', file_get_contents('.env')));"
+              cd "$APP_DIR" && php artisan key:generate --force
             fi
-            cd "$APP_DIR/backend"
+            cd "$APP_DIR"
+            # Keep production URL / secure cookies
+            python3 - <<'PY'
+            from pathlib import Path
+            import re
+            p = Path('.env')
+            t = p.read_text()
+            for k, v in {
+              'APP_ENV': 'production',
+              'APP_DEBUG': 'false',
+              'APP_URL': 'https://mateen.academy',
+              'FRONTEND_URL': 'https://mateen.academy',
+              'SESSION_SECURE_COOKIE': 'true',
+              'CORS_ALLOWED_ORIGINS': 'https://mateen.academy,https://www.mateen.academy',
+            }.items():
+              if re.search(rf'^{k}=', t, flags=re.M):
+                t = re.sub(rf'^{k}=.*$', f'{k}={v}', t, flags=re.M)
+              else:
+                t += f'\n{k}={v}\n'
+            p.write_text(t)
+            PY
             composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            mkdir -p storage/framework/{sessions,views,cache/data} storage/logs storage/app/public bootstrap/cache
             php artisan migrate --force
+            php artisan db:seed --force || true
+            php artisan storage:link || true
             php artisan config:clear
             php artisan route:clear
+            php artisan config:cache || true
+            php artisan route:cache || true
+            # Point Apache docroot at Laravel public/
+            for conf in /etc/apache2/sites-available/mateen.academy.conf \
+                        /etc/apache2/sites-available/mateen.academy-le-ssl.conf \
+                        /etc/apache2/sites-enabled/mateen.academy.conf \
+                        /etc/apache2/sites-enabled/mateen.academy-le-ssl.conf; do
+              if [ -f "$conf" ]; then
+                sed -i 's|DocumentRoot /var/www/mateen.academy$|DocumentRoot '"$APP_DIR"'/public|g' "$conf"
+                sed -i 's|DocumentRoot /var/www/mateen.academy/public|DocumentRoot '"$APP_DIR"'/public|g' "$conf"
+                sed -i 's|<Directory /var/www/mateen.academy>|<Directory '"$APP_DIR"'/public>|g' "$conf"
+                sed -i 's|<Directory /var/www/mateen.academy/public>|<Directory '"$APP_DIR"'/public>|g' "$conf"
+              fi
+            done
             chown -R www-data:www-data storage bootstrap/cache
             chmod -R ug+rwx storage bootstrap/cache
-            systemctl reload php8.4-fpm || systemctl reload php8.3-fpm || true
-            echo "Production deploy OK"
+            a2dismod php8.3 || true
+            a2enmod rewrite php8.4 headers || true
+            apache2ctl configtest
+            systemctl restart apache2
+            curl -fsS -o /dev/null -H 'Host: mateen.academy' "http://127.0.0.1/Mateen/html/login.html" || \
+              curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
+            curl -fsS -o /dev/null "https://mateen.academy/api/v1/subjects"
+            echo "Production deploy OK — https://mateen.academy"

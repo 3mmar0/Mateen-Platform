@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-shot staging deploy for unified Mateen Laravel app. Passwords via env only."""
+"""Deploy unified Mateen Laravel app to production (mateen.academy / Apache)."""
 from __future__ import annotations
 
 import os
@@ -12,18 +12,19 @@ from pathlib import Path
 import paramiko
 
 ROOT = Path(__file__).resolve().parents[1]
-HOST = os.environ.get("STAGING_SSH_HOST", "187.127.71.130")
-USER = os.environ.get("STAGING_SSH_USER", "root")
-PASSWORD = os.environ.get("STAGING_SSH_PASSWORD", "")
-APP_DIR = os.environ.get("STAGING_APP_DIR", "/var/www/mateen")
-DB_NAME = os.environ.get("STAGING_DB_NAME", "mateen")
-DB_USER = os.environ.get("STAGING_DB_USER", "mateen")
-DB_PASS = os.environ.get("STAGING_DB_PASS") or secrets.token_urlsafe(18)
-# Prefer HTTPS subdomain when available
-PUBLIC_URL = os.environ.get("STAGING_APP_URL", "https://mateen.ammarelgndy.cloud")
+HOST = os.environ.get("PROD_SSH_HOST", "31.97.122.143")
+USER = os.environ.get("PROD_SSH_USER", "root")
+PASSWORD = os.environ.get("PROD_SSH_PASSWORD", "")
+APP_DIR = os.environ.get("PROD_APP_DIR", "/var/www/mateen")
+DB_NAME = os.environ.get("PROD_DB_NAME", "mateen")
+DB_USER = os.environ.get("PROD_DB_USER", "mateen")
+DB_PASS = os.environ.get("PROD_DB_PASS") or (
+    "App_" + secrets.token_urlsafe(12) + "_9Z!"
+)
+PUBLIC_URL = os.environ.get("PROD_APP_URL", "https://mateen.academy")
 FRONTEND_ORIGINS = os.environ.get(
-    "STAGING_CORS",
-    "https://mateen.academy,http://187.127.71.130,https://187.127.71.130,https://mateen.ammarelgndy.cloud,http://mateen.ammarelgndy.cloud",
+    "PROD_CORS",
+    "https://mateen.academy,https://www.mateen.academy,http://mateen.academy,http://www.mateen.academy",
 )
 
 SKIP_NAMES = {
@@ -36,12 +37,15 @@ SKIP_NAMES = {
     "mcps",
     "agent-transcripts",
     "_obsolete",
+    "specs",
+    ".specify",
+    "codex",
 }
 
 
 def connect() -> paramiko.SSHClient:
     if not PASSWORD:
-        raise SystemExit("Set STAGING_SSH_PASSWORD")
+        raise SystemExit("Set PROD_SSH_PASSWORD")
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(HOST, username=USER, password=PASSWORD, timeout=45)
@@ -49,7 +53,7 @@ def connect() -> paramiko.SSHClient:
 
 
 def run(client: paramiko.SSHClient, cmd: str, check: bool = True) -> str:
-    print(f"$ {cmd}")
+    print(f"$ {cmd[:160]}{'...' if len(cmd) > 160 else ''}")
     _stdin, stdout, stderr = client.exec_command(cmd, timeout=900)
     out = stdout.read().decode(errors="replace")
     err = stderr.read().decode(errors="replace")
@@ -75,7 +79,11 @@ def make_archive() -> Path:
                 continue
             if path.name.startswith(".env") and path.name != ".env.example":
                 continue
+            if path.name.startswith("_inspect_") or path.name.startswith("_smoke_"):
+                continue
             if "/storage/logs/" in rel or "/storage/framework/" in rel:
+                continue
+            if path.suffix.lower() in {".apk", ".mp4", ".zip"} and "public/Mateen" not in rel:
                 continue
             tar.add(path, arcname=rel)
     return tmp
@@ -92,14 +100,19 @@ APP_URL='__APP_URL__'
 
 mkdir -p "$APP_DIR"
 
-# Preserve existing .env (root or legacy backend path)
+# Preserve existing .env
 if [ -f "$APP_DIR/.env" ]; then
   cp "$APP_DIR/.env" /tmp/mateen.env.bak
 elif [ -f "$APP_DIR/backend/.env" ]; then
   cp "$APP_DIR/backend/.env" /tmp/mateen.env.bak
 fi
 
-# Extract cleanly then sync into APP_DIR
+# Backup legacy static front once
+if [ -d /var/www/mateen.academy/Mateen ] && [ ! -d /var/www/mateen.academy.static.bak ]; then
+  mv /var/www/mateen.academy /var/www/mateen.academy.static.bak
+  echo "Backed up legacy static front to /var/www/mateen.academy.static.bak"
+fi
+
 rm -rf /tmp/mateen-release
 mkdir -p /tmp/mateen-release
 tar -xzf /tmp/mateen-deploy.tar.gz -C /tmp/mateen-release
@@ -111,9 +124,10 @@ rsync -a --delete \
   --exclude 'storage/framework/views/' \
   --exclude 'vendor/' \
   --exclude '.git/' \
+  --exclude '_obsolete/' \
+  --exclude 'specs/' \
   /tmp/mateen-release/ "$APP_DIR/"
 
-# Remove legacy nested backend app if present
 rm -rf "$APP_DIR/backend"
 
 if [ -f /tmp/mateen.env.bak ]; then
@@ -132,11 +146,11 @@ p = Path('.env')
 text = p.read_text()
 repl = {
   'APP_NAME': 'Mateen',
-  'APP_ENV': 'staging',
-  'APP_DEBUG': 'true',
+  'APP_ENV': 'production',
+  'APP_DEBUG': 'false',
   'APP_URL': os.environ['APP_URL'],
   'FRONTEND_URL': os.environ['APP_URL'],
-  'SESSION_SECURE_COOKIE': 'false',
+  'SESSION_SECURE_COOKIE': 'true',
   'DB_CONNECTION': 'mysql',
   'DB_HOST': '127.0.0.1',
   'DB_PORT': '3306',
@@ -150,11 +164,11 @@ for k,v in repl.items():
         text = re.sub(rf'^#\s*{k}=.*$', f'{k}={v}', text, flags=re.M)
         if not re.search(rf'^{k}=', text, flags=re.M):
             text += f'\n{k}={v}\n'
-# Ensure DB_PASSWORD exists
-if not re.search(r'^DB_PASSWORD=.+', text, flags=re.M):
-    text = re.sub(r'^#\s*DB_PASSWORD=.*$', f"DB_PASSWORD={os.environ['DB_PASS']}", text, flags=re.M)
-    if not re.search(r'^DB_PASSWORD=.+', text, flags=re.M):
-        text += f"\nDB_PASSWORD={os.environ['DB_PASS']}\n"
+# Always sync DB_PASSWORD from deploy input so policy-safe password is used
+if re.search(r'^DB_PASSWORD=', text, flags=re.M):
+    text = re.sub(r'^DB_PASSWORD=.*$', f"DB_PASSWORD={os.environ['DB_PASS']}", text, flags=re.M)
+else:
+    text += f"\nDB_PASSWORD={os.environ['DB_PASS']}\n"
 cors = os.environ['CORS']
 if re.search(r'^CORS_ALLOWED_ORIGINS=', text, flags=re.M):
     text = re.sub(r'^CORS_ALLOWED_ORIGINS=.*$', f'CORS_ALLOWED_ORIGINS={cors}', text, flags=re.M)
@@ -164,8 +178,7 @@ p.write_text(text)
 print('env configured')
 PY
 
-# Sync DB user password with .env
-mysql -e "CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" || true
+# Create DB + user via debian-sys-maint (root may require password)
 DB_PASS_EFFECTIVE=$(python3 - <<'PY'
 from pathlib import Path
 import re
@@ -174,18 +187,20 @@ m = re.search(r'^DB_PASSWORD=(.*)$', t, re.M)
 print(m.group(1).strip() if m else '')
 PY
 )
-if [ -n "$DB_PASS_EFFECTIVE" ]; then
-  mysql -e "DROP USER IF EXISTS '$DB_USER'@'localhost';" || true
-  mysql -e "DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';" || true
-  mysql -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS_EFFECTIVE';"
-  mysql -e "CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS_EFFECTIVE';"
-  mysql -e "GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';"
-  mysql -e "GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1'; FLUSH PRIVILEGES;"
-fi
+# Always set/reset password to match .env (policy-safe)
+mysql --defaults-file=/etc/mysql/debian.cnf <<SQL
+CREATE DATABASE IF NOT EXISTS \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+DROP USER IF EXISTS '$DB_USER'@'localhost';
+DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';
+CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS_EFFECTIVE';
+CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS_EFFECTIVE';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'127.0.0.1';
+FLUSH PRIVILEGES;
+SQL
 
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
-# Ensure storage framework dirs exist (rsync excludes may omit empty runtime dirs)
 mkdir -p storage/framework/{sessions,views,cache/data} storage/logs storage/app/public bootstrap/cache
 touch storage/logs/laravel.log
 
@@ -199,66 +214,60 @@ php artisan storage:link || true
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear || true
+php artisan config:cache || true
+php artisan route:cache || true
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwx storage bootstrap/cache
 
-PHP_SOCK=""
-for s in /run/php/php8.4-fpm.sock /run/php/php8.3-fpm.sock /run/php/php-fpm.sock; do
-  if [ -S "$s" ]; then PHP_SOCK="$s"; break; fi
-done
-if [ -z "$PHP_SOCK" ]; then PHP_SOCK="/run/php/php8.4-fpm.sock"; fi
-
-# Default IP vhost
-cat >/etc/nginx/sites-available/mateen <<NGINX
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
-    root /var/www/mateen/public;
-    index index.php index.html;
-    client_max_body_size 32M;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-
-    location ~ \.php\$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:$PHP_SOCK;
-        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
-        include fastcgi_params;
-        fastcgi_read_timeout 120s;
-    }
-
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
-}
-NGINX
-
-# Point subdomain at unified app (preserve SSL certbot blocks)
-for conf in /etc/nginx/sites-enabled/mateen.ammarelgndy.cloud.conf /etc/nginx/sites-available/mateen.ammarelgndy.cloud.conf; do
+# Apache vhosts → Laravel public/
+for conf in /etc/apache2/sites-available/mateen.academy.conf /etc/apache2/sites-available/mateen.academy-le-ssl.conf \
+            /etc/apache2/sites-enabled/mateen.academy.conf /etc/apache2/sites-enabled/mateen.academy-le-ssl.conf; do
   if [ -f "$conf" ]; then
-    sed -i 's|root /var/www/clients/mateen.ammarelgndy.cloud/public;|root /var/www/mateen/public;|g' "$conf"
-    sed -i 's|root /var/www/mateen/backend/public;|root /var/www/mateen/public;|g' "$conf"
+    sed -i 's|DocumentRoot /var/www/mateen.academy$|DocumentRoot /var/www/mateen/public|g' "$conf"
+    sed -i 's|DocumentRoot /var/www/mateen.academy/public|DocumentRoot /var/www/mateen/public|g' "$conf"
+    sed -i 's|<Directory /var/www/mateen.academy>|<Directory /var/www/mateen/public>|g' "$conf"
+    sed -i 's|<Directory /var/www/mateen.academy/public>|<Directory /var/www/mateen/public>|g' "$conf"
   fi
 done
 
-# Remove legacy front-only tree — unified app lives only at /var/www/mateen
-if [ -d /var/www/clients/mateen.ammarelgndy.cloud ]; then
-  rm -rf /var/www/clients/mateen.ammarelgndy.cloud
-  echo "Removed legacy /var/www/clients/mateen.ammarelgndy.cloud"
-fi
+# Ensure AllowOverride + Laravel rewrite for public/
+python3 <<'PY'
+from pathlib import Path
+import re
+for name in [
+  '/etc/apache2/sites-available/mateen.academy.conf',
+  '/etc/apache2/sites-available/mateen.academy-le-ssl.conf',
+]:
+  p = Path(name)
+  if not p.exists():
+    continue
+  text = p.read_text()
+  text = text.replace('DocumentRoot /var/www/mateen.academy\n', 'DocumentRoot /var/www/mateen/public\n')
+  if '<Directory /var/www/mateen/public>' not in text:
+    text = re.sub(
+      r'(DocumentRoot /var/www/mateen/public\n)',
+      r'''\1
+    <Directory /var/www/mateen/public>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+''',
+      text,
+      count=1,
+    )
+  p.write_text(text)
+  print('updated', name)
+PY
 
-ln -sfn /etc/nginx/sites-available/mateen /etc/nginx/sites-enabled/mateen
-rm -f /etc/nginx/sites-enabled/default
-nginx -t
-systemctl reload nginx
-systemctl reload php8.4-fpm || systemctl reload php8.3-fpm || true
+a2enmod rewrite php8.4 headers || true
+apache2ctl configtest
+systemctl restart apache2
 
-echo HEALTH=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/up || echo fail)
-echo UI=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/Mateen/html/login.html || echo fail)
-echo API=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1/api/v1/auth/login -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"email":"admin@mateen.test","password":"password"}' || echo fail)
+echo HEALTH=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: mateen.academy' http://127.0.0.1/up || echo fail)
+echo UI=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: mateen.academy' http://127.0.0.1/Mateen/html/login.html || echo fail)
+echo API=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Host: mateen.academy' http://127.0.0.1/api/v1/auth/login -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"email":"admin@mateen.test","password":"password"}' || echo fail)
+echo HTTPS=$(curl -s -o /dev/null -w '%{http_code}' https://mateen.academy/Mateen/html/login.html || echo fail)
 """
 
 
@@ -278,25 +287,23 @@ def main() -> None:
             .replace("__DB_PASS__", DB_PASS)
             .replace("__CORS__", FRONTEND_ORIGINS)
             .replace("__APP_URL__", PUBLIC_URL)
-            .replace("__HOST__", HOST)
         )
-        with sftp.file("/tmp/mateen-setup.sh", "w") as f:
+        with sftp.file("/tmp/mateen-prod-setup.sh", "w") as f:
             f.write(script)
         sftp.close()
         print("Uploaded archive + setup script")
-        run(client, "bash /tmp/mateen-setup.sh")
-        print("\nStaging deploy finished.")
-        print(f"API:       http://{HOST}/api/v1")
-        print(f"Health:    http://{HOST}/up")
-        print(f"Login UI:  http://{HOST}/Mateen/html/login.html")
-        print(f"Subdomain: {PUBLIC_URL}/Mateen/html/login.html")
-        print("Seed password for all demo accounts: password")
-        print("  admin@mateen.test | supervisor@mateen.test | support@mateen.test")
-        print("  teacher@mateen.test | teacher.tafsir@mateen.test (…fiqh/aqeedah/hadeeth/maqraah)")
-        print("  student@mateen.test | student2@mateen.test | mateen@mateen.test")
+        run(client, "bash /tmp/mateen-prod-setup.sh")
+        print("\nProduction deploy finished.")
+        print(f"Site:  {PUBLIC_URL}/Mateen/html/home.html")
+        print(f"Login: {PUBLIC_URL}/Mateen/html/login.html")
+        print(f"API:   {PUBLIC_URL}/api/v1")
+        print("Seed password: password (admin@mateen.test and other *@mateen.test)")
     finally:
         client.close()
-        archive.unlink(missing_ok=True)
+        try:
+            archive.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":

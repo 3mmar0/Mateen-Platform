@@ -30,7 +30,7 @@ mysql -e "CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';"
 mysql -e "GRANT ALL PRIVILEGES ON \\`$DB_NAME\\`.* TO '$DB_USER'@'localhost';"
 mysql -e "GRANT ALL PRIVILEGES ON \\`$DB_NAME\\`.* TO '$DB_USER'@'127.0.0.1'; FLUSH PRIVILEGES;"
 
-cd /var/www/mateen/backend
+cd /var/www/mateen
 python3 <<'PY'
 from pathlib import Path
 import re
@@ -76,14 +76,9 @@ server {{
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
-    root /var/www/mateen/backend/public;
+    root /var/www/mateen/public;
     index index.php index.html;
     client_max_body_size 32M;
-
-    location /Mateen/ {{
-        alias /var/www/mateen/;
-        try_files $uri $uri/ =404;
-    }}
 
     location / {{
         try_files $uri $uri/ /index.php?$query_string;

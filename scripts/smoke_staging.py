@@ -37,7 +37,7 @@ def fix_up_and_static():
     c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     c.connect(HOST, username="root", password=PASSWORD, timeout=30)
     cmd = r"""
-cd /var/www/mateen/backend
+cd /var/www/mateen
 tail -n 40 storage/logs/laravel.log 2>/dev/null || echo 'no log'
 echo '---'
 # ensure APP_KEY present and storage writable

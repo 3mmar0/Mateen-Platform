@@ -5,41 +5,67 @@ Thumbs.db
 *.swp
 .vscode/
 .idea/
+.zed/
+.nova/
+.cursor/
+.phpactor.json
+.phpunit.result.cache
+.phpunit.cache/
+_ide_helper.php
 
 # Env / secrets
 .env
 .env.*
 !.env.example
+.env.backup
+.env.production
+auth.json
 
 # Logs / caches
 *.log
 *.cache
 
-# Node (Firebase functions / tools)
+# Node (Firebase functions / tools / Vite)
 node_modules/
 functions/node_modules/
 dist/
 build/
 coverage/
+public/build
+public/hot
+public/fonts-manifest.dev.json
+public/storage
 
-# PHP / Laravel (backend/)
-backend/vendor/
-backend/node_modules/
-backend/public/hot
-backend/public/storage
-backend/storage/*.key
-backend/storage/pail
-backend/storage/logs/*
-backend/storage/framework/cache/*
-backend/storage/framework/sessions/*
-backend/storage/framework/views/*
-!backend/storage/logs/.gitignore
-!backend/storage/framework/cache/.gitignore
-!backend/storage/framework/sessions/.gitignore
-!backend/storage/framework/views/.gitignore
-backend/bootstrap/cache/*.php
-!backend/bootstrap/cache/.gitignore
-backend/.phpunit.result.cache
-backend/Homestead.json
-backend/Homestead.yaml
-backend/auth.json
+# PHP / Laravel (repo root)
+/vendor
+/storage/*.key
+/storage/pail
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+!/storage/logs/.gitignore
+!/storage/framework/cache/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/views/.gitignore
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
+Homestead.json
+Homestead.yaml
+
+# Obsolete / non-deploy trees (kept out of git + CI clones)
+_obsolete/
+codex/
+
+# Local one-shot / inspect helpers (not part of the app)
+scripts/_inspect_*.py
+scripts/_smoke_*.py
+scripts/_fix_*.py
+scripts/_check_*.py
+
+# Heavy / non-web artifacts
+*.apk
+*.mp4
+
+# Misc
+vendor

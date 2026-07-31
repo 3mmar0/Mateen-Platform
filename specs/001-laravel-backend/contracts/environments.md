@@ -3,6 +3,8 @@
 **Feature**: `001-laravel-backend` | **Date**: 2026-07-30  
 **Related**: [openapi.yaml](./openapi.yaml) · [quickstart.md](../quickstart.md) · [research.md](../research.md)
 
+> **Packaging superseded (2026-07-30)**: Repository layout, same-origin UI+API serving, and deploy paths are now defined by [`specs/002-unify-laravel-app/contracts/environments.md`](../../002-unify-laravel-app/contracts/environments.md). This file remains for historical context and OpenAPI linkage; prefer `002` for where the app lives and how it is deployed. Domain API shapes still live in this feature’s OpenAPI.
+
 This contract describes **where** the monorepo runs. API request/response shapes remain in OpenAPI. **No passwords, SSH keys, or API tokens belong in this file.**
 
 ---
@@ -11,7 +13,7 @@ This contract describes **where** the monorepo runs. API request/response shapes
 
 | Item | Contract |
 |------|----------|
-| Layout | Single monorepo: static client + `backend/` |
+| Layout | **Superseded by 002**: single Laravel app at repository root + `public/Mateen` (was: static client + `backend/`) |
 | Deploy source | https://github.com/3mmar0/Mateen-Platform |
 | Staging API (live) | `http://187.127.71.130/api/v1` — smoke login OK 2026-07-30 |
 | Staging UI | `http://187.127.71.130/Mateen/html/login.html` |
