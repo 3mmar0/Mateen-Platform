@@ -1,5 +1,5 @@
 // ── Mateen PWA Service Worker ──────────────────────────────────
-const CACHE_NAME = 'mateen-v3'; // unified Laravel public/Mateen القديم
+const CACHE_NAME = 'mateen-v4'; // news UTF-8 + skip API cache القديم
 const ASSETS = [
   '/Mateen/html/home.html',
   '/Mateen/html/login.html',
@@ -26,6 +26,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (e.request.url.includes('firestore') || e.request.url.includes('firebase')) return;
+  if (e.request.url.includes('/api/')) return;
 
   const isCodeFile = /\.(js|html|css)(\?|$)/.test(e.request.url);
 
