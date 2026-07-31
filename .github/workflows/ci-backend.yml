@@ -1,23 +1,38 @@
-name: Backend CI
+name: App CI
 
 on:
   push:
     branches: [main]
     paths:
-      - 'backend/**'
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'tests/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'phpunit.xml'
+      - 'public/Mateen/**'
       - '.github/workflows/ci-backend.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'backend/**'
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'tests/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'phpunit.xml'
+      - 'public/Mateen/**'
       - '.github/workflows/ci-backend.yml'
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     services:
       mysql:

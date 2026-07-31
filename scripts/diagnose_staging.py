@@ -30,11 +30,11 @@ echo
 echo '=== php socks ==='
 ls /run/php/ || true
 echo '=== routes ==='
-cd /var/www/mateen/backend
+cd /var/www/mateen
 php artisan route:list --path=api/v1/auth 2>&1 | head -40
 php artisan route:list --path=up 2>&1 | head -20
 echo '=== public ==='
-ls -la /var/www/mateen/backend/public | head
+ls -la /var/www/mateen/public | head
 """
 
 c = paramiko.SSHClient()

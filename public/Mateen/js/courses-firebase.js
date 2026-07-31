@@ -1,0 +1,1370 @@
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
+import { api, isLaravelApi, getStoredUser, getToken, setSession } from "./api.js";
+import { effectiveRole, mountTestModeSwitcher } from "./test-mode.js";
+import { renderAssignmentsSection, renderLectureAssignmentControls } from "./assignments-ui.js";
+import { deleteAssignmentsForMaterial } from "./assignments.js";
+window.refreshAssignmentsFor = (materialId, course) => {
+  document.querySelectorAll(`[data-asg-container="${materialId}"]`).forEach(el => {
+    renderAssignmentsSection(materialId, course, el.id, false);
+  });
+  document.querySelectorAll(`[data-lec-asg-container="${materialId}"]`).forEach(el => {
+    const group = allMats.filter(m => `lecture-${m.course}-${m.lectureNumber}` === materialId);
+    const targets = group.map(m => ({ id: m.id, title: m.title }));
+    renderLectureAssignmentControls(materialId, course, el.id, targets);
+  });
+};
+
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let collection, query, orderBy, onSnapshot, addDoc, getDoc, doc, updateDoc, deleteDoc, arrayUnion, getDocs, setDoc, where, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return { db, auth };
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  ({ collection, query, orderBy, onSnapshot, addDoc, getDoc, doc, updateDoc, deleteDoc, arrayUnion, getDocs, setDoc, where } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+  return { db, auth };
+}
+
+function unwrapList(res) {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
+}
+
+const AR_TO_API_TYPE = {
+  'محاضرة': 'video', 'ملخص': 'pdf', 'واجب': 'article', 'اختبار': 'article',
+  'مرجع': 'pdf', 'فيديو': 'video', 'تسجيل صوتي': 'link', 'أخرى': 'link',
+};
+const API_TO_AR_TYPE = {
+  video: 'فيديو', pdf: 'ملخص', article: 'واجب', link: 'أخرى',
+};
+
+function mapApiSubject(s) {
+  const seed = SEED_SUBJECTS.find(x =>
+    x.name === s.title || x.id === s.slug ||
+    ({ tafsir: 'tafseer', hadeeth: 'hadith', maqraah: 'quran' }[s.slug] === x.id)
+  );
+  return {
+    id: String(s.id),
+    slug: s.slug,
+    name: s.title,
+    desc: s.description || seed?.desc || '',
+    subtitle: s.subtitle || seed?.level || '',
+    topics: (Array.isArray(s.axes) && s.axes.length ? s.axes : null) || seed?.topics || [],
+    level: s.subtitle || seed?.level || '',
+    icon: seed?.icon || '📚',
+    color: seed?.color || 'linear-gradient(135deg,#5c3d2e,#8a5e3c)',
+    meetings: seed?.meetings || '',
+    weeks: seed?.weeks || '',
+    inExams: true,
+    inAttendance: true,
+    inEnrollment: true,
+    addedAt: s.sort_order ?? 0,
+  };
+}
+
+function mapApiMaterial(m, subjectTitle) {
+  return {
+    id: String(m.id),
+    title: m.title,
+    course: subjectTitle || '',
+    type: API_TO_AR_TYPE[m.type] || m.type || 'أخرى',
+    url: m.url || '',
+    notes: m.body || '',
+    addedAt: m.sort_order ?? 0,
+  };
+}
+
+let apiSubjectsCache = [];
+
+async function findSubjectIdByCourseName(courseName) {
+  if (!apiSubjectsCache.length) {
+    apiSubjectsCache = unwrapList(await api.subjects.list()).map(mapApiSubject);
+  }
+  const hit = apiSubjectsCache.find(s => s.name === courseName);
+  return hit ? hit.id : null;
+}
+
+async function loadAllMaterialsApi() {
+  const subjects = unwrapList(await api.subjects.list()).map(mapApiSubject);
+  apiSubjectsCache = subjects;
+  const mats = [];
+  for (const s of subjects) {
+    const items = unwrapList(await api.subjects.materials(s.id));
+    items.forEach(m => mats.push(mapApiMaterial(m, s.name)));
+  }
+  allMats = mats.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+}
+
+async function loadAllSubjectsApi() {
+  allSubjects = unwrapList(await api.subjects.list()).map(mapApiSubject);
+  apiSubjectsCache = allSubjects;
+}
+
+async function refreshApiCoursesData() {
+  await Promise.all([loadAllMaterialsApi(), loadAllSubjectsApi()]);
+  renderSubjects();
+  if (authReady) {
+    window.filterMats();
+    renderModalMats();
+  } else {
+    pendingRender = true;
+  }
+}
+
+function renderCoursesFallback(message) {
+  allSubjects = SEED_SUBJECTS.map(s => ({ ...s }));
+  renderSubjects();
+  const section = document.getElementById('dynamicMatsSection');
+  const container = document.getElementById('matsContainer');
+  if (section) section.style.display = 'block';
+  if (container) {
+    container.innerHTML = `<div style="text-align:center;color:var(--text-mid);padding:40px;grid-column:1/-1;">
+      <i class="ti ti-alert-circle" style="font-size:28px;"></i>
+      <div style="margin-top:8px">${message || 'تعذر تحميل المحتوى من الخادم'}</div>
+    </div>`;
+  }
+}
+
+const SEED_SUBJECTS = [
+  { id:'tafseer', name:'التفسير', icon:'📖', color:'linear-gradient(135deg,#5c3d2e,#8a5e3c)', desc:'دراسة معاني كتاب الله وفهم آياته والاستنباط منها وفق منهج السلف الصالح.', meetings:'٣ لقاءات أسبوعياً', weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['مقدمات في علم التفسير','أسباب النزول','الناسخ والمنسوخ','تفسير المفردات','الاستنباط الفقهي','التدبر والتطبيق'], addedAt:1000 },
+  { id:'fiqh',    name:'الفقه',    icon:'⚖️',  color:'linear-gradient(135deg,#1a3a5c,#2a5298)', desc:'تعلّم أحكام العبادات والمعاملات وفق المذهب الفقهي مع الأدلة الشرعية والتطبيق العملي.', meetings:'٣ لقاءات أسبوعياً', weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['الطهارة والصلاة','الزكاة والصيام','الحج والعمرة','فقه الأسرة','المعاملات المالية','الفقه المعاصر'], addedAt:1001 },
+  { id:'aqeedah', name:'العقيدة',  icon:'🕌',  color:'linear-gradient(135deg,#4a2e1a,#8b5e3c)', desc:'تأصيل عقيدة أهل السنة والجماعة في أسماء الله وصفاته والإيمان بالغيب وأصول الدين.',    meetings:'لقاءان أسبوعياً',    weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['أصول الإيمان الستة','التوحيد وأقسامه','الأسماء والصفات','القضاء والقدر','الولاء والبراء','الفرق والمذاهب'],   addedAt:1002 },
+  { id:'hadith',  name:'الحديث',   icon:'📜',  color:'linear-gradient(135deg,#2e1a4a,#5e3c8b)', desc:'دراسة الأحاديث النبوية وشرحها واستنباط الأحكام منها مع تعلّم أصول علم المصطلح.',     meetings:'لقاءان أسبوعياً',    weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['مصطلح الحديث','أقسام الحديث','شرح الأربعين النووية','الجرح والتعديل','فقه الحديث','التخريج والدراسة'],       addedAt:1003 },
+  { id:'quran',   name:'مقرأة متين',icon:'🌿', color:'linear-gradient(135deg,#5c3d2e,#8a5e3c)', desc:'تلاوة مقرأة متين بالتجويد وحفظ المقرر مع الإتقان والمراجعة المنتظمة.',               meetings:'يومياً',             weeks:'٦ أسابيع', level:'المستوى الثاني', topics:['أحكام التجويد','المخارج والصفات','حفظ المقرر','المراجعة الأسبوعية','التلاوة الجماعية','الإجازة والسند'],       addedAt:1004 },
+];
+
+async function seedSubjects() {
+  await ensureFirebase();
+  for (const s of SEED_SUBJECTS) {
+    const ref = doc(db, 'subjects', s.id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, { ...s });
+      console.log('[Seed] أضفت:', s.name);
+    }
+  }
+}
+if (!useApi()) seedSubjects().catch(e => console.warn('[Seed] خطأ:', e));
+
+let allMats = [];
+let allSubjects = [];
+let authReady = false;
+let pendingRender = false;
+let currentUserRole = null;
+let currentUserSubjects = [];
+const MAIN_SUBJECTS = ['التفسير', 'الفقه', 'العقيدة', 'الحديث', 'مقرأة متين'];
+
+const TYPE_ICONS = {
+  محاضرة: '🎙️', ملخص: '📄', واجب: '📝', اختبار: '✅',
+  مرجع: '📚', فيديو: '🎬', 'تسجيل صوتي': '🎧', أخرى: '📎'
+};
+
+function detectLinkType(url) {
+  if (!url) return 'default';
+  if (url.includes('youtube') || url.includes('youtu.be')) return 'youtube';
+  if (url.includes('drive.google')) return 'drive';
+  if (url.includes('dropbox')) return 'dropbox';
+  return 'default';
+}
+
+const LINK_LABELS = { youtube: '▶️ يوتيوب', drive: '📁 درايف', dropbox: '☁️ دروبوكس', default: '🔗 فتح الرابط' };
+
+const isAdmin = () => currentUserRole === 'admin' || currentUserRole === 'supervisor';
+
+// Teacher (f) تقدر تعدل/تDelete مواد مادتها but/only
+const canEditMat = (m) => {
+  if (isAdmin()) return true;
+  if (currentUserRole === 'teacher') {
+    return currentUserSubjects.some(s => m.course === s);
+  }
+  return false;
+};
+
+function matCardHTML(m) {
+  const editBtns = canEditMat(m) ? `
+    <div style="display:flex;gap:8px;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+      <button onclick="event.preventDefault();event.stopPropagation();openEditModal('${m.id}')"
+        style="flex:1;padding:6px;border:1px solid var(--green-dark);background:transparent;color:var(--green-dark);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <i class="ti ti-pencil"></i> تعديل
+      </button>
+      <button onclick="event.preventDefault();event.stopPropagation();confirmDeleteMat('${m.id}','${m.title.replace(/'/g,"\\'")}' )"
+        style="flex:1;padding:6px;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <i class="ti ti-trash"></i> حذف
+      </button>
+    </div>` : '';
+
+  return `
+    <div style="text-decoration:none;">
+      <div class="mat-card-item">
+        ${m.type === 'تسجيل صوتي' ? `
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span style="font-size:20px">🎧</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--green-dark)">${m.title}</div>
+              <div style="font-size:11px;color:var(--text-mid);margin-top:2px">تسجيل صوتي</div>
+            </div>
+          </div>
+          ${m.notes ? `<div style="font-size:12px;color:var(--text-mid);background:var(--beige);padding:7px 10px;border-radius:8px;margin-bottom:10px">${m.notes}</div>` : ''}
+          <div style="background:var(--beige,#f7f0e5);border-radius:12px;padding:12px;">
+            <audio id="audio-${m.id}" src="${m.url}" preload="metadata" style="display:none" controlsList="nodownload" oncontextmenu="return false"></audio>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <button onclick="toggleAudio('${m.id}')" id="playBtn-${m.id}"
+                style="width:38px;height:38px;border-radius:50%;background:var(--green-dark);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="ti ti-player-play" id="playIcon-${m.id}"></i>
+              </button>
+              <div style="flex:1">
+                <div style="position:relative;height:6px;background:rgba(0,0,0,0.1);border-radius:3px;cursor:pointer;margin-bottom:4px" onclick="seekAudio('${m.id}',event)">
+                  <div id="progress-${m.id}" style="height:100%;background:var(--green-dark);border-radius:3px;width:0%;transition:width 0.1s"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-mid)">
+                  <span id="curTime-${m.id}">0:00</span>
+                  <span id="durTime-${m.id}">0:00</span>
+                </div>
+              </div>
+              <button onclick="changeSpeed('${m.id}')" id="speedBtn-${m.id}"
+                style="font-size:11px;font-weight:700;color:var(--green-dark);background:transparent;border:1px solid var(--green-dark);border-radius:6px;padding:2px 6px;cursor:pointer">1x</button>
+            </div>
+          </div>
+        </div>
+        ` : (m.url ? `
+        <a href="${m.url}" target="_blank" rel="noopener" style="text-decoration:none;display:block;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <span style="font-size:20px">${TYPE_ICONS[m.type] || '📎'}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--green-dark)">${m.title}</div>
+              <div style="font-size:11px;color:var(--text-mid);margin-top:2px">${m.type || ''}</div>
+            </div>
+          </div>
+          ${m.notes ? `<div style="font-size:12px;color:var(--text-mid);background:var(--beige);padding:7px 10px;border-radius:8px;margin-bottom:8px">${m.notes}</div>` : ''}
+          <div style="font-size:12px;color:var(--gold-dark)">${LINK_LABELS[detectLinkType(m.url)]}</div>
+        </a>` : `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:20px">${m.assignment?.title ? '📝' : '📎'}</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--green-dark)">${m.title}</div>
+            <div style="font-size:11px;color:var(--text-mid);margin-top:2px">${m.assignment?.title ? 'بدون محتوى مرفق — واجب/اختبار فقط' : (m.type || '')}</div>
+          </div>
+        </div>
+        ${m.notes ? `<div style="font-size:12px;color:var(--text-mid);background:var(--beige);padding:7px 10px;border-radius:8px;margin-bottom:8px">${m.notes}</div>` : ''}`)}
+        ${m.assignment?.title ? `
+        <div style="margin-top:8px;background:rgba(201,162,39,0.08);border:1px solid rgba(201,162,39,0.25);border-radius:8px;padding:8px 10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--green-dark);margin-bottom:3px;"><i class="ti ti-clipboard-list"></i> واجب: ${m.assignment.title}</div>
+          ${m.assignment.deadline ? `<div style="font-size:11px;color:var(--text-mid)">⏰ آخر موعد: ${new Date(m.assignment.deadline).toLocaleString('ar-EG',{dateStyle:'medium',timeStyle:'short'})}</div>` : ''}
+          ${m.assignment.desc ? `<div style="font-size:11px;color:var(--text-mid);margin-top:3px">${m.assignment.desc}</div>` : ''}
+        </div>` : ''}
+        ${editBtns}
+        <div id="asg-${m.id}" data-asg-container="${m.id}"></div>
+      </div>
+    </div>`;
+}
+
+function renderMats(mats) {
+  const container = document.getElementById('matsContainer');
+  const section   = document.getElementById('dynamicMatsSection');
+  if (!container) return;
+
+  if (mats.length === 0) {
+    if (isAdmin()) {
+      section.style.display = 'block';
+      container.innerHTML = `<div style="text-align:center;color:var(--text-mid);padding:40px;grid-column:1/-1;">
+        <i class="ti ti-files-off" style="font-size:28px;"></i>
+        <div style="margin-top:8px">لا توجد مواد مضافة بعد</div>
+      </div>`;
+    } else {
+      section.style.display = 'none';
+    }
+  } else {
+    section.style.display = 'block';
+    container.innerHTML = mats.map(matCardHTML).join('');
+    mats.forEach(m => renderAssignmentsSection(m.id, m.course, 'asg-' + m.id, false));
+  }
+}
+
+function renderModalMats() {
+  const modalMap = {
+    'التفسير':    { id: 'tafseer',  staticId: 'static-tafseer'  },
+    'الفقه':      { id: 'fiqh',     staticId: 'static-fiqh'     },
+    'العقيدة':    { id: 'aqeedah',  staticId: 'static-aqeedah'  },
+    'الحديث':    { id: 'hadith',   staticId: 'static-hadith'   },
+    'مقرأة متين': { id: 'quran',    staticId: 'static-quran'    },
+  };
+
+  Object.entries(modalMap).forEach(([subj, { id: modalId }]) => {
+    // ── Buttons Edit/Delete اWhenدة الرئيسية (للأدمن only) ──
+    const adminActionsEl = document.getElementById('modal-admin-actions-' + modalId);
+    if (adminActionsEl) {
+      if (isAdmin()) {
+        adminActionsEl.innerHTML = `
+          <div style="display:flex;gap:8px;margin:12px 0 4px;">
+            <button onclick="openEditStaticSubject('${subj}')"
+              style="flex:1;padding:7px;border:1px solid var(--green-dark);background:transparent;color:var(--green-dark);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+              <i class="ti ti-pencil"></i> تعديل المادة
+            </button>
+          </div>`;
+      } else {
+        adminActionsEl.innerHTML = '';
+      }
+    }
+
+    // ── Subjects المضافة من Firebase ──
+    const el = document.getElementById('modal-mats-' + modalId);
+    if (!el) return;
+    const subjMats = allMats.filter(m => m.course === subj);
+    const canAdd = isAdmin() || (currentUserRole === 'teacher' && currentUserSubjects.includes(subj));
+    const addBtnHTML = canAdd ? `
+      <button onclick="document.getElementById('newCourseCat').value='${subj}';updateLectureOptions();document.getElementById('addCourseModal').style.display='flex'"
+        style="display:flex;align-items:center;gap:6px;background:var(--green-dark);color:white;border:none;padding:8px 14px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;margin-bottom:10px;margin-top:8px;">
+        <i class="ti ti-plus"></i> إضافة محتوى لـ${subj}
+      </button>` : '';
+
+    if (subjMats.length === 0) { el.innerHTML = addBtnHTML; return; }
+    el.innerHTML = `
+      <div style="margin:14px 0 6px;">
+        <div style="font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">
+          <i class="ti ti-files" style="margin-left:4px;"></i> المواد المضافة (${subjMats.length})
+        </div>
+        ${addBtnHTML}
+      </div>
+      ${matsGroupedHTML(subjMats)}`;
+    subjMats.forEach(m => renderAssignmentsSection(m.id, m.course, 'asg-' + m.id, false));
+    renderLectureControls(subjMats);
+  });
+}
+
+// ── رقم المحاضرة: تحديث القايمة حسب المادة المختارة ────────────
+window.updateLectureOptions = () => {
+  const course = document.getElementById('newCourseCat')?.value;
+  const sel = document.getElementById('newCourseLecture');
+  if (!sel) return;
+
+  const nums = [...new Set(
+    allMats.filter(m => m.course === course && m.lectureNumber != null).map(m => m.lectureNumber)
+  )].sort((a, b) => a - b);
+
+  sel.innerHTML = '<option value="">بدون محاضرة محددة</option>' +
+    nums.map(n => `<option value="${n}">المحاضرة ${n}</option>`).join('') +
+    `<option value="__new__">+ محاضرة جديدة</option>`;
+
+  sel.onchange = () => {
+    const wrap = document.getElementById('newLectureNumWrap');
+    if (sel.value === '__new__') {
+      wrap.style.display = 'block';
+      document.getElementById('newLectureNumInput').value = (nums.length ? Math.max(...nums) : 0) + 1;
+    } else {
+      wrap.style.display = 'none';
+    }
+  };
+};
+
+// ── تجميع المواد المضافة حسب رقم المحاضرة قبل عرضها ────────────
+// ترتيب ثابت لعناصر المحاضرة الواحدة: اختبار/واجب أولًا (لو موجودين)، ثم محاضرة، ثم ملخص، ثم الباقي
+function matPriority(m) {
+  if (m.assignment?.title) return 0;
+  if (m.type === 'محاضرة') return 1;
+  if (m.type === 'ملخص') return 2;
+  return 3;
+}
+function sortMatsForLecture(mats) {
+  return [...mats].sort((a, b) => matPriority(a) - matPriority(b));
+}
+
+// بعد إدراج matsGroupedHTML في الـ DOM، ناديها عشان تملى شارات الاختبار/الواجب جنب كل محاضرة
+function renderLectureControls(mats) {
+  const withLecture = mats.filter(m => m.lectureNumber != null);
+  const lectureNums = [...new Set(withLecture.map(m => m.lectureNumber))];
+  lectureNums.forEach(n => {
+    const group = withLecture.filter(m => m.lectureNumber === n);
+    const course = group[0]?.course || '';
+    const lectureId = `lecture-${course}-${n}`;
+    const targets = group.map(m => ({ id: m.id, title: m.title }));
+    renderLectureAssignmentControls(lectureId, course, 'lecAsgControls-' + lectureId, targets);
+  });
+}
+
+function matsGroupedHTML(mats) {
+  const withLecture = mats.filter(m => m.lectureNumber != null);
+  const without = mats.filter(m => m.lectureNumber == null);
+  const lectureNums = [...new Set(withLecture.map(m => m.lectureNumber))].sort((a, b) => a - b);
+
+  let html = '';
+  lectureNums.forEach(n => {
+    const group = sortMatsForLecture(withLecture.filter(m => m.lectureNumber === n));
+    const course = group[0]?.course || '';
+    const lectureId = `lecture-${course}-${n}`;
+    html += `
+      <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px">
+        <div onclick="const b=this.nextElementSibling;const open=b.style.display!=='none';b.style.display=open?'none':'flex';this.querySelector('.lec-chevron').style.transform=open?'rotate(-90deg)':'rotate(0deg)'"
+          style="background:rgba(201,162,39,0.1);padding:10px 14px;font-size:13px;font-weight:700;color:var(--gold-dark,#b8860b);display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+          <span style="display:flex;align-items:center;gap:6px"><i class="ti ti-bookmark"></i> المحاضرة ${n}
+            <span id="lecAsgControls-${lectureId}" data-lec-asg-container="${lectureId}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px"></span>
+          </span>
+          <i class="ti ti-chevron-down lec-chevron" style="transition:.2s"></i>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--beige,#faf6ee)">
+          ${group.map(matCardHTML).join('')}
+        </div>
+      </div>`;
+  });
+  if (without.length) {
+    const withoutHTML = `<div style="display:flex;flex-direction:column;gap:8px">${sortMatsForLecture(without).map(matCardHTML).join('')}</div>`;
+    html += lectureNums.length ? `
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--text-mid);margin:10px 0 8px">📎 مواد غير مرتبطة بمحاضرة</div>
+        ${withoutHTML}
+      </div>` : withoutHTML;
+  }
+  return html;
+}
+
+window.filterMats = () => {
+  const filterEl = document.getElementById('filterCourse');
+  const val = filterEl ? filterEl.value : '';
+  let mats = allMats;
+
+  // Guests and staff see the full catalog; students only enrolled subjects
+  if (currentUserRole === 'student' && currentUserSubjects.length) {
+    mats = mats.filter(m => currentUserSubjects.includes(m.course));
+  }
+
+  renderMats(val ? mats.filter(m => m.course === val) : mats);
+};
+
+// ===== Edit Subjects الثابتة (التفسير، الفقه، إلخ) =====
+const STATIC_SUBJECTS_DATA = {
+  'التفسير':    { modalId: 'tafseer',  bannerClass: 'banner-tafseer'  },
+  'الفقه':      { modalId: 'fiqh',     bannerClass: 'banner-fiqh'     },
+  'العقيدة':    { modalId: 'aqeedah',  bannerClass: 'banner-aqeedah'  },
+  'الحديث':    { modalId: 'hadith',   bannerClass: 'banner-hadith'   },
+  'مقرأة متين': { modalId: 'quran',    bannerClass: 'banner-quran'    },
+};
+
+window.openEditStaticSubject = (subj) => {
+  // اجمع Data الحالية من Modal
+  const { modalId } = STATIC_SUBJECTS_DATA[subj];
+  const modalEl = document.getElementById('modal-' + modalId);
+  const title    = modalEl.querySelector('.modal-title')?.textContent || subj;
+  const subtitle = modalEl.querySelector('.modal-subtitle')?.textContent || '';
+  const desc     = modalEl.querySelector('.modal-desc')?.textContent?.trim() || '';
+  const topicsEls = modalEl.querySelectorAll('.topics-list li');
+  const topics   = Array.from(topicsEls).map(li => li.textContent).join('\n');
+
+  // اdark brown Modal الEdit
+  const old = document.getElementById('editStaticModal');
+  if (old) old.remove();
+
+  const m = document.createElement('div');
+  m.id = 'editStaticModal';
+  m.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;padding:20px;';
+  m.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:28px;width:90%;max-width:500px;direction:rtl;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-family:Amiri,serif;font-size:17px;color:var(--green-dark);font-weight:700;">
+          <i class="ti ti-pencil"></i> تعديل مادة — ${subj}
+        </div>
+        <button onclick="document.getElementById('editStaticModal').remove()"
+          style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-mid);">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">العنوان الفرعي</label>
+          <input id="esSubtitle" value="${subtitle}" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">وصف المادة</label>
+          <textarea id="esDesc" rows="4" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;">${desc}</textarea>
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">المحاور الرئيسية (سطر لكل محور)</label>
+          <textarea id="esTopics" rows="6" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;">${topics}</textarea>
+        </div>
+        <div id="esErr" style="display:none;color:#c0392b;font-size:13px;"></div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button id="esSubmit" onclick="saveStaticSubject('${subj}')"
+            style="flex:1;padding:11px;background:var(--green-dark);color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <i class="ti ti-device-floppy"></i> حفظ التعديلات
+          </button>
+          <button onclick="document.getElementById('editStaticModal').remove()"
+            style="padding:11px 20px;background:var(--beige);color:var(--text-dark);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;">
+            إلغاء
+          </button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+};
+
+window.saveStaticSubject = async (subj) => {
+  const { modalId } = STATIC_SUBJECTS_DATA[subj];
+  const subtitle = document.getElementById('esSubtitle').value.trim();
+  const desc     = document.getElementById('esDesc').value.trim();
+  const topics   = document.getElementById('esTopics').value.trim().split('\n').filter(Boolean);
+  const err      = document.getElementById('esErr');
+  const btn      = document.getElementById('esSubmit');
+
+  if (!desc) { err.style.display='block'; err.textContent='الوصف مطلوب'; return; }
+  err.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحفظ...';
+
+  try {
+    // احفظ في Firestore collection staticSubjects
+    const { setDoc, doc: fsDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+    await setDoc(fsDoc(db, 'staticSubjects', modalId), { subj, subtitle, desc, topics, updatedAt: Date.now() }, { merge: true });
+
+    // حدّث Modal مباشرة بدون reload
+    const modalEl = document.getElementById('modal-' + modalId);
+    if (modalEl.querySelector('.modal-subtitle')) modalEl.querySelector('.modal-subtitle').textContent = subtitle;
+    if (modalEl.querySelector('.modal-desc'))     modalEl.querySelector('.modal-desc').textContent = desc;
+    const topicsList = modalEl.querySelector('.topics-list');
+    if (topicsList) topicsList.innerHTML = topics.map(t => `<li>${t}</li>`).join('');
+
+    document.getElementById('editStaticModal').remove();
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = 'حدث خطأ: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> حفظ التعديلات';
+};
+
+// Load Editات Subjects الثابتة من Firestore عند فتح Page
+onSnapshot(collection(db, 'staticSubjects'), snap => {
+  snap.docs.forEach(d => {
+    const data = d.data();
+    const modalEl = document.getElementById('modal-' + d.id);
+    if (!modalEl) return;
+    if (data.subtitle && modalEl.querySelector('.modal-subtitle'))
+      modalEl.querySelector('.modal-subtitle').textContent = data.subtitle;
+    if (data.desc && modalEl.querySelector('.modal-desc'))
+      modalEl.querySelector('.modal-desc').textContent = data.desc;
+    if (data.topics?.length && modalEl.querySelector('.topics-list'))
+      modalEl.querySelector('.topics-list').innerHTML = data.topics.map(t => `<li>${t}</li>`).join('');
+  });
+});
+
+// ===== Edit اWHENدة (MATERIALS) =====
+window.openEditModal = (id) => {
+  const m = allMats.find(x => x.id === id);
+  if (!m) return;
+
+  document.getElementById('editMatId').value    = id;
+  document.getElementById('editCourseTitle').value = m.title;
+  document.getElementById('editCourseCat').value   = m.course;
+  document.getElementById('editCourseType').value  = m.type || 'محاضرة';
+  document.getElementById('editCourseUrl').value   = m.url;
+  document.getElementById('editCourseNotes').value = m.notes || '';
+  document.getElementById('editCourseErr').style.display = 'none';
+  document.getElementById('editCourseModal').style.display = 'flex';
+};
+
+window.submitEditCourse = async () => {
+  const id    = document.getElementById('editMatId').value;
+  const title = document.getElementById('editCourseTitle').value.trim();
+  const course= document.getElementById('editCourseCat').value;
+  const type  = document.getElementById('editCourseType').value;
+  const url   = document.getElementById('editCourseUrl').value.trim();
+  const notes = document.getElementById('editCourseNotes').value.trim();
+  const err   = document.getElementById('editCourseErr');
+
+  if (!title || !course || !url) {
+    err.style.display = 'block';
+    err.textContent = 'يرجى تعبئة الحقول المطلوبة (الاسم، المادة، الرابط)';
+    return;
+  }
+  err.style.display = 'none';
+
+  const btn = document.getElementById('editCourseSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحفظ...';
+
+  try {
+    if (useApi()) {
+      await api.materials.update(id, {
+        title, url, body: notes,
+        type: AR_TO_API_TYPE[type] || 'link',
+      });
+    } else {
+      await updateDoc(doc(db, 'materials', id), { title, course, type, url, notes });
+    }
+    document.getElementById('editCourseModal').style.display = 'none';
+    if (useApi()) await refreshApiCoursesData();
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = 'حدث خطأ، حاولي مرة أخرى';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> حفظ التعديلات';
+};
+
+// ===== Delete اWHENدة =====
+window.confirmDeleteMat = (id, title) => {
+  document.getElementById('deleteMatId').value = id;
+  document.getElementById('deleteMatTitle').textContent = title;
+  document.getElementById('deleteConfirmModal').style.display = 'flex';
+};
+
+window.executeDeleteMat = async () => {
+  const id  = document.getElementById('deleteMatId').value;
+  const btn = document.getElementById('deleteConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحذف...';
+
+  try {
+    await deleteAssignmentsForMaterial(id);
+    if (useApi()) {
+      await api.materials.remove(id);
+      await refreshApiCoursesData();
+    } else {
+      await deleteDoc(doc(db, 'materials', id));
+    }
+    document.getElementById('deleteConfirmModal').style.display = 'none';
+  } catch(e) {
+    alert('حدث خطأ أثناء الحذف، حاولي مرة أخرى');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-trash"></i> تأكيد الحذف';
+};
+
+// المعلمة بتتسجل بمعرف إنجليزي (data.subject زي "tafseer")، لكن اسم المادة في المحتوى نفسه
+// (materials.course) بالعربي زي "التفسير" — من غير الترجمة دي، أي معلمة معندهاش صلاحية
+// تضيف محتوى لمادتها لإن المقارنة كانت بتتم بين قيمتين مختلفتين شكلًا
+const SUBJECT_ID_TO_AR = {
+  tafseer: 'التفسير', tafsir: 'التفسير', fiqh: 'الفقه', aqeedah: 'العقيدة',
+  hadeeth: 'الحديث', hadith: 'الحديث',
+  quran1: 'مقرأة متين', quran2: 'مقرأة متين', quran: 'مقرأة متين', maqraah: 'مقرأة متين',
+  ithraiyat: 'الإثرائيات',
+};
+
+async function initCoursesAuthApi() {
+  // Load public catalog first so the page never stays on "جاري التحميل..."
+  try {
+    await refreshApiCoursesData();
+  } catch (e) {
+    console.warn('[API] courses data error:', e);
+    renderCoursesFallback('تعذر تحميل المواد — عرض البيانات التجريبية');
+  }
+
+  let stored = getStoredUser();
+  if (stored && getToken()) {
+    try {
+      const me = await api.me();
+      const user = me?.data || me;
+      if (user?.id) {
+        setSession(getToken(), user);
+        stored = user;
+      }
+    } catch {
+      /* keep cached session */
+    }
+  }
+  if (stored) {
+    currentUserRole = stored.role || null;
+    mountTestModeSwitcher(stored, stored.email || '');
+    if (stored.role === 'teacher' && stored.subject_id != null) {
+      try {
+        const subj = unwrapList(await api.subjects.list()).find(s => String(s.id) === String(stored.subject_id));
+        currentUserSubjects = subj ? [subj.title] : [];
+      } catch {
+        currentUserSubjects = [];
+      }
+    } else if (Array.isArray(stored.enrolled_subjects)) {
+      currentUserSubjects = stored.enrolled_subjects.slice();
+    } else {
+      currentUserSubjects = [];
+    }
+    if (isAdmin()) {
+      const btns = document.getElementById('adminBtns');
+      if (btns) btns.style.display = 'flex';
+    }
+  } else {
+    currentUserRole = null;
+    currentUserSubjects = [];
+  }
+  authReady = true;
+  updateEnrollButtons();
+  window.filterMats();
+  renderModalMats();
+  if (pendingRender) {
+    pendingRender = false;
+    window.filterMats();
+    renderModalMats();
+  }
+}
+
+async function bootCoursesFirebase() {
+  await ensureFirebase();
+  onAuthStateChanged(auth, async user => {
+  if (!user) {
+    currentUserRole = null;
+    currentUserSubjects = [];
+    authReady = true;
+    window.filterMats();
+    renderModalMats();
+    return;
+  }
+  const snap = await getDoc(doc(db, 'users', user.uid));
+  const data = snap.exists() ? snap.data() : {};
+  const role = effectiveRole(data, user.email) || '';
+  currentUserRole = role;
+  mountTestModeSwitcher(data, user.email);
+
+  if (role === 'teacher') {
+    const teacherSubject = data.subject || '';
+    const arSubject = SUBJECT_ID_TO_AR[teacherSubject] || teacherSubject;
+    currentUserSubjects = teacherSubject ? [arSubject] : [];
+  } else {
+    currentUserSubjects = Array.isArray(data.enrolledSubjects) ? data.enrolledSubjects : [];
+  }
+
+  if (isAdmin()) {
+    const btns = document.getElementById('adminBtns');
+    if (btns) btns.style.display = 'flex';
+  }
+
+  authReady = true;
+  updateEnrollButtons();
+  window.filterMats();
+  renderModalMats();
+
+  if (pendingRender) {
+    pendingRender = false;
+    window.filterMats();
+    renderModalMats();
+  }
+  });
+}
+
+async function bootCoursesSnapshots() {
+  await ensureFirebase();
+  onSnapshot(query(collection(db, 'materials'), orderBy('addedAt', 'desc')), snap => {
+    allMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (authReady) {
+      window.filterMats();
+      renderModalMats();
+    } else {
+      pendingRender = true;
+    }
+  });
+  onSnapshot(query(collection(db, 'subjects'), orderBy('addedAt', 'asc')), snap => {
+    allSubjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderSubjects();
+  });
+}
+
+if (useApi()) {
+  initCoursesAuthApi().catch(e => console.warn('[API] courses auth error:', e));
+} else {
+  bootCoursesFirebase();
+  bootCoursesSnapshots().catch(e => console.warn('[Firebase] courses snapshot error:', e));
+}
+
+const SUBJ_MODAL_IDS = {
+  'التفسير': 'tafseer', 'الفقه': 'fiqh', 'العقيدة': 'aqeedah',
+  'الحديث': 'hadith', 'مقرأة متين': 'quran'
+};
+
+function updateEnrollButtons() {
+  MAIN_SUBJECTS.forEach(subj => {
+    const modalId = SUBJ_MODAL_IDS[subj];
+    const btn = document.getElementById('enrollBtn-' + modalId);
+    if (!btn) return;
+
+    const joined = currentUserSubjects.includes(subj);
+    const loggedIn = useApi() ? !!getStoredUser() : !!(auth && auth.currentUser);
+
+    if (!loggedIn) {
+      btn.textContent = 'سجّلي / اشتركي للالتحاق بالمادة';
+      btn.disabled = false;
+      btn.onclick = () => location.href = 'login.html';
+    } else if (currentUserRole === 'mateen') {
+      btn.textContent = joined ? '✓ ملتحقة بالفعل' : 'بانتظار قبول حسابك';
+      btn.disabled = true;
+    } else if (joined) {
+      btn.textContent = '✓ ملتحقة بهذه المادة';
+      btn.disabled = true;
+    } else {
+      btn.textContent = 'التسجيل في المادة';
+      btn.disabled = false;
+      btn.onclick = () => joinSubject(subj);
+    }
+  });
+}
+
+window.joinSubject = async (subj) => {
+  if (useApi()) {
+    const stored = getStoredUser();
+    if (!stored || !getToken()) { location.href = 'login.html'; return; }
+    try {
+      const subjectId = await findSubjectIdByCourseName(subj);
+      if (!subjectId) throw new Error('المادة غير موجودة');
+      await api.subjects.enroll(subjectId);
+      if (!currentUserSubjects.includes(subj)) currentUserSubjects.push(subj);
+      setSession(getToken(), { ...stored, enrolled_subjects: currentUserSubjects.slice() });
+      updateEnrollButtons();
+      window.filterMats();
+    } catch (e) {
+      alert(e?.message || 'تعذر التسجيل في المادة');
+    }
+    return;
+  }
+  if (!auth?.currentUser) { location.href = 'login.html'; return; }
+  await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+    enrolledSubjects: arrayUnion(subj)
+  });
+  if (!currentUserSubjects.includes(subj)) currentUserSubjects.push(subj);
+  updateEnrollButtons();
+  window.filterMats();
+};
+
+window.submitNewCourse = async () => {
+  const title = document.getElementById('newCourseTitle').value.trim();
+  const course = document.getElementById('newCourseCat').value;
+  const type  = document.getElementById('newCourseType').value;
+  const isAudio = type === 'تسجيل صوتي';
+  const url   = isAudio ? (_uploadedAudioUrl || '') : document.getElementById('newCourseUrl').value.trim();
+  const notes = document.getElementById('newCourseNotes').value.trim();
+  const err   = document.getElementById('addCourseErr');
+
+  // رقم المحاضرة (اختياري): من القايمة، أو رقم جديد لو اختارت "+ محاضرة جديدة"
+  const lectureSel = document.getElementById('newCourseLecture')?.value;
+  let lectureNumber = null;
+  if (lectureSel === '__new__') {
+    const n = parseInt(document.getElementById('newLectureNumInput')?.value, 10);
+    lectureNumber = isNaN(n) ? null : n;
+  } else if (lectureSel) {
+    lectureNumber = parseInt(lectureSel, 10);
+  }
+
+  // واجب/اختبار بقى ليهم مسار مستقل (زرار "➕ إضافة واجب" اللي بيظهر تحت المادة بعد إضافتها)
+
+  if (!course) {
+    err.style.display = 'block';
+    err.textContent = 'يرجى اختيار المادة';
+    return;
+  }
+  if (!title || !url) {
+    err.style.display = 'block';
+    err.textContent = isAudio ? 'يرجى رفع الملف الصوتي أولاً' : 'يرجى تعبئة الحقول المطلوبة (الاسم، الرابط)';
+    return;
+  }
+  err.style.display = 'none';
+
+  const finalTitle = title || 'بدون عنوان';
+
+  const btn = document.getElementById('addCourseSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الإضافة...';
+
+  try {
+    if (useApi()) {
+      const subjectId = await findSubjectIdByCourseName(course);
+      if (!subjectId) throw new Error('المادة غير موجودة');
+      await api.subjects.addMaterial(subjectId, {
+        title: finalTitle,
+        url,
+        body: notes,
+        type: AR_TO_API_TYPE[type] || 'link',
+      });
+      await refreshApiCoursesData();
+    } else {
+      await addDoc(collection(db, 'materials'), {
+        title: finalTitle, course, type, url, notes,
+        ...(lectureNumber != null ? { lectureNumber } : {}),
+        addedAt: Date.now(),
+        addedBy: auth.currentUser.email,
+      });
+    }
+
+    // reset all fields
+    ['newCourseTitle','newCourseCat','newCourseUrl','newCourseNotes','newCourseLecture','newLectureNumInput'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const lectureWrap = document.getElementById('newLectureNumWrap');
+    if (lectureWrap) lectureWrap.style.display = 'none';
+    document.getElementById('addCourseModal').style.display = 'none';
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = 'حدث خطأ، حاولي مرة أخرى';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-circle-plus"></i> إضافة المادة';
+};
+
+// =============================================
+// إدارة Subjects الرئيسية (subjects collection)
+// =============================================
+
+function optimizedImg(url, width = 500) {
+  if (!url) return url;
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    return url.replace('/upload/', `/upload/w_${width},q_auto,f_auto,c_limit/`);
+  }
+  return url;
+}
+
+function subjectCardHTML(s) {
+  const adminActions = isAdmin() ? `
+    <div style="display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--border);" onclick="event.stopPropagation()">
+      <button onclick="openEditSubjectModal('${s.id}')"
+        style="flex:1;padding:7px;border:1px solid var(--green-dark);background:transparent;color:var(--green-dark);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <i class="ti ti-pencil"></i> تعديل
+      </button>
+      <button onclick="confirmDeleteSubject('${s.id}','${s.name.replace(/'/g,"\\'")}' )"
+        style="flex:1;padding:7px;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+        <i class="ti ti-trash"></i> حذف
+      </button>
+    </div>` : '';
+
+  const safeId = 'dyn-' + s.id;
+  return `
+    <div class="course-card" onclick="openDynModal('${s.id}')">
+      <div class="card-banner" style="background:${s.color || 'var(--beige,#f7efe3)'}">
+        <div class="card-badge">أساسية</div>
+        <div class="card-icon" style="display:flex;align-items:center;justify-content:center;${s.iconData || s.iconUrl ? 'position:absolute;inset:0;width:100%;height:100%;' : 'width:64px;height:64px;'}">
+          ${s.iconData || s.iconUrl
+            ? `<img src="${optimizedImg(s.iconData || s.iconUrl, 400)}" style="width:100%;height:100%;object-fit:contain;display:block;background:transparent;" loading="lazy">`
+            : `<span style="font-size:40px">${s.icon || '📚'}</span>`}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${s.name}</div>
+        <div class="card-desc">${s.desc || ''}</div>
+        <div class="card-meta">
+          ${s.meetings ? `<div class="meta-item"><i class="ti ti-clock"></i> ${s.meetings}</div>` : ''}
+          ${s.weeks ? `<div class="meta-item"><i class="ti ti-calendar"></i> ${s.weeks}</div>` : ''}
+        </div>
+        <div class="card-footer">
+          <div class="card-level"><i class="ti ti-award" style="color:var(--gold)"></i> ${s.level || ''}</div>
+          <button class="btn-details">عرض التفاصيل</button>
+        </div>
+      </div>
+      ${adminActions}
+    </div>`;
+}
+
+function renderSubjects() {
+  const grid = document.getElementById('dynamicSubjectsGrid');
+  if (!grid) return;
+  if (allSubjects.length === 0) { grid.innerHTML = ''; return; }
+  grid.innerHTML = allSubjects.map(subjectCardHTML).join('');
+}
+
+// فتح Modal thisناميكي لWhenدة الرئيسية
+window.openDynModal = (id) => {
+  const s = allSubjects.find(x => x.id === id);
+  if (!s) return;
+
+  // اDelete أي Modal قthisم
+  const old = document.getElementById('dynModal-' + id);
+  if (old) old.remove();
+
+  const topics = Array.isArray(s.topics) ? s.topics : (s.topics || '').split('\n').filter(Boolean);
+  const mats = allMats.filter(m => m.course === s.name);
+
+  const addBtnHTML = isAdmin() ? `
+    <button onclick="document.getElementById('newCourseCat').value='${s.name}';updateLectureOptions();document.getElementById('addCourseModal').style.display='flex'"
+      style="display:flex;align-items:center;gap:6px;background:var(--green-dark);color:white;border:none;padding:8px 14px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;margin-bottom:10px;margin-top:12px;">
+      <i class="ti ti-plus"></i> إضافة محتوى لـ${s.name}
+    </button>` : '';
+
+  const matsHTML = mats.length > 0 ? `
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">
+        <i class="ti ti-files" style="margin-left:4px;"></i> المواد المضافة (${mats.length})
+      </div>
+      ${addBtnHTML}
+      ${matsGroupedHTML(mats)}
+    </div>` : addBtnHTML ? `<div style="margin-top:8px">${addBtnHTML}</div>` : '';
+
+  const modal = document.createElement('div');
+  modal.id = 'dynModal-' + id;
+  modal.className = 'modal-overlay';
+  modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:center;justify-content:center;padding:20px;';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-banner" style="background:var(--beige,#f7efe3)">
+        <button class="modal-close" onclick="document.getElementById('dynModal-${id}').remove()">✕</button>
+        <div class="modal-icon" style="${s.iconData || s.iconUrl ? 'position:absolute;inset:0;width:100%;height:100%;display:flex;' : 'display:flex;align-items:center;justify-content:center;width:72px;height:72px;'}">
+          ${s.iconData || s.iconUrl
+            ? `<img src="${optimizedImg(s.iconData || s.iconUrl, 700)}" style="width:100%;height:100%;object-fit:contain;display:block;background:transparent;" loading="lazy">`
+            : `<span style="font-size:48px">${s.icon || '📚'}</span>`}
+        </div>
+      </div>
+      <div class="modal-content">
+        <div class="modal-title">${s.name}</div>
+        <div class="modal-subtitle">مادة أساسية — ${s.level || ''}</div>
+        <div class="modal-desc">${s.desc || ''}</div>
+        ${topics.length > 0 ? `
+          <div class="modal-topics-title">📌 المحاور الرئيسية:</div>
+          <ul class="topics-list">${topics.map(t => `<li>${t}</li>`).join('')}</ul>` : ''}
+        ${matsHTML}
+        <div class="modal-actions">
+          ${isAdmin() ? `
+          <button onclick="document.getElementById('dynModal-${id}').remove();openEditSubjectModal('${id}')"
+            style="flex:1;padding:8px 14px;border:1px solid var(--green-dark);background:transparent;color:var(--green-dark);border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <i class="ti ti-pencil"></i> تعديل
+          </button>
+          <button onclick="document.getElementById('dynModal-${id}').remove();confirmDeleteSubject('${id}','${s.name.replace(/'/g, "\\'")}')"
+            style="flex:1;padding:8px 14px;border:1px solid #c0392b;background:transparent;color:#c0392b;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <i class="ti ti-trash"></i> حذف
+          </button>` : ''}
+          <button class="btn-close-modal" onclick="document.getElementById('dynModal-${id}').remove()">إغلاق</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  mats.forEach(m => renderAssignmentsSection(m.id, m.course, 'asg-' + m.id, false));
+  renderLectureControls(mats);
+};
+
+// Add مادة رئيسية
+window.submitNewSubject = async () => {
+  if (window._iconUploadInProgress) { alert('استني لحظة، الصورة لسه بترفع...'); return; }
+  const name  = document.getElementById('sbjName').value.trim();
+  const desc  = document.getElementById('sbjDesc').value.trim();
+  const meetings = document.getElementById('sbjMeetings').value.trim();
+  const weeks    = document.getElementById('sbjWeeks').value.trim();
+  const level    = document.getElementById('sbjLevel').value.trim();
+  const topics   = document.getElementById('sbjTopics').value.trim();
+  const err = document.getElementById('addSubjectErr');
+
+  if (!name || !desc) {
+    err.style.display = 'block';
+    err.textContent = 'يرجى تعبئة اسم المادة والوصف على الأقل';
+    return;
+  }
+  err.style.display = 'none';
+
+  const btn = document.getElementById('addSubjectSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الإضافة...';
+
+  try {
+    const iconData = document.getElementById('sbjIconData').value || '';
+    const iconUrl  = document.getElementById('sbjIconUrl').value.trim() || '';
+    const colorVal = document.getElementById('sbjColorVal').value;
+    if (useApi()) {
+      await api.subjects.create({
+        title: name,
+        slug: name.replace(/\s+/g, '-').toLowerCase(),
+        description: desc,
+        subtitle: level,
+        axes: topics.split('\n').filter(Boolean),
+      });
+      await refreshApiCoursesData();
+    } else {
+      await addDoc(collection(db, 'subjects'), {
+        name, iconData, iconUrl, color: colorVal, desc, meetings, weeks, level,
+        topics: topics.split('\n').filter(Boolean),
+        inExams: document.getElementById('sbjFlagExams').checked,
+        inAttendance: document.getElementById('sbjFlagAttendance').checked,
+        inEnrollment: document.getElementById('sbjFlagEnrollment').checked,
+        addedAt: Date.now(),
+        addedBy: auth.currentUser.email,
+      });
+    }
+    ['sbjName','sbjIconData','sbjIconUrl','sbjDesc','sbjMeetings','sbjWeeks','sbjLevel','sbjTopics'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('sbjIconPreview').innerHTML = '<i class="ti ti-photo" style="font-size:24px;color:var(--text-mid);"></i>';
+    document.getElementById('addSubjectModal').style.display = 'none';
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = 'حدث خطأ، حاولي مرة أخرى';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-circle-plus"></i> إضافة المادة';
+};
+
+// Edit مادة رئيسية
+window.openEditSubjectModal = (id) => {
+  const s = allSubjects.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('editSbjId').value = id;
+  document.getElementById('editSbjName').value = s.name;
+  document.getElementById('editSbjIconUrl').value = s.iconUrl || '';
+  document.getElementById('editSbjIconData').value = s.iconData || '';
+  // Width/Display الImage الحالية
+  const editPrev = document.getElementById('editSbjIconPreview');
+  const imgSrc = s.iconData || s.iconUrl;
+  editPrev.innerHTML = imgSrc
+    ? `<img src="${optimizedImg(imgSrc, 200)}" style="width:100%;height:100%;object-fit:contain;background:transparent;">`
+    : '<i class="ti ti-photo" style="font-size:24px;color:var(--text-mid);"></i>';
+  // ضبط Colors
+  const colorMatch = (s.color || '').match(/#[0-9a-fA-F]{6}/g);
+  if (colorMatch && colorMatch.length >= 2) {
+    document.getElementById('editSbjColor1').value = colorMatch[0];
+    document.getElementById('editSbjColor2').value = colorMatch[1];
+  }
+  document.getElementById('editSbjColorVal').value = s.color || 'linear-gradient(135deg,#5c3d2e,#8a5e3c)';
+  document.getElementById('editSbjColorPreview').style.background = s.color || 'linear-gradient(135deg,#5c3d2e,#8a5e3c)';
+  document.getElementById('editSbjDesc').value = s.desc || '';
+  document.getElementById('editSbjMeetings').value = s.meetings || '';
+  document.getElementById('editSbjWeeks').value = s.weeks || '';
+  document.getElementById('editSbjLevel').value = s.level || '';
+  const topics = Array.isArray(s.topics) ? s.topics.join('\n') : (s.topics || '');
+  document.getElementById('editSbjTopics').value = topics;
+  document.getElementById('editSbjFlagExams').checked = s.inExams !== false;
+  document.getElementById('editSbjFlagAttendance').checked = s.inAttendance !== false;
+  document.getElementById('editSbjFlagEnrollment').checked = s.inEnrollment !== false;
+  document.getElementById('editSubjectErr').style.display = 'none';
+  document.getElementById('editSubjectModal').style.display = 'flex';
+};
+
+window.submitEditSubject = async () => {
+  if (window._iconUploadInProgress) { alert('استني لحظة، الصورة لسه بترفع...'); return; }
+  const id    = document.getElementById('editSbjId').value;
+  const name  = document.getElementById('editSbjName').value.trim();
+  const desc  = document.getElementById('editSbjDesc').value.trim();
+  const meetings = document.getElementById('editSbjMeetings').value.trim();
+  const weeks    = document.getElementById('editSbjWeeks').value.trim();
+  const level    = document.getElementById('editSbjLevel').value.trim();
+  const topics   = document.getElementById('editSbjTopics').value.trim();
+  const err = document.getElementById('editSubjectErr');
+
+  if (!name) { err.style.display='block'; err.textContent='اسم المادة مطلوب'; return; }
+  err.style.display = 'none';
+
+  const btn = document.getElementById('editSubjectSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحفظ...';
+
+  try {
+    const iconData = document.getElementById('editSbjIconData').value || '';
+    const iconUrl  = document.getElementById('editSbjIconUrl').value.trim() || '';
+    const colorVal = document.getElementById('editSbjColorVal').value;
+    if (useApi()) {
+      await api.subjects.update(id, {
+        title: name,
+        description: desc,
+        subtitle: level,
+        axes: topics.split('\n').filter(Boolean),
+      });
+      await refreshApiCoursesData();
+    } else {
+      await updateDoc(doc(db, 'subjects', id), {
+        name, iconData, iconUrl, color: colorVal, desc, meetings, weeks, level,
+        topics: topics.split('\n').filter(Boolean),
+        inExams: document.getElementById('editSbjFlagExams').checked,
+        inAttendance: document.getElementById('editSbjFlagAttendance').checked,
+        inEnrollment: document.getElementById('editSbjFlagEnrollment').checked,
+      });
+    }
+    document.getElementById('editSubjectModal').style.display = 'none';
+  } catch(e) {
+    err.style.display='block'; err.textContent='حدث خطأ، حاولي مرة أخرى';
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> حفظ التعديلات';
+};
+
+// Delete مادة رئيسية
+window.confirmDeleteSubject = (id, name) => {
+  document.getElementById('deleteSbjId').value = id;
+  document.getElementById('deleteSbjTitle').textContent = name;
+  document.getElementById('deleteSubjectModal').style.display = 'flex';
+};
+
+window.executeDeleteSubject = async () => {
+  const id  = document.getElementById('deleteSbjId').value;
+  const subjectName = document.getElementById('deleteSbjTitle').textContent;
+  const btn = document.getElementById('deleteSbjConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader"></i> جاري الحذف...';
+  try {
+    if (useApi()) {
+      const subject = allSubjects.find(s => String(s.id) === String(id));
+      if (subject) {
+        const mats = allMats.filter(m => m.course === subject.name);
+        for (const m of mats) {
+          await deleteAssignmentsForMaterial(m.id);
+          await api.materials.remove(m.id);
+        }
+      }
+      await refreshApiCoursesData();
+    } else {
+      // 1. اDelete اWhenدة الرئيسية
+      await deleteDoc(doc(db, 'subjects', id));
+
+      // 2. اDelete كل Content المرتبط بها من materials collection (+ أي واجبات وتسليمات مرتبطة بيها)
+      const matsSnap = await getDocs(query(
+        collection(db, 'materials'),
+        where('course', '==', subjectName)
+      ));
+      const deletePromises = matsSnap.docs.map(async d => {
+        await deleteAssignmentsForMaterial(d.id);
+        await deleteDoc(d.ref);
+      });
+      await Promise.all(deletePromises);
+      console.log(`[حذف] تم حذف ${matsSnap.docs.length} ملف مرتبط بـ "${subjectName}"`);
+    }
+
+    document.getElementById('deleteSubjectModal').style.display = 'none';
+  } catch(e) {
+    console.error(e);
+    alert('حدث خطأ أثناء الحذف');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-trash"></i> تأكيد الحذف';
+};
+
+// Show Buttons Admin
+function showAdminBtns() {
+  const btns = document.getElementById('adminBtns');
+  if (btns && isAdmin()) btns.style.display = 'flex';
+}
+
+// ── Audio Player Functions ──────────────────────────────────────
+const _audioSpeeds = [1, 1.25, 1.5, 1.75, 2];
+const _audioSpeedIdx = {};
+
+window.toggleAudio = (id) => {
+  const audio = document.getElementById('audio-' + id);
+  const icon  = document.getElementById('playIcon-' + id);
+  if (!audio) return;
+  if (audio.paused) {
+    // أوقف أي تسجيل تاني شغال
+    document.querySelectorAll('audio').forEach(a => { if (a !== audio) { a.pause(); } });
+    document.querySelectorAll('[id^="playIcon-"]').forEach(i => { i.className = 'ti ti-player-play'; });
+    audio.play();
+    icon.className = 'ti ti-player-pause';
+    audio.ontimeupdate = () => updateProgress(id);
+    audio.onended = () => { icon.className = 'ti ti-player-play'; };
+  } else {
+    audio.pause();
+    icon.className = 'ti ti-player-play';
+  }
+};
+
+window.seekAudio = (id, event) => {
+  const audio = document.getElementById('audio-' + id);
+  if (!audio || !audio.duration) return;
+  const bar = event.currentTarget;
+  const ratio = event.offsetX / bar.offsetWidth;
+  audio.currentTime = ratio * audio.duration;
+  updateProgress(id);
+};
+
+window.changeSpeed = (id) => {
+  const audio = document.getElementById('audio-' + id);
+  const btn   = document.getElementById('speedBtn-' + id);
+  if (!audio || !btn) return;
+  _audioSpeedIdx[id] = ((_audioSpeedIdx[id] || 0) + 1) % _audioSpeeds.length;
+  const speed = _audioSpeeds[_audioSpeedIdx[id]];
+  audio.playbackRate = speed;
+  btn.textContent = speed + 'x';
+};
+
+function updateProgress(id) {
+  const audio    = document.getElementById('audio-' + id);
+  const progress = document.getElementById('progress-' + id);
+  const curTime  = document.getElementById('curTime-' + id);
+  const durTime  = document.getElementById('durTime-' + id);
+  if (!audio || !progress) return;
+  const pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+  progress.style.width = pct + '%';
+  curTime.textContent = formatTime(audio.currentTime);
+  durTime.textContent = formatTime(audio.duration || 0);
+}
+
+function formatTime(sec) {
+  if (isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return m + ':' + s;
+}
+
+// جهّز الـ duration لما تتحمل الـ metadata
+document.addEventListener('click', () => {
+  document.querySelectorAll('audio[id^="audio-"]').forEach(audio => {
+    const id = audio.id.replace('audio-', '');
+    audio.addEventListener('loadedmetadata', () => {
+      const durTime = document.getElementById('durTime-' + id);
+      if (durTime) durTime.textContent = formatTime(audio.duration);
+    });
+  });
+}, { once: true });
+
+// ── Audio Upload to Cloudinary ─────────────────────────────────
+let _uploadedAudioUrl = null;
+
+// لما يتغير نوع المحتوى — لو تسجيل صوتي يظهر upload بدل URL
+window.onCourseTypeChange = (selectEl) => {
+  const isAudio = selectEl.value === 'تسجيل صوتي';
+  const urlWrap = document.getElementById('urlFieldWrap');
+  const audioWrap = document.getElementById('audioUploadWrap');
+  if (urlWrap)   urlWrap.style.display   = isAudio ? 'none' : 'block';
+  if (audioWrap) audioWrap.style.display = isAudio ? 'block' : 'none';
+  if (!isAudio) _uploadedAudioUrl = null;
+};
+
+window.handleAudioUpload = async (input) => {
+  const file = input.files[0];
+  if (!file) return;
+  const progressWrap = document.getElementById('audioUploadProgress');
+  const progressBar  = document.getElementById('audioProgressBar');
+  const doneMsg      = document.getElementById('audioUploadDone');
+  const uploadBox    = document.getElementById('audioUploadBox');
+
+  progressWrap.style.display = 'block';
+  doneMsg.style.display = 'none';
+  uploadBox.style.display = 'none';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', 'mateen_uploads');
+    fd.append('resource_type', 'video'); // Cloudinary uses 'video' for audio too
+
+    // Upload with XHR for progress tracking
+    const url = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/dqqtznoqt/video/upload`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round(e.loaded / e.total * 100);
+          progressBar.style.width = pct + '%';
+        }
+      };
+      xhr.onload = () => {
+        const data = JSON.parse(xhr.responseText);
+        if (data.secure_url) resolve(data.secure_url);
+        else reject(new Error(data.error?.message || 'فشل الرفع'));
+      };
+      xhr.onerror = () => reject(new Error('خطأ في الشبكة'));
+      xhr.send(fd);
+    });
+
+    _uploadedAudioUrl = url;
+    progressWrap.style.display = 'none';
+    doneMsg.style.display = 'block';
+    doneMsg.textContent = '✅ تم الرفع — ' + file.name;
+
+  } catch(e) {
+    progressWrap.style.display = 'none';
+    uploadBox.style.display = 'block';
+    alert('فشل رفع الصوت: ' + e.message);
+  }
+};
+
+// ربط onchange للـ select بعد تحميل الـ module
+document.addEventListener('DOMContentLoaded', () => {
+  const typeSelect = document.getElementById('newCourseType');
+  if (typeSelect) typeSelect.addEventListener('change', () => onCourseTypeChange(typeSelect));
+});
