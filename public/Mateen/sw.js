@@ -1,5 +1,5 @@
 // ── Mateen PWA Service Worker ──────────────────────────────────
-const CACHE_NAME = 'mateen-v4'; // news UTF-8 + skip API cache القديم
+const CACHE_NAME = 'mateen-v5'; // public pages API loaders + courses fix القديم
 const ASSETS = [
   '/Mateen/html/home.html',
   '/Mateen/html/login.html',

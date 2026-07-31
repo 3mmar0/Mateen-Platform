@@ -518,8 +518,25 @@ window.saveStaticSubject = async (subj) => {
 
   try {
     // احفظ في Firestore collection staticSubjects
-    const { setDoc, doc: fsDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
-    await setDoc(fsDoc(db, 'staticSubjects', modalId), { subj, subtitle, desc, topics, updatedAt: Date.now() }, { merge: true });
+    if (useApi()) {
+      const subjects = unwrapList(await api.subjects.list());
+      const hit = subjects.find(s =>
+        s.title === subj ||
+        ({ tafseer: 'tafsir', hadith: 'hadeeth', quran: 'maqraah' }[modalId] === s.slug) ||
+        s.slug === modalId
+      );
+      if (hit) {
+        await api.subjects.update(hit.id, {
+          title: subj,
+          subtitle,
+          description: desc,
+          axes: topics,
+        });
+      }
+    } else {
+      const { setDoc, doc: fsDoc } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+      await setDoc(fsDoc(db, 'staticSubjects', modalId), { subj, subtitle, desc, topics, updatedAt: Date.now() }, { merge: true });
+    }
 
     // حدّث Modal مباشرة بدون reload
     const modalEl = document.getElementById('modal-' + modalId);
@@ -537,20 +554,29 @@ window.saveStaticSubject = async (subj) => {
   btn.innerHTML = '<i class="ti ti-device-floppy"></i> حفظ التعديلات';
 };
 
-// Load Editات Subjects الثابتة من Firestore عند فتح Page
-onSnapshot(collection(db, 'staticSubjects'), snap => {
-  snap.docs.forEach(d => {
-    const data = d.data();
-    const modalEl = document.getElementById('modal-' + d.id);
-    if (!modalEl) return;
-    if (data.subtitle && modalEl.querySelector('.modal-subtitle'))
-      modalEl.querySelector('.modal-subtitle').textContent = data.subtitle;
-    if (data.desc && modalEl.querySelector('.modal-desc'))
-      modalEl.querySelector('.modal-desc').textContent = data.desc;
-    if (data.topics?.length && modalEl.querySelector('.topics-list'))
-      modalEl.querySelector('.topics-list').innerHTML = data.topics.map(t => `<li>${t}</li>`).join('');
-  });
-});
+// Load Editات Subjects الثابتة من Firestore عند فتح Page (legacy only)
+if (!useApi()) {
+  (async () => {
+    try {
+      await ensureFirebase();
+      onSnapshot(collection(db, 'staticSubjects'), snap => {
+        snap.docs.forEach(d => {
+          const data = d.data();
+          const modalEl = document.getElementById('modal-' + d.id);
+          if (!modalEl) return;
+          if (data.subtitle && modalEl.querySelector('.modal-subtitle'))
+            modalEl.querySelector('.modal-subtitle').textContent = data.subtitle;
+          if (data.desc && modalEl.querySelector('.modal-desc'))
+            modalEl.querySelector('.modal-desc').textContent = data.desc;
+          if (data.topics?.length && modalEl.querySelector('.topics-list'))
+            modalEl.querySelector('.topics-list').innerHTML = data.topics.map(t => `<li>${t}</li>`).join('');
+        });
+      });
+    } catch (e) {
+      console.warn('[courses] staticSubjects listener skipped:', e);
+    }
+  })();
+}
 
 // ===== Edit اWHENدة (MATERIALS) =====
 window.openEditModal = (id) => {

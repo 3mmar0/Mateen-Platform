@@ -582,9 +582,55 @@
 </div>
 
 <script src="../libs/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="../js/home.js?v=7" type="module">
+<script src="../js/home.js?v=20260731c" type="module"></script>
+<script src="../js/home-msg.js?v=20260731c" type="module"></script>
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function fmt(v) {
+    if (!v) return '';
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return '';
+    try { return d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }); }
+    catch (e) { return ''; }
+  }
+  fetch('/api/v1/schedules', { headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var el = document.getElementById('homeEventsList');
+      if (!el || el.dataset.apiFilled) return;
+      el.dataset.apiFilled = '1';
+      var items = (j && j.data) || [];
+      el.innerHTML = items.length
+        ? items.slice(0, 6).map(function (s) {
+            return '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label">' + esc(s.title) +
+              '</div><div class="tl-date">' + esc(fmt(s.starts_at)) + '</div></div></div>';
+          }).join('')
+        : '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
+    }).catch(function () {});
+  fetch('/api/v1/news', { headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var section = document.getElementById('publicNewsSection');
+      var list = document.getElementById('publicNewsList');
+      if (!section || !list || list.dataset.apiFilled) return;
+      list.dataset.apiFilled = '1';
+      var items = (j && j.data) || [];
+      if (!items.length) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = items.slice(0, 6).map(function (n) {
+        var body = n.body || '';
+        return '<div class="col-12 col-md-6 col-lg-4"><div class="news-card" style="background:white;border-radius:14px;border:1px solid var(--border);padding:18px 20px;height:100%;">' +
+          '<span style="font-size:11px;background:var(--beige);color:var(--green-dark);padding:3px 10px;border-radius:10px;">📝 خبر</span>' +
+          '<h3 style="font-family:Amiri,serif;font-size:16px;color:var(--green-dark);margin:10px 0 6px;">' + esc(n.title) + '</h3>' +
+          '<p style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:10px;">' + esc(body.slice(0, 100)) + (body.length > 100 ? '…' : '') + '</p>' +
+          '<div style="font-size:11px;color:#aaa;">' + esc(fmt(n.published_at || n.created_at)) + '</div></div></div>';
+      }).join('');
+    }).catch(function () {});
+})();
 </script>
-<script src="../js/home-msg.js?v=20260723" type="module"></script>
 <script>
 document.getElementById('mobileMenuToggle').addEventListener('click', function() {
   document.getElementById('mobileMenu').classList.toggle('open');
