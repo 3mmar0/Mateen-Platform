@@ -11,12 +11,13 @@ Route::prefix('v1')->group(function () {
         Route::post('password/reset', [AuthController::class, 'reset']);
     });
 
-    // Public catalog reads (courses / library / news pages work without login)
+    // Public catalog reads (courses / library / news / schedules pages work without login)
     Route::get('subjects', [SubjectController::class, 'index']);
     Route::get('subjects/{subject}', [SubjectController::class, 'show']);
     Route::get('subjects/{subject}/materials', [MaterialController::class, 'index']);
     Route::get('library', [LibraryController::class, 'index']);
     Route::get('news', [NewsController::class, 'index']);
+    Route::get('schedules', [ScheduleController::class, 'index']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']); Route::get('auth/me', [AuthController::class, 'me']);
@@ -27,7 +28,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('materials/{material}', [MaterialController::class, 'update']); Route::delete('materials/{material}', [MaterialController::class, 'destroy']);
         Route::post('students/bulk', [StudentController::class, 'bulk']); Route::post('students/export', [StudentController::class, 'export']);
         Route::get('students', [StudentController::class, 'index']); Route::post('students', [StudentController::class, 'store']); Route::patch('students/{student}', [StudentController::class, 'update']);
-        Route::apiResource('schedules', ScheduleController::class)->only(['index','store','update','destroy']);
+        Route::apiResource('schedules', ScheduleController::class)->only(['store','update','destroy']);
         Route::get('assignments', [AssignmentController::class, 'index']); Route::post('assignments', [AssignmentController::class, 'store']);
         Route::get('assignments/{assignment}/submissions', [AssignmentController::class, 'submissions']); Route::post('assignments/{assignment}/submissions', [AssignmentController::class, 'submit']);
         Route::patch('submissions/{submission}', [AssignmentController::class, 'updateSubmission']);

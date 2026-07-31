@@ -64,10 +64,62 @@ async function bootPublicFeedsFirebase(db, onSnapshot, query, collection, orderB
 }
 
 function bootPublicFeedsApi() {
-  const el = document.getElementById('homeEventsList');
-  if (el) {
-    el.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
-  }
+  const eventsEl = document.getElementById('homeEventsList');
+  const section = document.getElementById('publicNewsSection');
+  const list = document.getElementById('publicNewsList');
+
+  (async () => {
+    try {
+      const res = await api.schedules.list();
+      const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      if (eventsEl) {
+        if (!items.length) {
+          eventsEl.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
+        } else {
+          eventsEl.innerHTML = items.slice(0, 6).map((s) => {
+            const date = s.starts_at ? new Date(s.starts_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+            return `<div class="tl-item">
+              <div class="tl-dot"></div>
+              <div>
+                <div class="tl-label">${s.title || ''}</div>
+                <div class="tl-date">${date}</div>
+              </div>
+            </div>`;
+          }).join('');
+        }
+      }
+    } catch {
+      if (eventsEl) {
+        eventsEl.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
+      }
+    }
+
+    try {
+      const newsRes = await api.news.list();
+      const newsItems = Array.isArray(newsRes?.data) ? newsRes.data : (Array.isArray(newsRes) ? newsRes : []);
+      if (!section || !list) return;
+      if (!newsItems.length) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = newsItems.slice(0, 6).map((n) => {
+        const date = n.published_at || n.created_at
+          ? new Date(n.published_at || n.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+          : '';
+        const body = n.body || '';
+        return `
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="news-card" style="background:white;border-radius:14px;border:1px solid var(--border);padding:18px 20px;height:100%;">
+          <span style="font-size:11px;background:var(--beige);color:var(--green-dark);padding:3px 10px;border-radius:10px;">📝 خبر</span>
+          <h3 style="font-family:Amiri,serif;font-size:16px;color:var(--green-dark);margin:10px 0 6px;">${n.title || ''}</h3>
+          <p style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:10px;">${body.slice(0, 100)}${body.length > 100 ? '…' : ''}</p>
+          <div style="font-size:11px;color:#aaa;">${date}</div>
+        </div>
+      </div>`;
+      }).join('');
+    } catch (e) {
+      console.warn('[home] news API failed:', e);
+      if (section) section.style.display = 'none';
+    }
+  })();
 }
 
 /* ═══════════════════════════════════════════════════════════════
