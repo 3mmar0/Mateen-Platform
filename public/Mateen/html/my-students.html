@@ -270,37 +270,42 @@
 </div>
 
 <script type="module">
-import { initializeApp, getApps, getApp }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs }
-  from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { FIREBASE_CONFIG } from "../js/config.js";
+import { FIREBASE_CONFIG, USE_LARAVEL_API } from "../js/config.js";
+import { api, getToken, getStoredUser, isLaravelApi } from "../js/api.js";
 import { effectiveRole, mountTestModeSwitcher } from "../js/test-mode.js";
 
-const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
+
+let db = null, auth = null;
+let getDoc, setDoc, doc, serverTimestamp, collection, query, where, getDocs, onAuthStateChanged;
+
+async function ensureFirebase() {
+  if (useApi()) throw new Error('Firebase data disabled in Laravel mode');
+  if (db) return;
+  const { initializeApp, getApps, getApp } = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js");
+  const firebaseAuth = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js");
+  const firestore = await import("https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js");
+  ({ getDoc, setDoc, doc, serverTimestamp, collection, query, where, getDocs } = firestore);
+  ({ onAuthStateChanged } = firebaseAuth);
+  const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+  auth = firebaseAuth.getAuth(app);
+  db = firestore.getFirestore(app);
+}
 
 let allStudents = [];
-const PARTICIPATION_TOTAL = 10; // من كام درجة المشاركة (ثابت عشان يتحسب صح في التوتال)
+const PARTICIPATION_TOTAL = 10;
 
 const SUBJECT_MAP = {
-  'tafseer': 'التفسير',
-  'fiqh':    'الفقه',
+  'tafseer': 'التفسير', tafsir: 'التفسير',
+  'fiqh': 'الفقه',
   'aqeedah': 'العقيدة',
-  'hadith':  'الحديث',
-  'hadeeth': 'الحديث',
-  'quran':   'مقرأة متين',
-  'quran1':  'مقرأة متين',
-  'quran2':  'مقرأة متين',
+  'hadith': 'الحديث', 'hadeeth': 'الحديث',
+  'quran': 'مقرأة متين', 'quran1': 'مقرأة متين', 'quran2': 'مقرأة متين', maqraah: 'مقرأة متين',
 };
 
 function show(id)  { document.getElementById(id).style.display = ''; }
 function hide(id)  { document.getElementById(id).style.display = 'none'; }
 
-// بتطبّع الاسم عشان تقدر تقارن أسماء بينها اختلافات بسيطة (مسافات/همزات/تاء مربوطة)
 function normalizeStuName(name) {
   return (name || '')
     .replace(/[أإآا]/g, 'ا').replace(/[ةه]/g, 'ه').replace(/[يى]/g, 'ي')
@@ -309,8 +314,8 @@ function normalizeStuName(name) {
     .trim();
 }
 
-// بتجيب درجة موجودة بالفعل (لو اتسجلت قبل كده) عشان تتعرض في الخانة كقيمة مبدئية
 async function getExistingScore(sid, gradeId) {
+  if (useApi()) return '';
   try {
     const gSnap = await getDoc(doc(db, 'students', sid, 'grades', gradeId));
     return gSnap.exists() ? gSnap.data().score : '';
@@ -318,9 +323,8 @@ async function getExistingScore(sid, gradeId) {
     return '';
   }
 }
-// بتجيب درجات الاختبارات (اللي بتضيفها الإدارة من admin.html) الخاصة بمادة المعلمة —
-// عرض فقط، مفيش تعديل هنا. بنستبعد سجل المشاركة لأنه ليه خانة منفصلة فوق.
 async function getExamGrades(sid, subjectAr) {
+  if (useApi()) return [];
   try {
     const snap = await getDocs(query(
       collection(db, 'students', sid, 'grades'),
@@ -334,8 +338,11 @@ async function getExamGrades(sid, subjectAr) {
     return [];
   }
 }
-// بتتنادى لما المعلمة تكتب درجة المشاركة وتخرج من الخانة
 window.savePartGrade = async (sid, subject) => {
+  if (useApi()) {
+    alert('تسجيل درجات المشاركة غير متاح بعد في وضع Laravel');
+    return;
+  }
   const scoreInput = document.getElementById(`partScore-${sid}-${subject}`);
   if (!scoreInput) return;
 
@@ -361,10 +368,8 @@ window.savePartGrade = async (sid, subject) => {
   }
 };
 
-// ── نشر درجات المشاركة على مستوى المادة كلها (زرار واحد لكل مادة، مش لكل طالبة) ──
-// لما تكون "مطفية": الدرجة موجودة في قاعدة البيانات بس مخفية عن الطالبة ومش داخلة في التوتال بتاعها.
-// لما تنشري: كل درجات المشاركة للمادة دي تظهر وتتحسب دفعة واحدة لكل الطالبات.
 async function getPublishState(subjectAr) {
+  if (useApi()) return false;
   try {
     const snap = await getDoc(doc(db, 'subjectSettings', subjectAr));
     return snap.exists() ? !!snap.data().participationPublished : false;
@@ -381,6 +386,11 @@ async function loadPublishState(subjectAr) {
 }
 
 window.togglePublishParticipation = async () => {
+  if (useApi()) {
+    alert('نشر درجات المشاركة غير متاح بعد في وضع Laravel');
+    document.getElementById('publishToggle').checked = false;
+    return;
+  }
   const subjectAr = window._subjectAr;
   if (!subjectAr) return;
   const checkbox = document.getElementById('publishToggle');
@@ -405,13 +415,18 @@ window.togglePublishParticipation = async () => {
 async function studentRowHTML(s, subjectAr) {
   const statusClass = s.status === 'active' ? 'status-active' : 'status-pending';
   const statusText  = s.status === 'active' ? 'مفعّلة' : 'بانتظار التفعيل';
+  const sid = s.sid || s.id;
 
-let gradesHtml = `<div class="student-no-link">⚠️ مقدرناش نلاقي سجل طالبة بنفس الاسم — كلّمي الإدارة</div>`;
-  if (s.sid && subjectAr) {
+  let gradesHtml = '';
+  if (useApi()) {
+    gradesHtml = subjectAr
+      ? '<div class="student-no-link" style="font-size:12px;color:var(--text-mid)">درجات المشاركة قريبًا عبر النظام الجديد</div>'
+      : '';
+  } else if (sid && subjectAr) {
     const gradeIdParticipation = 'participation_' + subjectAr;
     const [partVal, examGrades] = await Promise.all([
-      getExistingScore(s.sid, gradeIdParticipation),
-      getExamGrades(s.sid, subjectAr),
+      getExistingScore(sid, gradeIdParticipation),
+      getExamGrades(sid, subjectAr),
     ]);
 
     const examGradesHtml = examGrades.length
@@ -424,14 +439,14 @@ let gradesHtml = `<div class="student-no-link">⚠️ مقدرناش نلاقي 
     gradesHtml = `
       <div class="student-grades">
         <label>مشاركة
-          <input type="number" min="0" max="${PARTICIPATION_TOTAL}" id="partScore-${s.sid}-${subjectAr}" value="${partVal}" placeholder="0"
-            onchange="savePartGrade('${s.sid}','${subjectAr}')" style="width:56px">
+          <input type="number" min="0" max="${PARTICIPATION_TOTAL}" id="partScore-${sid}-${subjectAr}" value="${partVal}" placeholder="0"
+            onchange="savePartGrade('${sid}','${subjectAr}')" style="width:56px">
           <span style="font-size:11px;color:var(--text-mid,#8a6a52)">/ ${PARTICIPATION_TOTAL}</span>
         </label>
         ${examGradesHtml ? `<div class="exam-grades-wrap">${examGradesHtml}</div>` : ''}
       </div>`;
-  } else if (!subjectAr) {
-    gradesHtml = '';
+  } else if (sid) {
+    gradesHtml = `<div class="student-no-link">⚠️ مقدرناش نلاقي سجل طالبة بنفس الاسم — كلّمي الإدارة</div>`;
   }
 
   return `
@@ -472,7 +487,79 @@ function showError(msg) {
   document.getElementById('studentsGrid').classList.add('visible');
 }
 
-onAuthStateChanged(auth, async user => {
+async function finishStudentsUi(role, subjectAr) {
+  window._subjectAr = subjectAr || '';
+  hide('loadingState');
+  document.getElementById('searchInput').style.display = 'block';
+  document.getElementById('pageSub').innerHTML =
+    `الطالبات المسجلات في مادتك <span class="count-badge">${allStudents.length}</span>`;
+  await window.filterStudents();
+}
+
+async function bootLaravelMyStudents() {
+  if (!getToken()) { location.href = 'login.html'; return; }
+  try {
+    const me = await api.me();
+    const userData = me?.data || me || getStoredUser() || {};
+    const role = effectiveRole(userData, userData.email || '');
+    if (!['teacher','admin','support','supervisor'].includes(role)) {
+      location.href = 'home.html';
+      return;
+    }
+    mountTestModeSwitcher(userData, userData.email || '');
+
+    let subjectAr = '';
+    try {
+      const subjRes = await api.subjects.list();
+      const subjects = Array.isArray(subjRes?.data) ? subjRes.data : (Array.isArray(subjRes) ? subjRes : []);
+      if (userData.subject_id != null) {
+        const hit = subjects.find(s => String(s.id) === String(userData.subject_id));
+        subjectAr = hit?.title || SUBJECT_MAP[hit?.slug] || '';
+      }
+    } catch (_) {}
+
+    if (subjectAr) {
+      document.getElementById('subjectBadge').style.display = 'inline-flex';
+      document.getElementById('subjectName').textContent = subjectAr;
+      loadPublishState(subjectAr);
+    } else if (role !== 'teacher') {
+      const picker = document.getElementById('subjectPicker');
+      const uniqueSubjects = [...new Set(Object.values(SUBJECT_MAP))];
+      picker.innerHTML = '<option value="">— اختاري المادة لعرض/تسجيل درجاتها —</option>' +
+        uniqueSubjects.map(s => `<option value="${s}">${s}</option>`).join('');
+      picker.style.display = 'block';
+    }
+
+    const stuRes = await api.students.list();
+    const raw = Array.isArray(stuRes?.data) ? stuRes.data : (Array.isArray(stuRes) ? stuRes : []);
+    allStudents = raw
+      .filter(s => !s.archived)
+      .map(s => ({
+        id: String(s.id),
+        sid: String(s.id),
+        name: s.name || s.user?.name || '—',
+        email: s.email || s.user?.email || '',
+        status: s.status || 'active',
+        year: s.year || '',
+        enrolledSubjects: s.enrolled_subjects || s.enrolledSubjects || [],
+      }));
+
+    if (role === 'teacher' && subjectAr) {
+      allStudents = allStudents.filter(s =>
+        !s.enrolledSubjects?.length || s.enrolledSubjects.includes(subjectAr)
+      );
+    }
+
+    await finishStudentsUi(role, subjectAr);
+  } catch (e) {
+    console.error('[طالباتي] API خطأ:', e);
+    showError('حدث خطأ في التحميل، حاولي مرة أخرى');
+  }
+}
+
+async function bootFirebaseMyStudents() {
+  await ensureFirebase();
+  onAuthStateChanged(auth, async user => {
   if (!user) { location.href = 'login.html'; return; }
 
   try {
@@ -494,7 +581,6 @@ onAuthStateChanged(auth, async user => {
       document.getElementById('subjectName').textContent    = subjectAr;
       loadPublishState(subjectAr);
     } else if (role !== 'teacher') {
-      // مفيش مادة ثابتة على الحساب (أدمن/مشرفة/دعم) — هاتي قائمة اختيار
       const picker = document.getElementById('subjectPicker');
       const uniqueSubjects = [...new Set(Object.values(SUBJECT_MAP))];
       picker.innerHTML = '<option value="">— اختاري المادة لعرض/تسجيل درجاتها —</option>' +
@@ -502,7 +588,6 @@ onAuthStateChanged(auth, async user => {
       picker.style.display = 'block';
     }
 
-    // اربطي كل حساب "مادة/متين" بسجله الحقيقي، والمصدر الأساسي للاسم وحالة الأرشفة هو جدول students
     const usersSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'mateen')));
     const usersByUid = new Map();
     usersSnap.docs.forEach(d => usersByUid.set(d.id, { id: d.id, ...d.data() }));
@@ -513,26 +598,21 @@ onAuthStateChanged(auth, async user => {
     });
 
     const studentsSnap = await getDocs(collection(db, 'students'));
-    // من غير فلترة أرشفة هنا — بما إن نفس الطالبة ممكن يكون ليها أكتر من مستند
-    // مرتبط بنفس الحساب (زي ربط تاني اتعمل بالغلط)، لازم نجمّعهم الأول
-    // ونستبعد أي طالبة لو أي مستند من مستنداتها مؤرشف
     let allDocsRaw = studentsSnap.docs.map(sd => {
       const sData = sd.data();
       const linkedUid = sData.uid || usersByName.get(normalizeStuName(sData.name || '')) || null;
-      const userData  = linkedUid ? usersByUid.get(linkedUid) : null;
+      const uData  = linkedUid ? usersByUid.get(linkedUid) : null;
       return {
         id: linkedUid || sd.id,
         sid: sd.id,
-        name: sData.name || userData?.name || '—',
-        email: userData?.email || '',
-        status: userData?.status || 'pending',
-        enrolledSubjects: userData?.enrolledSubjects || [],
+        name: sData.name || uData?.name || '—',
+        email: uData?.email || '',
+        status: uData?.status || 'pending',
+        enrolledSubjects: uData?.enrolledSubjects || [],
         archived: !!sData.archived,
       };
     });
 
-    // اجمعي كل المستندات حسب هوية الطالبة (id)، ولو أي مستند فيها مؤرشف أو حسابها
-    // موقوف (suspended) استبعدي الطالبة بالكامل — مش بس المستند المؤرشف نفسه
     const byId = new Map();
     allDocsRaw.forEach(s => {
       if (!byId.has(s.id)) byId.set(s.id, []);
@@ -542,32 +622,27 @@ onAuthStateChanged(auth, async user => {
     byId.forEach(group => {
       const anyArchived  = group.some(s => s.archived);
       const anySuspended = group.some(s => s.status === 'suspended');
-      if (anyArchived || anySuspended) return; // مؤرشفة أو حسابها موقوف — تتشال بالكامل
+      if (anyArchived || anySuspended) return;
       allDocs.push(group[0]);
     });
 
-    // Teacher (f): فلتر على مادتها only — بس الطالبات اللي عندهم حساب مربوط ومسجلين في المادة دي
     if (role === 'teacher' && subjectAr) {
       allDocs = allDocs.filter(s => s.enrolledSubjects.includes(subjectAr));
     }
 
     allStudents = allDocs;
-    window._subjectAr = subjectAr;
-
-    // Hide loading وShow باقي العناصر
-    hide('loadingState');
-    document.getElementById('searchInput').style.display = 'block';
-    document.getElementById('pageSub').innerHTML =
-      `الطالبات المسجلات في مادتك <span class="count-badge">${allStudents.length}</span>`;
-
-    await window.filterStudents();
+    await finishStudentsUi(role, subjectAr);
 
   } catch(e) {
     console.error('[طالباتي] خطأ:', e);
     showError('حدث خطأ في التحميل، حاولي مرة أخرى');
   }
-});
+  });
+}
+
+if (useApi()) bootLaravelMyStudents();
+else bootFirebaseMyStudents();
 </script>
-<script type="module" src="../js/notifications.js?v=20260723"></script>
+<script type="module" src="../js/notifications.js?v=20260731c"></script>
 </body>
 </html>
