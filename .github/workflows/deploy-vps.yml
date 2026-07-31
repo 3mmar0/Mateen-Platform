@@ -115,30 +115,11 @@ jobs:
               cp /tmp/mateen.env.bak "$APP_DIR/.env"
             else
               cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-              php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*/m', 'APP_KEY=', file_get_contents('.env')));"
-              cd "$APP_DIR" && php artisan key:generate --force
+              cd "$APP_DIR"
+              php artisan key:generate --force
             fi
             cd "$APP_DIR"
-            # Keep production URL / secure cookies
-            python3 - <<'PY'
-            from pathlib import Path
-            import re
-            p = Path('.env')
-            t = p.read_text()
-            for k, v in {
-              'APP_ENV': 'production',
-              'APP_DEBUG': 'false',
-              'APP_URL': 'https://mateen.academy',
-              'FRONTEND_URL': 'https://mateen.academy',
-              'SESSION_SECURE_COOKIE': 'true',
-              'CORS_ALLOWED_ORIGINS': 'https://mateen.academy,https://www.mateen.academy',
-            }.items():
-              if re.search(rf'^{k}=', t, flags=re.M):
-                t = re.sub(rf'^{k}=.*$', f'{k}={v}', t, flags=re.M)
-              else:
-                t += f'\n{k}={v}\n'
-            p.write_text(t)
-            PY
+            python3 "$APP_DIR/scripts/ci_apply_prod_env.py" "$APP_DIR"
             composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
             mkdir -p storage/framework/{sessions,views,cache/data} storage/logs storage/app/public bootstrap/cache
             php artisan migrate --force
@@ -166,7 +147,6 @@ jobs:
             a2enmod rewrite php8.4 headers || true
             apache2ctl configtest
             systemctl restart apache2
-            curl -fsS -o /dev/null -H 'Host: mateen.academy' "http://127.0.0.1/Mateen/html/login.html" || \
-              curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
+            curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
             curl -fsS -o /dev/null "https://mateen.academy/api/v1/subjects"
             echo "Production deploy OK — https://mateen.academy"
