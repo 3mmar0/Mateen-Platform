@@ -290,8 +290,18 @@ async function bootApi() {
   const stored = getStoredUser();
   if (stored?.role) applyStaffUi(stored.role);
   if (stored?.id) localStorage.setItem(`news_last_seen_${stored.id}`, Date.now().toString());
-  await Promise.all([loadNewsApi(), loadEventsApi()]);
-  // Refresh once if token exists (role may come from /me later)
+
+  // Guest list may already be filled by the inline script in news.html —
+  // still refresh so staff get edit/delete controls when logged in.
+  const needsStaffRefresh = !!getToken() || !!stored?.role;
+  if (needsStaffRefresh || !document.getElementById('newsList')?.children?.length) {
+    await Promise.all([loadNewsApi(), loadEventsApi()]);
+  } else {
+    document.getElementById('newsLoading')?.classList.add('hidden');
+    const loading = document.getElementById('newsLoading');
+    if (loading) loading.style.display = 'none';
+  }
+
   if (getToken()) {
     try {
       const me = await api.me();
