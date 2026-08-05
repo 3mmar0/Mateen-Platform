@@ -1,4 +1,5 @@
 AddDefaultCharset UTF-8
+DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
@@ -6,6 +7,9 @@ AddDefaultCharset UTF-8
     </IfModule>
 
     RewriteEngine On
+
+    # Site root must hit Laravel (never leftover index.html / Apache DirectoryIndex)
+    RewriteRule ^$ index.php [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
