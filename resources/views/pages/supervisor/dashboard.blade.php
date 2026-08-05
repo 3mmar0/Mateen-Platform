@@ -63,7 +63,7 @@
   <div class="nav-shuraka"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img"/></div>
   <div class="nav-btns">
     <a class="btn-outline d-none d-lg-flex" href="/"><i class="ti ti-home"></i> الرئيسية</a>
-    <a class="btn-outline d-none d-lg-flex" href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد</a>
+    <a class="btn-outline d-none d-lg-flex" href="/courses"><i class="ti ti-books"></i> المواد</a>
     <div class="nav-user d-none d-lg-flex"><i class="ti ti-shield"></i><span class="nav-user-name" id="navUserName">مشرفة</span></div>
     <button class="btn-logout d-none d-lg-flex" onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
   </div>
@@ -80,7 +80,7 @@
     #supMobNav a,#supMobNav button{color:rgba(255,255,255,.88);text-decoration:none;font-size:14px;font-family:inherit;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 0}
   </style>
   <a href="/"><i class="ti ti-home"></i> الرئيسية</a>
-  <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
+  <a href="/courses"><i class="ti ti-books"></i> المواد العلمية</a>
   <div style="color:rgba(255,255,255,.6);font-size:12px;display:flex;align-items:center;gap:6px"><i class="ti ti-shield"></i><span id="navUserName">مشرفة</span></div>
   <button onclick="doLogout()"><i class="ti ti-logout"></i> تسجيل الخروج</button>
 </div>
@@ -113,7 +113,7 @@
     }
   </style>
   <a href="/"><i class="ti ti-home"></i> الرئيسية</a>
-  <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
+  <a href="/courses"><i class="ti ti-books"></i> المواد العلمية</a>
   <button onclick="doLogout()"><i class="ti ti-logout"></i> تسجيل الخروج</button>
 </div>
 <div id="authGate"><i class="ti ti-loader spin"></i><p>جارٍ التحقق من الصلاحيات...</p></div>

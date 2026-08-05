@@ -1,4 +1,4 @@
-renderNav('news.html')
+renderNav('/news')
 
 import { getAuth, onAuthStateChanged as _onAuth }
   from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";

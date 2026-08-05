@@ -67,7 +67,7 @@ function setupFirestoreListener() {
         vibrate:  [200, 100, 200],
         tag:      'mateen-msg',
         renotify: true,
-        data:     { url: d.url || 'https://mateenweb.github.io/Mateen/html/messages.html' }
+        data:     { url: d.url || 'https://mateen.academy/messages' }
       });
 
       // امسح الإشعار من Firestore بعد عرضه
@@ -81,12 +81,12 @@ function setupFirestoreListener() {
 // ── لما المستخدم يضغط الإشعار ────────────────────────────────────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const url = event.notification.data?.url || 'https://mateenweb.github.io/Mateen/html/messages.html';
+  const url = event.notification.data?.url || 'https://mateen.academy/messages';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url.includes('mateenweb.github.io') && 'focus' in c) {
+        if ((c.url.includes('mateen.academy') || c.url.includes('mateenweb.github.io')) && 'focus' in c) {
           c.navigate(url);
           return c.focus();
         }

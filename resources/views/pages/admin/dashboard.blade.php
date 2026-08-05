@@ -65,13 +65,13 @@
       <a class="nav-link px-2" href="/"><i class="ti ti-home"></i> <span class="d-none d-md-inline">الرئيسية</span></a>
     </li>
     <li class="nav-item">
-      <a class="nav-link px-2" href="/Mateen/html/courses.html"><i class="ti ti-books"></i> <span class="d-none d-md-inline">المواد</span></a>
+      <a class="nav-link px-2" href="/courses"><i class="ti ti-books"></i> <span class="d-none d-md-inline">المواد</span></a>
     </li>
     <li class="nav-item">
-      <a class="nav-link px-2" href="/Mateen/html/news.html"><i class="ti ti-speakerphone"></i> <span class="d-none d-md-inline">الأخبار</span></a>
+      <a class="nav-link px-2" href="/news"><i class="ti ti-speakerphone"></i> <span class="d-none d-md-inline">الأخبار</span></a>
     </li>
     <li class="nav-item">
-      <a class="nav-link px-2" href="/Mateen/html/messages.html"><i class="ti ti-message-2"></i> <span class="d-none d-md-inline">الرسائل</span></a>
+      <a class="nav-link px-2" href="/messages"><i class="ti ti-message-2"></i> <span class="d-none d-md-inline">الرسائل</span></a>
     </li>
   </ul>
 
@@ -238,7 +238,7 @@
 <div class="foot-actions-row">
   <!-- زراران رئيسيان -->
   <button class="btn-add-row" onclick="addStudentRow()"><i class="ti ti-user-plus"></i> إضافة طالبة</button>
-  <a href="/Mateen/html/stats.html" class="btn-add-row btn-export-stats"><i class="ti ti-chart-bar"></i> الإحصائيات</a>
+  <a href="/stats" class="btn-add-row btn-export-stats"><i class="ti ti-chart-bar"></i> الإحصائيات</a>
 
   <!-- قوائم الإجراءات — كل مجموعة في زرار منفصل -->
   <div class="am-group" style="position:relative;display:inline-block">
@@ -520,7 +520,7 @@
   </div>
   <div style="padding:20px;text-align:center">
     <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px">إدارة المواد (الإضافة، الأقسام الظاهرة فيها، الحذف) أصبحت في صفحة المواد العلمية مباشرة.</p>
-    <a href="/Mateen/html/courses.html" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;text-decoration:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:600">
+    <a href="/courses" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;text-decoration:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:600">
       <i class="ti ti-external-link"></i> الذهاب لإدارة المواد
     </a>
   </div>
@@ -596,7 +596,7 @@
     <div class="section-head-title"><i class="ti ti-settings"></i> أدوات النظام</div>
   </div>
   <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-    <a href="/Mateen/html/support.html" class="btn-add-row" style="text-align:center">
+    <a href="/support" class="btn-add-row" style="text-align:center">
       <i class="ti ti-bug"></i> فحص الموقع الشامل
     </a>
     <div style="border-top:1px solid var(--border);padding-top:12px">
@@ -1257,13 +1257,13 @@
 
 <script>
 const SITE_PAGES = [
-  '/','courses.html','library.html','messages.html','news.html',
-  'schedule.html','student.html','admin.html','supervisor.html','about.html',
-  'stats.html','student-general.html','student-view.html',
-  'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',
-  'teacher-fiqh.html','teacher-hadeeth.html','teacher-tafseer.html',
-  'teacher-profile.html','teacher-schedule.html','teacher-students.html',
-  'teacher-library.html','my-students.html','onboarding.html'
+  '','courses','library','messages','news',
+  'schedule','student','admin','supervisor','about',
+  'stats','student/general','student/view',
+  'teacher/quran1','teacher/quran2','teacher/aqeedah',
+  'teacher/fiqh','teacher/hadeeth','teacher/tafseer',
+  'teacher/profile','teacher/schedule','teacher/students',
+  'teacher/library','my-students','onboarding','login'
 ];
 
 async function runSiteTest() {
@@ -1272,7 +1272,7 @@ async function runSiteTest() {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> جارٍ الفحص...';
 
-  const base = window.location.origin + '/Mateen/html/';
+  const base = window.location.origin + '/';
   let rows = '';
   let summary = { ok:0, slow:0, err:0 };
 

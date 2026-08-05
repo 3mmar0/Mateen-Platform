@@ -159,13 +159,13 @@
 
 <script>
 const SITE_PAGES = [
-  '/','courses.html','library.html','messages.html','news.html',
-  'schedule.html','student.html','admin.html','supervisor.html','about.html',
-  'stats.html','student-general.html','student-view.html',
-  'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',
-  'teacher-fiqh.html','teacher-hadeeth.html','teacher-tafseer.html',
-  'teacher-profile.html','teacher-schedule.html','teacher-students.html',
-  'teacher-library.html','my-students.html','onboarding.html'
+  '/','/courses','/library','/messages','/news',
+  '/schedule','/student','/admin','/supervisor','/about',
+  '/stats','/student/general','/student/view',
+  '/teacher/quran1','/teacher/quran2','/teacher/aqeedah',
+  '/teacher/fiqh','/teacher/hadeeth','/teacher/tafseer',
+  '/teacher/profile','/teacher/schedule','/teacher/students',
+  '/teacher/library','/my-students','/onboarding'
 ];
 
 async function runSiteTest() {
@@ -174,7 +174,7 @@ async function runSiteTest() {
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> جارٍ الفحص...';
 
-  const base = window.location.origin + '/Mateen/html/';
+  const base = window.location.origin + '/';
   let rows = '';
   let summary = { ok:0, slow:0, err:0 };
 

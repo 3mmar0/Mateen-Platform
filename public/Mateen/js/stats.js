@@ -28,13 +28,13 @@ async function ensureFirebase() {
 
 // ── AUTH GUARD — للإدارة/الnot/don'tرفة/Teacher (f) only ───────────────
 async function initStatsApi() {
-  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
   let role = '';
   try {
     const me = await api.me();
     role = (me?.data ?? me)?.role || '';
   } catch {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '/login'; return;
   }
   if (!['admin', 'supervisor', 'teacher'].includes(role)) {
     window.location.href = '/'; return;
@@ -48,7 +48,7 @@ if (useApi()) {
   (async () => {
     await ensureFirebase();
     onAuthStateChanged(auth, async user => {
-      if (!user) { window.location.href = '../html/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role = snap.exists() ? snap.data().role : '';
       if (!['admin', 'supervisor', 'teacher'].includes(role)) {
@@ -323,11 +323,11 @@ function esc(s) {
 }
 
 function studentLink(s, label) {
-  return `<a class="rank-name" href="student.html?id=${s.id}">${label || s.name || 'بدون اسم'}</a>`;
+  return `<a class="rank-name" href="/student?id=${s.id}">${label || s.name || 'بدون اسم'}</a>`;
 }
 
 function barNameLink(s) {
-  return `<a class="bar-name" href="student.html?id=${s.id}">${s.name || 'بدون اسم'}</a>`;
+  return `<a class="bar-name" href="/student?id=${s.id}">${s.name || 'بدون اسم'}</a>`;
 }
 
 // نفس getAttCounts بس لمادة واحدة بس

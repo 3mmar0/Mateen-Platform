@@ -72,9 +72,9 @@ exports.sendMessageNotification = onDocumentCreated(
             tag:      "mateen-msg",
             renotify: true,
           },
-          fcmOptions: { link: "https://mateenweb.github.io/Mateen/html/messages.html" },
+          fcmOptions: { link: "https://mateen.academy/messages" },
         },
-        data: { convId, senderId, url: "/html/messages.html" },
+        data: { convId, senderId, url: "/messages" },
       }));
 
       const results = await getMessaging().sendEach(messages);

@@ -12,6 +12,12 @@ if (! function_exists('mateen_asset')) {
 if (! function_exists('mateen_page')) {
     function mateen_page(string $page): string
     {
-        return url('/Mateen/html/'.$page.(str_ends_with($page, '.html') ? '' : '.html'));
+        $slug = str_ends_with($page, '.html') ? substr($page, 0, -5) : ltrim($page, '/');
+        $catalog = \App\Support\MateenPages::catalog();
+        if (isset($catalog[$slug])) {
+            return url($catalog[$slug]['clean']);
+        }
+
+        return url('/'.$slug);
     }
 }

@@ -240,7 +240,7 @@ async function bootFirebase() {
       await addDoc(collection(db, 'notifications', recipientUid, 'pending'), {
         title: `💬 ${senderName}`,
         body: bodyText.slice(0, 80),
-        url: 'https://mateenweb.github.io/Mateen/html/messages.html',
+        url: 'https://mateen.academy/messages',
         senderId: user.uid,
         createdAt: serverTimestamp(),
       });

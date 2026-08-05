@@ -1,1 +1,1 @@
-renderNav('library.html')
+renderNav('/library')

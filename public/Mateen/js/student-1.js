@@ -79,7 +79,7 @@ async function runAuthGuard(sessionOrUser, userData, role) {
   } else if (role === 'admin' || role === 'teacher' || role === 'supervisor') {
     if (!studentId) { window.location.href = '/'; return; }
   } else {
-    window.location.href = '../html/login.html';
+    window.location.href = '/login';
     return;
   }
 
@@ -90,7 +90,7 @@ async function runAuthGuard(sessionOrUser, userData, role) {
 
 async function bootLaravelAuth() {
   const session = await resolveLaravelSession();
-  if (!session) { window.location.href = '../html/login.html'; return; }
+  if (!session) { window.location.href = '/login'; return; }
   const role = effectiveRole(session.raw || session, session.email);
   const userData = { ...session.raw, linkedStudentId: session.linkedStudentId, status: session.status };
   await runAuthGuard(session, userData, role);
@@ -109,9 +109,9 @@ async function bootFirebaseAuth() {
   auth = getAuth(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const userSnap = await getDoc(doc(db, 'users', user.uid));
-    if (!userSnap.exists()) { window.location.href = '../html/login.html'; return; }
+    if (!userSnap.exists()) { window.location.href = '/login'; return; }
     const userData = userSnap.data();
     const role = effectiveRole(userData, user.email);
     await runAuthGuard(user, userData, role);
@@ -154,7 +154,7 @@ async function initPage(studentId, user, role) {
     fillStudentProfile(s);
     showApiEmptySubcollections();
     applyRoleUi(studentId, user, role, s);
-    document.getElementById('logoutBtn').onclick = () => logoutApp('../html/login.html');
+    document.getElementById('logoutBtn').onclick = () => logoutApp('/login');
     if (role === 'student' || role === 'mateen') setupDeleteAccountApi();
     return;
   }
@@ -191,7 +191,7 @@ async function initPage(studentId, user, role) {
   });
 
   document.getElementById('logoutBtn').onclick = () =>
-    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+    signOut(auth).then(() => { window.location.href = '/login'; });
 
   setupDeleteAccount(user);
 }
@@ -285,7 +285,7 @@ function setupDeleteAccountApi() {
     if (!pass) { errEl.textContent = 'أدخلي كلمة المرور'; return; }
     try {
       await deleteCurrentAccount();
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
     } catch (e) {
       errEl.textContent = e.message || 'حدث خطأ، حاولي مرة أخرى';
     }
@@ -933,7 +933,7 @@ function setupDeleteAccount(user) {
       const cred = EmailAuthProvider.credential(user.email, pass);
       await reauthenticateWithCredential(user, cred);
       await deleteUser(user);
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
     } catch(e) {
       errEl.textContent = e.code === 'auth/wrong-password' ? 'كلمة المرور غير صحيحة' : 'حدث خطأ، حاولي مرة أخرى';
     }

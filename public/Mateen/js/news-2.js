@@ -1,1 +1,1 @@
-renderNav('news.html')
+renderNav('/news')

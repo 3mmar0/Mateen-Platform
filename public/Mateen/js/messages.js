@@ -97,13 +97,13 @@ async function refreshMessagesApi(convId) {
 }
 
 async function initMessagesApi() {
-  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
   let data;
   try {
     const me = await api.me();
     data = (me?.data ?? me ?? getStoredUser()) || {};
   } catch {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '/login'; return;
   }
   if (data.status === 'pending' || data.status === 'suspended') {
     window.location.href = '/'; return;
@@ -242,10 +242,10 @@ if (useApi()) {
 } else {
 ensureFirebase().then(() => {
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
+  if (!user) { window.location.href = '/login'; return; }
 
   const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+  if (!snap.exists()) { window.location.href = '/login'; return; }
 
   const data = snap.data();
   if (data.status === 'pending' || data.status === 'suspended') {
@@ -337,12 +337,12 @@ window.doLogout = () => {
     if (apiPollTimer) clearInterval(apiPollTimer);
     api.logout().catch(() => {}).finally(() => {
       clearSession();
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
     });
     return;
   }
   ensureFirebase().then(() => {
-    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+    signOut(auth).then(() => { window.location.href = '/login'; });
   });
 };
 

@@ -21,9 +21,9 @@
     <meta property="og:title" content="المواد العلمية — برنامج متين العلمي">
     <meta property="og:description" content="استكشفي المواد العلمية الأصيلة في برنامج متين">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://mateenweb.github.io/Mateen/html/courses.html">
-    <meta property="og:image" content="https://mateenweb.github.io/Mateen/logo.png">
-    <link rel="canonical" href="https://mateenweb.github.io/Mateen/html/courses.html">
+    <meta property="og:url" content="https://mateen.academy/courses">
+    <meta property="og:image" content="https://mateen.academy/Mateen/logo.png">
+    <link rel="canonical" href="https://mateen.academy/courses">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@@400;500;600;700&family=Amiri:wght@@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/Mateen/libs/tabler-icons/tabler-icons.min.css">
   <link rel="stylesheet" href="/Mateen/css/courses.css">
@@ -57,10 +57,10 @@
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);" width="40" height="40"/></div>
   <ul class="nav-links">
     <li><a href="/">الرئيسية</a></li>
-    <li><a href="/Mateen/html/about.html">عن البرنامج</a></li>
-    <li><a href="/Mateen/html/courses.html" class="active">المواد العلمية</a></li>
-    <li><a href="/Mateen/html/library.html">المكتبة</a></li>
-    <li><a href="/Mateen/html/news.html">الأخبار</a></li>
+    <li><a href="/about">عن البرنامج</a></li>
+    <li><a href="/courses" class="active">المواد العلمية</a></li>
+    <li><a href="/library">المكتبة</a></li>
+    <li><a href="/news">الأخبار</a></li>
     <li><a href="/#contact">تواصل معنا</a></li>
   </ul>
   <div class="nav-btns">

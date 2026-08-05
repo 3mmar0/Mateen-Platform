@@ -36,9 +36,9 @@
     <meta property="og:title" content="تسجيل الدخول — برنامج متين العلمي">
     <meta property="og:description" content="ادخلي إلى حسابك في برنامج متين العلمي">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://mateenweb.github.io/Mateen/html/login.html">
-    <meta property="og:image" content="https://mateenweb.github.io/Mateen/logo.png">
-    <link rel="canonical" href="https://mateenweb.github.io/Mateen/html/login.html">
+    <meta property="og:url" content="https://mateen.academy/login">
+    <meta property="og:image" content="https://mateen.academy/Mateen/logo.png">
+    <link rel="canonical" href="https://mateen.academy/login">
 <link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
 <link href="/Mateen/css/shared.css" rel="stylesheet"/>
 <link href="/Mateen/css/login.css" rel="stylesheet"/>

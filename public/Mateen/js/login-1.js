@@ -34,11 +34,25 @@ function checkAccountStatus(status) {
 }
 
 function computeBaseRedirect(role, subject) {
+  if (role === 'admin') return '/admin';
+  if (role === 'supervisor') return '/supervisor';
+  if (role === 'support') return '/support';
   if (role === 'teacher') {
-    if (subject === 'ithraiyat') return 'teacher-students.html'; // مالهاش صفحة محتوى مخصصة زي باقي المواد
-    return subject ? `teacher-${subject}.html` : '/';
+    const map = {
+      tafsir: '/teacher/tafseer',
+      tafseer: '/teacher/tafseer',
+      fiqh: '/teacher/fiqh',
+      aqeedah: '/teacher/aqeedah',
+      hadeeth: '/teacher/hadeeth',
+      quran1: '/teacher/quran1',
+      quran2: '/teacher/quran2',
+      maqraah: '/teacher/quran1',
+      ithraiyat: '/teacher/students',
+    };
+    return map[subject] || '/teacher/profile';
   }
-  return '/'; // student, mateen, admin, supervisor
+  if (role === 'student' || role === 'mateen') return '/student';
+  return '/';
 }
 
 // If Userة مسجلة دخول بالفعل — حوّليها بعيداً عن Page الدخول
@@ -63,7 +77,7 @@ if (!useApi()) {
       localStorage.setItem('userRole', role);
       localStorage.setItem('userSubject', data.subject || '');
       localStorage.setItem('ob_redirect', redirect);
-      window.location.replace('onboarding.html');
+      window.location.replace('/onboarding');
     } catch(e) {
       window.location.replace('/');
     }
@@ -71,15 +85,14 @@ if (!useApi()) {
 } else if (getToken() && getStoredUser() && window.location.hash !== '#noredirect') {
   const data = getStoredUser();
   const role = data.role || 'student';
-  let redirect = computeBaseRedirect(role, '');
-  if (role === 'student') redirect = 'student.html';
+  let redirect = computeBaseRedirect(role, data.subject || '');
   localStorage.setItem('userRole', role);
   localStorage.setItem('ob_redirect', redirect);
   // Show onboarding only once per browser; otherwise go straight to the app
   if (localStorage.getItem('mateen_onboarding_done') === '1') {
     window.location.replace(redirect);
   } else {
-    window.location.replace('onboarding.html');
+    window.location.replace('/onboarding');
   }
 }
 
@@ -190,7 +203,7 @@ window.doLogin = async () => {
       const role = data.role || 'student';
       setSession(res.token, data);
       let redirect = computeBaseRedirect(role, '');
-      if (role === 'student') redirect = 'student.html';
+      if (role === 'student') redirect = '/student';
       showSuccess('أهلاً بكِ! 🎉', 'تم الدخول بنجاح، جارٍ التحويل...');
       setTimeout(() => window.location.href = redirect, 1500);
       return;
@@ -239,7 +252,7 @@ window.doLogin = async () => {
           const stuFirstName = (d.data().name || '').trim().split(/\s+/)[0].toLowerCase();
           if (stuFirstName === firstName) foundId = d.id;
         });
-        if (foundId) redirect = `student.html?id=${foundId}`;
+        if (foundId) redirect = `/student?id=${foundId}`;
       }
     }
 
@@ -332,7 +345,7 @@ window.doRegister = async () => {
             type:      'new_account',
             title:     '📋 طلب حساب جديد',
             body:      `${name} تطلب انضمامها كـ ${roleLabelsNotif[regRole] || regRole} — بانتظار موافقتك`,
-            url:       'admin.html',
+            url:       '/admin',
             read:      false,
             createdAt: serverTimestamp(),
           })
@@ -398,7 +411,7 @@ window.doReset = async () => {
           type:      'password_reset_request',
           title:     '🔑 طلب استعادة كلمة المرور',
           body:      `تم إرسال رابط استعادة كلمة المرور إلى ${email}`,
-          url:       'admin.html',
+          url:       '/admin',
           read:      false,
           createdAt: serverTimestamp(),
         })

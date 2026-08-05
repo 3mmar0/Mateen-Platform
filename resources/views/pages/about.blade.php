@@ -36,9 +36,9 @@
     <meta property="og:title" content="عن برنامج متين العلمي">
     <meta property="og:description" content="رسالتنا في تقديم تعليم إسلامي أصيل من القرآن والسنة">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://mateenweb.github.io/Mateen/html/about.html">
-    <meta property="og:image" content="https://mateenweb.github.io/Mateen/logo.png">
-    <link rel="canonical" href="https://mateenweb.github.io/Mateen/html/about.html">
+    <meta property="og:url" content="https://mateen.academy/about">
+    <meta property="og:image" content="https://mateen.academy/Mateen/logo.png">
+    <link rel="canonical" href="https://mateen.academy/about">
 <link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
 <link href="/Mateen/css/shared.css" rel="stylesheet"/>
 <link href="/Mateen/css/about.css" rel="stylesheet"/>

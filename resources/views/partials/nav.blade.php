@@ -15,31 +15,31 @@
 
     <ul class="nav-links d-none d-lg-flex">
       <li><a class="active" href="/">الرئيسية</a></li>
-      <li><a href="/Mateen/html/about.html">عن البرنامج</a></li>
-      <li><a href="/Mateen/html/courses.html">المواد العلمية</a></li>
-      <li><a href="/Mateen/html/library.html">المكتبة</a></li>
-      <li class="d-none d-lg-none"><a href="/Mateen/html/news.html">الأخبار <span class="nav-msg-badge nav-msg-badge-orange d-none" id="navNewsBadge2">0</span></a></li>
+      <li><a href="/about">عن البرنامج</a></li>
+      <li><a href="/courses">المواد العلمية</a></li>
+      <li><a href="/library">المكتبة</a></li>
+      <li class="d-none d-lg-none"><a href="/news">الأخبار <span class="nav-msg-badge nav-msg-badge-orange d-none" id="navNewsBadge2">0</span></a></li>
       <li><a href="#contact">تواصل معنا</a></li>
     </ul>
 
     <div class="nav-btns d-none d-lg-flex" id="navBtns">
-      <a class="btn-outline" href="/Mateen/html/login.html"><i class="ti ti-user"></i> تسجيل الدخول</a>
+      <a class="btn-outline" href="/login"><i class="ti ti-user"></i> تسجيل الدخول</a>
       <button class="btn-solid" onclick="document.getElementById('reg-modal').classList.add('open')">التسجيل في البرنامج</button>
     </div>
 
     <!-- Messagesي + الNews + الProfile -->
     <div class="nav-user-actions d-none" id="navUserActions">
-      <a class="nav-msg-btn" id="navMsgBtn" href="/Mateen/html/messages.html" aria-label="رسائلي">
+      <a class="nav-msg-btn" id="navMsgBtn" href="/messages" aria-label="رسائلي">
         <i class="ti ti-message-2"></i>
         <span class="d-none d-lg-inline">رسائلي</span>
         <span class="nav-msg-badge d-none" id="navMsgBadge">0</span>
       </a>
-      <a class="nav-msg-btn" href="/Mateen/html/news.html" aria-label="الأخبار" id="navNewsBtn">
+      <a class="nav-msg-btn" href="/news" aria-label="الأخبار" id="navNewsBtn">
         <i class="ti ti-speakerphone"></i>
         <span class="d-none d-lg-inline">الأخبار</span>
         <span class="nav-msg-badge nav-msg-badge-orange d-none" id="navNewsBadge">0</span>
       </a>
-      <a class="nav-profile-btn" id="navProfileBtn" href="/Mateen/html/student.html" aria-label="ملفي الشخصي">
+      <a class="nav-profile-btn" id="navProfileBtn" href="/student" aria-label="ملفي الشخصي">
         <div class="nav-profile-avatar" id="navProfileAvatar">🧕</div>
       </a>
       <button class="nav-logout-btn" id="navLogoutBtn" onclick="doLogout()" title="تسجيل الخروج">
@@ -74,13 +74,13 @@
   <div class="mobile-menu d-lg-none" id="mobileMenu">
     <ul>
       <li><a href="/"><i class="ti ti-home"></i> الرئيسية</a></li>
-      <li><a href="/Mateen/html/about.html"><i class="ti ti-info-circle"></i> عن البرنامج</a></li>
-      <li><a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a></li>
-      <li><a href="/Mateen/html/library.html"><i class="ti ti-library"></i> المكتبة</a></li>
-      <li><a href="/Mateen/html/news.html"><i class="ti ti-speakerphone"></i> الأخبار <span class="nav-msg-badge nav-msg-badge-orange d-none" id="sidebarNewsBadge">0</span></a></li>      <li><a href="#contact"><i class="ti ti-headset"></i> تواصل معنا</a></li>
+      <li><a href="/about"><i class="ti ti-info-circle"></i> عن البرنامج</a></li>
+      <li><a href="/courses"><i class="ti ti-books"></i> المواد العلمية</a></li>
+      <li><a href="/library"><i class="ti ti-library"></i> المكتبة</a></li>
+      <li><a href="/news"><i class="ti ti-speakerphone"></i> الأخبار <span class="nav-msg-badge nav-msg-badge-orange d-none" id="sidebarNewsBadge">0</span></a></li>      <li><a href="#contact"><i class="ti ti-headset"></i> تواصل معنا</a></li>
     </ul>
     <div class="mobile-menu-btns" id="mobNavBtns">
-      <a class="mob-login-btn" href="/Mateen/html/login.html"><i class="ti ti-login"></i> تسجيل الدخول</a>
+      <a class="mob-login-btn" href="/login"><i class="ti ti-login"></i> تسجيل الدخول</a>
       <button class="mob-reg-btn" onclick="document.getElementById('mobileMenu').classList.remove('open');document.getElementById('reg-modal').classList.add('open')">
         <i class="ti ti-user-plus"></i> التسجيل في البرنامج
       </button>

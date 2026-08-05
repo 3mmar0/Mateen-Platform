@@ -269,7 +269,7 @@ function showLoginPrompt() {
       <div style="font-family:Amiri,serif;font-size:22px;color:var(--green-dark);font-weight:700;margin-bottom:10px;">يلزم تسجيل الدخول</div>
       <p style="color:var(--text-mid);font-size:14px;line-height:1.7;margin-bottom:24px;">هذا القسم متاح للطالبات المسجلات فقط. سجّلي دخولك للاستمرار.</p>
       <div style="display:flex;gap:10px;justify-content:center;">
-        <a href="login.html" style="background:var(--green-dark);color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;">تسجيل الدخول</a>
+        <a href="/login" style="background:var(--green-dark);color:white;padding:10px 24px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;">تسجيل الدخول</a>
         <button onclick="document.getElementById('loginPromptModal').remove()" style="background:var(--beige);border:1px solid var(--border);color:var(--text-mid);padding:10px 20px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer;">إلغاء</button>
       </div>
     </div>`;
@@ -357,7 +357,7 @@ async function bootHomeLaravel() {
     await applySidebarUserHome(session);
   });
   loadRecipientsApi();
-  window.doLogout = () => logoutApp('../html/login.html');
+  window.doLogout = () => logoutApp('/login');
   window.requestAccountDeletion = async () => {
     alert('تواصلي مع الإدارة لحذف الحساب من لوحة الرسائل.');
   };
@@ -395,10 +395,10 @@ async function bootHomeFirebase() {
     if (userDiv) userDiv.classList.add('sidebar-user-hidden');
     if (layout)  layout.classList.add('guest-layout');
 
-    const protectedLinks = ['courses.html','messages.html','news.html',
-      'library.html','schedule.html','student.html','admin.html','supervisor.html',
-      'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',
-      'teacher-fiqh.html','teacher-hadeeth.html','teacher-tafseer.html'];
+    const protectedLinks = ['/courses','/messages','/news',
+      '/library','/schedule','/student','/admin','/supervisor',
+      '/teacher/quran1','/teacher/quran2','/teacher/aqeedah',
+      '/teacher/fiqh','/teacher/hadeeth','/teacher/tafseer'];
 
     document.addEventListener('click', e => {
       const a = e.target.closest('a[href]');
@@ -505,7 +505,7 @@ async function bootHomeFirebase() {
     console.log('✅ Showing links for SUPERVISOR');
     const linkAdminEl = document.getElementById('linkAdmin');
     if (linkAdminEl) {
-      linkAdminEl.href = 'supervisor.html';
+      linkAdminEl.href = '/supervisor';
       linkAdminEl.innerHTML = '<i class="ti ti-shield"></i> لوحة المشرفة';
     }
     show('linkAdmin');
@@ -513,7 +513,7 @@ async function bootHomeFirebase() {
   } else if (role === 'support') {
     const linkAdminEl = document.getElementById('linkAdmin');
     if (linkAdminEl) {
-      linkAdminEl.href = 'support.html';
+      linkAdminEl.href = '/support';
       linkAdminEl.innerHTML = '<i class="ti ti-headset"></i> لوحة الدعم';
     }
     show('linkAdmin');
@@ -524,7 +524,7 @@ async function bootHomeFirebase() {
     show('linkTeacher');
     show('linkSchedule');
     const schedLink = document.getElementById('linkSchedule');
-    if (schedLink) schedLink.href = 'teacher-schedule.html';
+    if (schedLink) schedLink.href = '/teacher/schedule';
   } else if (role === 'mateen') {
     console.log('✅ Showing links for MATEEN');
     show('linkCerts');
@@ -553,31 +553,31 @@ async function bootHomeFirebase() {
   if (role === 'mateen') {
     const linkedId = snap.data().linkedStudentId;
     if (linkedId) {
-      if (profileLink)   { profileLink.href = `student.html?id=${linkedId}`; profileLink.classList.remove('d-none'); }
-      if (navProfileBtn) { navProfileBtn.href = `student.html?id=${linkedId}`; navProfileBtn.classList.remove('d-none'); }
+      if (profileLink)   { profileLink.href = `/student?id=${linkedId}`; profileLink.classList.remove('d-none'); }
+      if (navProfileBtn) { navProfileBtn.href = `/student?id=${linkedId}`; navProfileBtn.classList.remove('d-none'); }
       const linkGradesEl = document.getElementById('linkGrades');
       const linkCertsEl  = document.getElementById('linkCerts');
       const linkAwardsEl = document.getElementById('linkAwards');
-      if (linkGradesEl) linkGradesEl.href = `student.html?id=${linkedId}#grades`;
-      if (linkCertsEl)  linkCertsEl.href  = `student.html?id=${linkedId}#certs`;
-      if (linkAwardsEl) linkAwardsEl.href = `student.html?id=${linkedId}#awards`;
+      if (linkGradesEl) linkGradesEl.href = `/student?id=${linkedId}#grades`;
+      if (linkCertsEl)  linkCertsEl.href  = `/student?id=${linkedId}#certs`;
+      if (linkAwardsEl) linkAwardsEl.href = `/student?id=${linkedId}#awards`;
     } else {
       if (navProfileBtn) navProfileBtn.classList.remove('d-none');
     }
   } else if (role === 'admin') {
-    if (navProfileBtn) { navProfileBtn.href = 'admin.html'; navProfileBtn.classList.remove('d-none'); }
+    if (navProfileBtn) { navProfileBtn.href = '/admin'; navProfileBtn.classList.remove('d-none'); }
   } else if (role === 'supervisor') {
-    if (navProfileBtn) { navProfileBtn.href = 'supervisor.html'; navProfileBtn.classList.remove('d-none'); }
+    if (navProfileBtn) { navProfileBtn.href = '/supervisor'; navProfileBtn.classList.remove('d-none'); }
   } else if (role === 'support') {
-    if (navProfileBtn) { navProfileBtn.href = 'support.html'; navProfileBtn.classList.remove('d-none'); }
+    if (navProfileBtn) { navProfileBtn.href = '/support'; navProfileBtn.classList.remove('d-none'); }
   } else if (role === 'teacher') {
     const teacherPageMap = {
-      'tafseer':'teacher-tafseer.html','fiqh':'teacher-fiqh.html',
-      'aqeedah':'teacher-aqeedah.html','hadith':'teacher-hadeeth.html',
-      'quran':'teacher-quran1.html','quran1':'teacher-quran1.html','quran2':'teacher-quran2.html',
-      'ithraiyat':'teacher-students.html'
+      'tafseer':'/teacher/tafseer','fiqh':'/teacher/fiqh',
+      'aqeedah':'/teacher/aqeedah','hadith':'/teacher/hadeeth',
+      'quran':'/teacher/quran1','quran1':'/teacher/quran1','quran2':'/teacher/quran2',
+      'ithraiyat':'/teacher/students'
     };
-    const teacherPage = teacherPageMap[subject] || 'teacher-profile.html';
+    const teacherPage = teacherPageMap[subject] || '/teacher/profile';
     if (navProfileBtn) { navProfileBtn.href = teacherPage; navProfileBtn.classList.remove('d-none'); }
   } else {
     if (navProfileBtn) navProfileBtn.classList.remove('d-none');
@@ -597,7 +597,7 @@ async function bootHomeFirebase() {
 });
 
   window.doLogout = () =>
-    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+    signOut(auth).then(() => { window.location.href = '/login'; });
 
   window.requestAccountDeletion = async () => {
     const user = auth.currentUser;
@@ -617,7 +617,7 @@ async function bootHomeFirebase() {
       await Promise.all(adminSnap.docs.map(adminDoc =>
         addDoc(collection(db, 'userNotifications', adminDoc.id, 'items'), {
           type: 'deletion_request', title: '🗑️ طلب حذف حساب',
-          body: `${userName} طلبت حذف حسابها — بانتظار موافقتك`, url: 'admin.html',
+          body: `${userName} طلبت حذف حسابها — بانتظار موافقتك`, url: '/admin',
           read: false, createdAt: serverTimestamp(),
         })
       ));

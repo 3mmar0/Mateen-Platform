@@ -15,7 +15,7 @@
 
 لا يوجد مجلد `backend/` كتطبيق منفصل — افتح جذر المستودع.
 
-الصفحة الرئيسية الحية هي `/`. المسار القديم `/Mateen/html/home.html` يعرض الصفحة نفسها.
+الصفحة الرئيسية الحية هي `/`. المسارات القديمة مثل `/Mateen/html/login.html` و `/Mateen/html/about.html` تعيد التوجيه إلى `/login` و `/about`.
 
 ## التشغيل المحلي
 
@@ -30,12 +30,12 @@ php artisan serve
 ثم افتح:
 
 - الواجهة: http://127.0.0.1:8000/
-- تسجيل الدخول: http://127.0.0.1:8000/Mateen/html/login.html
+- تسجيل الدخول: http://127.0.0.1:8000/login
 - API: http://127.0.0.1:8000/api/v1
 
 إعداد العميل: `public/Mateen/js/config.js` يستخدم `API_BASE_URL = '/api/v1'` (نفس الموقع). لا حاجة لـ Vite في المسار العادي — CSS/JS تُقدَّم من `/Mateen/`.
 
-مرجع الشكل الحي السابق: https://mateenweb.github.io/Mateen/html/home.html
+مرجع الشكل الحي السابق: https://mateenweb.github.io/
 
 ## استيراد البيانات
 

@@ -4,10 +4,10 @@
 function renderNav(activePage) {
   const links = [
     { href: '/',    label: 'الرئيسية' },
-    { href: '/Mateen/html/about.html',   label: 'عن البرنامج' },
-    { href: '/Mateen/html/courses.html', label: 'المسارات العلمية' },
-    { href: '/Mateen/html/library.html', label: 'المكتبة' },
-    { href: '/Mateen/html/news.html',    label: 'الأخبار' },
+    { href: '/about',   label: 'عن البرنامج' },
+    { href: '/courses', label: 'المسارات العلمية' },
+    { href: '/library', label: 'المكتبة' },
+    { href: '/news',    label: 'الأخبار' },
     { href: '/#contact', label: 'تواصل معنا' },
   ];
 
@@ -27,8 +27,8 @@ function renderNav(activePage) {
     ${links.map(l => `<li><a href="${l.href}"${activePage === l.href ? ' class="active"' : ''}>${l.label}</a></li>`).join('\n    ')}
   </ul>
   <div class="nav-btns"${isLoggedIn ? ' style="display:none"' : ''} id="navBtnsRendered">
-    <a href="/Mateen/html/login.html" class="btn-admin"><i class="ti ti-dashboard"></i> لوحة الإدارة</a>
-    <a href="/Mateen/html/login.html" class="btn-outline"><i class="ti ti-user"></i> تسجيل الدخول</a>
+    <a href="/login" class="btn-admin"><i class="ti ti-dashboard"></i> لوحة الإدارة</a>
+    <a href="/login" class="btn-outline"><i class="ti ti-user"></i> تسجيل الدخول</a>
     <button class="btn-solid" onclick="document.getElementById('reg-modal')?.classList.add('open')">التسجيل في البرنامج</button>
   </div>
   <button onclick="typeof startPageTour==='function'&&startPageTour()" title="جولة تعريفية"
@@ -79,7 +79,7 @@ async function _addAdminBtn() {
       const navBtns = document.querySelector('.nav-btns');
       if (!navBtns) return;
       const btn = document.createElement('a');
-      btn.href = 'admin.html';
+      btn.href = '/admin';
       btn.className = 'btn-admin';
       btn.innerHTML = '<i class="ti ti-dashboard"></i> لوحة الإدارة';
       navBtns.prepend(btn);
@@ -100,7 +100,7 @@ async function _addAdminBtn() {
     const navBtns = document.querySelector('.nav-btns');
     if (!navBtns) return;
     const btn = document.createElement('a');
-    btn.href = 'admin.html';
+    btn.href = '/admin';
     btn.className = 'btn-admin';
     btn.innerHTML = '<i class="ti ti-dashboard"></i> لوحة الإدارة';
     navBtns.prepend(btn);
@@ -109,7 +109,7 @@ async function _addAdminBtn() {
 
 addEventListener('DOMContentLoaded', function() {
   if (document.getElementById('nav-placeholder')) {
-    const page = location.pathname.split('/').pop() || '/';
+    const page = (location.pathname.replace(/\/$/, '') || '/');
     renderNav(page);
     _addAdminBtn();
   }

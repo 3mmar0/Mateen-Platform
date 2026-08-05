@@ -90,13 +90,13 @@ exports.sendMessageNotification = onDocumentCreated(
             renotify: true,
           },
           fcmOptions: {
-            link: `https://mateenweb.github.io/Mateen/html/messages.html`,
+            link: `https://mateen.academy/messages`,
           },
         },
         data: {
           convId,
           senderId,
-          url: "/html/messages.html",
+          url: "/messages",
         },
       }));
 

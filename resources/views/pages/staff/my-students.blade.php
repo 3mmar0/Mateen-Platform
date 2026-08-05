@@ -226,9 +226,9 @@
   </a>
   <ul class="nav-links">
     <li><a href="/">الرئيسية</a></li>
-    <li><a href="/Mateen/html/messages.html">رسائلي</a></li>
-    <li><a href="/Mateen/html/news.html">الأخبار</a></li>
-    <li><a class="active" href="/Mateen/html/my-students.html">طالباتي</a></li>
+    <li><a href="/messages">رسائلي</a></li>
+    <li><a href="/news">الأخبار</a></li>
+    <li><a class="active" href="/my-students">طالباتي</a></li>
   </ul>
   <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
     <i class="ti ti-menu-2"></i>
@@ -497,7 +497,7 @@ async function finishStudentsUi(role, subjectAr) {
 }
 
 async function bootLaravelMyStudents() {
-  if (!getToken()) { location.href = '/Mateen/html/login.html'; return; }
+  if (!getToken()) { location.href = '/login'; return; }
   try {
     const me = await api.me();
     const userData = me?.data || me || getStoredUser() || {};
@@ -560,7 +560,7 @@ async function bootLaravelMyStudents() {
 async function bootFirebaseMyStudents() {
   await ensureFirebase();
   onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = '/Mateen/html/login.html'; return; }
+  if (!user) { location.href = '/login'; return; }
 
   try {
     const userSnap = await getDoc(doc(db, 'users', user.uid));

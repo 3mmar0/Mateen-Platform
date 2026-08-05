@@ -1,1 +1,1 @@
-renderNav('about.html')
+renderNav('/about')

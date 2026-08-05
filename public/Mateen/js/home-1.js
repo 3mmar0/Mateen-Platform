@@ -79,7 +79,7 @@ function applySidebarUser(session) {
   } else if (role === 'supervisor') {
     const linkAdminEl = document.getElementById('linkAdmin');
     if (linkAdminEl) {
-      linkAdminEl.href = 'supervisor.html';
+      linkAdminEl.href = '/supervisor';
       linkAdminEl.innerHTML = '<i class="ti ti-shield"></i> لوحة المشرفة';
     }
     show('linkAdmin');
@@ -87,7 +87,7 @@ function applySidebarUser(session) {
   } else if (role === 'support') {
     const linkAdminEl = document.getElementById('linkAdmin');
     if (linkAdminEl) {
-      linkAdminEl.href = 'support.html';
+      linkAdminEl.href = '/support';
       linkAdminEl.innerHTML = '<i class="ti ti-headset"></i> لوحة الدعم';
     }
     show('linkAdmin');
@@ -122,23 +122,23 @@ function applySidebarUser(session) {
     if (role === 'mateen') {
       const linkedId = session.linkedStudentId;
       if (linkedId) {
-        if (profileLink)   { profileLink.href = `student.html?id=${linkedId}`; profileLink.classList.remove('d-none'); }
-        if (navProfileBtn) { navProfileBtn.href = `student.html?id=${linkedId}`; navProfileBtn.classList.remove('d-none'); }
+        if (profileLink)   { profileLink.href = `/student?id=${linkedId}`; profileLink.classList.remove('d-none'); }
+        if (navProfileBtn) { navProfileBtn.href = `/student?id=${linkedId}`; navProfileBtn.classList.remove('d-none'); }
       } else if (navProfileBtn) {
         navProfileBtn.classList.remove('d-none');
       }
     } else if (role === 'admin') {
-      if (navProfileBtn) { navProfileBtn.href = 'admin.html'; navProfileBtn.classList.remove('d-none'); }
+      if (navProfileBtn) { navProfileBtn.href = '/admin'; navProfileBtn.classList.remove('d-none'); }
     } else if (role === 'supervisor') {
-      if (navProfileBtn) { navProfileBtn.href = 'supervisor.html'; navProfileBtn.classList.remove('d-none'); }
+      if (navProfileBtn) { navProfileBtn.href = '/supervisor'; navProfileBtn.classList.remove('d-none'); }
     } else if (role === 'teacher') {
       const teacherPageMap = {
-        'tafseer':'teacher-tafseer.html','fiqh':'teacher-fiqh.html',
-        'aqeedah':'teacher-aqeedah.html','hadith':'teacher-hadeeth.html','hadeeth':'teacher-hadeeth.html',
-        'quran':'teacher-quran1.html','quran1':'teacher-quran1.html','quran2':'teacher-quran2.html',
-        'tafsir':'teacher-tafseer.html','maqraah':'teacher-quran1.html',
+        'tafseer':'/teacher/tafseer','fiqh':'/teacher/fiqh',
+        'aqeedah':'/teacher/aqeedah','hadith':'/teacher/hadeeth','hadeeth':'/teacher/hadeeth',
+        'quran':'/teacher/quran1','quran1':'/teacher/quran1','quran2':'/teacher/quran2',
+        'tafsir':'/teacher/tafseer','maqraah':'/teacher/quran1',
       };
-      const teacherPage = teacherPageMap[subject] || 'teacher-profile.html';
+      const teacherPage = teacherPageMap[subject] || '/teacher/profile';
       if (navProfileBtn) { navProfileBtn.href = teacherPage; navProfileBtn.classList.remove('d-none'); }
     } else if (navProfileBtn) {
       navProfileBtn.classList.remove('d-none');
@@ -193,12 +193,12 @@ async function bootFirebaseLegacy() {
   });
 
   window.doLogout = () =>
-    signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+    signOut(auth).then(() => { window.location.href = '/login'; });
 }
 
 if (useLaravelBackend()) {
   bootLaravel();
-  window.doLogout = () => logoutApp('../html/login.html');
+  window.doLogout = () => logoutApp('/login');
 } else {
   bootFirebaseLegacy();
 }

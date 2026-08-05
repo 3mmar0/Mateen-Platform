@@ -150,13 +150,13 @@ function baSubjectsForCurrentDay() {
 }
 
 async function initAdminApi() {
-  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
   let userData;
   try {
     const me = await api.me();
     userData = (me?.data ?? me ?? getStoredUser()) || {};
   } catch {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '/login'; return;
   }
   const role = effectiveRole(userData, userData.email || '') || 'student';
   currentUserRole = role;
@@ -186,7 +186,7 @@ async function initAdminApi() {
 async function bootAdminFirebase() {
   await ensureFirebase();
   onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
+  if (!user) { window.location.href = '/login'; return; }
   const snap = await getDoc(doc(db, 'users', user.uid));
   const userData = snap.exists() ? snap.data() : {};
   const role = effectiveRole(userData, user.email) || 'student';
@@ -302,9 +302,9 @@ window.closeArchiveModal = () => {
 window.doLogout = () => {
   if (useApi()) {
     clearSession();
-    window.location.href = '../html/login.html';
+    window.location.href = '/login';
   } else {
-    signOut(auth).then(() => window.location.href = '../html/login.html');
+    signOut(auth).then(() => window.location.href = '/login');
   }
 };
 
@@ -357,10 +357,10 @@ function loadTeachers() {
     quran1: 'مقرأة متين (١)', quran2: 'مقرأة متين (٢)'
   };
   const SUBJECT_PAGE = {
-    tafseer: 'teacher-tafseer.html', fiqh: 'teacher-fiqh.html',
-    aqeedah: 'teacher-aqeedah.html', hadith: 'teacher-hadeeth.html',
-    hadeeth: 'teacher-hadeeth.html', quran: 'teacher-quran1.html',
-    quran1: 'teacher-quran1.html', quran2: 'teacher-quran2.html'
+    tafseer: '/teacher/tafseer', fiqh: '/teacher/fiqh',
+    aqeedah: '/teacher/aqeedah', hadith: '/teacher/hadeeth',
+    hadeeth: '/teacher/hadeeth', quran: '/teacher/quran1',
+    quran1: '/teacher/quran1', quran2: '/teacher/quran2'
   };
 
   getDocs(query(collection(db, 'users'), where('role', '==', 'teacher'))).then(snap => {
@@ -387,7 +387,7 @@ function loadTeachers() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
             ${page ? `<a href="${page}" style="color:var(--green-dark);font-size:20px;" title="صفحة المعلمة"><i class="ti ti-external-link"></i></a>` : ''}
-            <a href="messages.html?uid=${t.id}" style="color:var(--gold);font-size:20px;" title="رسائلها"><i class="ti ti-message-circle"></i></a>
+            <a href="/messages?uid=${t.id}" style="color:var(--gold);font-size:20px;" title="رسائلها"><i class="ti ti-message-circle"></i></a>
           </div>
         </div>`;
     }).join('');
@@ -997,7 +997,7 @@ function renderStudents(list) {
         return `<div class="stu-mob-card">
           <div class="stu-mob-top">
             <div class="stu-mob-name">
-              <a class="btn-stu-link" href="student.html?id=${s.id}">👤</a>
+              <a class="btn-stu-link" href="/student?id=${s.id}">👤</a>
               <input type="text" value="${esc(s.name || '')}"
                 oninput="stuAutoName('${s.id}', this.value)"
                 class="stu-mob-name-input"/>
@@ -1103,7 +1103,7 @@ function renderStudents(list) {
       <td><input type="checkbox" class="row-check" data-id="${s.id}" onchange="onRowCheck()"></td>
       <td style="color:var(--text-mid);font-size:12px">${i+1}</td>
       <td><div class="stu-name-cell">
-        <a class="btn-stu-link" href="student.html?id=${s.id}" title="صفحة الطالبة">👤</a>
+        <a class="btn-stu-link" href="/student?id=${s.id}" title="صفحة الطالبة">👤</a>
         <input type="text" value="${esc(s.name||'')}" oninput="stuAutoName('${s.id}',this.value)" style="min-width:100px">
         ${statusSel}
       </div></td>

@@ -14,61 +14,68 @@ class BladePagesTest extends TestCase
     {
         return [
             ['/'],
-            ['/Mateen/html/home.html'],
             ['/about'],
-            ['/Mateen/html/about.html'],
             ['/courses'],
-            ['/Mateen/html/courses.html'],
             ['/library'],
-            ['/Mateen/html/library.html'],
             ['/news'],
-            ['/Mateen/html/news.html'],
             ['/schedule'],
-            ['/Mateen/html/schedule.html'],
             ['/login'],
-            ['/Mateen/html/login.html'],
             ['/onboarding'],
-            ['/Mateen/html/onboarding.html'],
             ['/messages'],
-            ['/Mateen/html/messages.html'],
             ['/stats'],
-            ['/Mateen/html/stats.html'],
             ['/student'],
-            ['/Mateen/html/student.html'],
             ['/student/general'],
-            ['/Mateen/html/student-general.html'],
             ['/student/view'],
-            ['/Mateen/html/student-view.html'],
             ['/teacher/tafseer'],
-            ['/Mateen/html/teacher-tafseer.html'],
             ['/teacher/fiqh'],
-            ['/Mateen/html/teacher-fiqh.html'],
             ['/teacher/aqeedah'],
-            ['/Mateen/html/teacher-aqeedah.html'],
             ['/teacher/hadeeth'],
-            ['/Mateen/html/teacher-hadeeth.html'],
             ['/teacher/quran1'],
-            ['/Mateen/html/teacher-quran1.html'],
             ['/teacher/quran2'],
-            ['/Mateen/html/teacher-quran2.html'],
             ['/teacher/ithraiyat'],
-            ['/Mateen/html/teacher-ithraiyat.html'],
             ['/teacher/library'],
-            ['/Mateen/html/teacher-library.html'],
             ['/teacher/profile'],
-            ['/Mateen/html/teacher-profile.html'],
             ['/teacher/schedule'],
-            ['/Mateen/html/teacher-schedule.html'],
             ['/teacher/students'],
-            ['/Mateen/html/teacher-students.html'],
             ['/admin'],
-            ['/Mateen/html/admin.html'],
             ['/supervisor'],
-            ['/Mateen/html/supervisor.html'],
             ['/support'],
-            ['/Mateen/html/support.html'],
             ['/my-students'],
-            ['/Mateen/html/my-students.html'],
+        ];
+    }
+
+    /** @return list<array{0:string,1:string}> */
+    public static function legacyRedirectProvider(): array
+    {
+        return [
+            ['/Mateen/html/home.html', '/'],
+            ['/Mateen/html/about.html', '/about'],
+            ['/Mateen/html/courses.html', '/courses'],
+            ['/Mateen/html/library.html', '/library'],
+            ['/Mateen/html/news.html', '/news'],
+            ['/Mateen/html/schedule.html', '/schedule'],
+            ['/Mateen/html/login.html', '/login'],
+            ['/Mateen/html/onboarding.html', '/onboarding'],
+            ['/Mateen/html/messages.html', '/messages'],
+            ['/Mateen/html/stats.html', '/stats'],
+            ['/Mateen/html/student.html', '/student'],
+            ['/Mateen/html/student-general.html', '/student/general'],
+            ['/Mateen/html/student-view.html', '/student/view'],
+            ['/Mateen/html/teacher-tafseer.html', '/teacher/tafseer'],
+            ['/Mateen/html/teacher-fiqh.html', '/teacher/fiqh'],
+            ['/Mateen/html/teacher-aqeedah.html', '/teacher/aqeedah'],
+            ['/Mateen/html/teacher-hadeeth.html', '/teacher/hadeeth'],
+            ['/Mateen/html/teacher-quran1.html', '/teacher/quran1'],
+            ['/Mateen/html/teacher-quran2.html', '/teacher/quran2'],
+            ['/Mateen/html/teacher-ithraiyat.html', '/teacher/ithraiyat'],
+            ['/Mateen/html/teacher-library.html', '/teacher/library'],
+            ['/Mateen/html/teacher-profile.html', '/teacher/profile'],
+            ['/Mateen/html/teacher-schedule.html', '/teacher/schedule'],
+            ['/Mateen/html/teacher-students.html', '/teacher/students'],
+            ['/Mateen/html/admin.html', '/admin'],
+            ['/Mateen/html/supervisor.html', '/supervisor'],
+            ['/Mateen/html/support.html', '/support'],
+            ['/Mateen/html/my-students.html', '/my-students'],
         ];
     }
 
@@ -78,10 +85,15 @@ class BladePagesTest extends TestCase
         $this->get($path)->assertOk();
     }
 
-    public function test_home_is_blade_and_legacy_path_redirects(): void
+    #[\PHPUnit\Framework\Attributes\DataProvider('legacyRedirectProvider')]
+    public function test_legacy_html_paths_redirect_to_clean_urls(string $from, string $to): void
+    {
+        $this->get($from)->assertRedirect($to);
+    }
+
+    public function test_home_is_blade(): void
     {
         $this->get('/')->assertOk()->assertSee('برنامج متين العلمي', false)->assertSee('data-blade-home', false);
-        $this->get('/Mateen/html/home.html')->assertOk()->assertSee('برنامج متين العلمي', false)->assertSee('data-blade-home', false);
     }
 
     public function test_contact_and_registration_endpoints(): void

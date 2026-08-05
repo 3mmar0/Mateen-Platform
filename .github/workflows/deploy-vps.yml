@@ -123,6 +123,7 @@ jobs:
             cd "$APP_DIR"
             python3 "$APP_DIR/scripts/ci_apply_prod_env.py" "$APP_DIR"
             rm -f "$APP_DIR/public/index.html" /var/www/mateen.academy/index.html /var/www/mateen.academy/public/index.html
+            rm -rf "$APP_DIR/public/Mateen/html" /var/www/mateen.academy/public/Mateen/html /var/www/mateen.academy/Mateen/html
             grep -RIl 'Mateen/html/home.html' /etc/apache2 2>/dev/null | while read -r f; do
               sed -i '/Redirect[[:space:]].*\/Mateen\/html\/home\.html/d' "$f"
               sed -i '/RedirectMatch[[:space:]].*home\.html/d' "$f"
@@ -166,8 +167,13 @@ jobs:
             curl -sI "https://mateen.academy/" | head -20
             curl -fsS "https://mateen.academy/" -o /tmp/mateen-home.html
             grep -q 'data-blade-home' /tmp/mateen-home.html
-            curl -fsS "https://mateen.academy/Mateen/html/home.html" -o /tmp/mateen-home-legacy.html
-            grep -q 'data-blade-home' /tmp/mateen-home-legacy.html
-            curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
+            curl -fsS "https://mateen.academy/login" -o /tmp/mateen-login.html
+            grep -q 'تسجيل الدخول' /tmp/mateen-login.html
+            curl -fsS "https://mateen.academy/about" -o /tmp/mateen-about.html
+            grep -q 'التعريف بالبرنامج' /tmp/mateen-about.html
+            code_login=$(curl -sI "https://mateen.academy/Mateen/html/login.html" | awk 'BEGIN{c=0} /^HTTP/{c=$2} END{print c}')
+            test "$code_login" = "301"
+            code_about=$(curl -sI "https://mateen.academy/Mateen/html/about.html" | awk 'BEGIN{c=0} /^HTTP/{c=$2} END{print c}')
+            test "$code_about" = "301"
             curl -fsS -o /dev/null "https://mateen.academy/api/v1/subjects"
             echo "Production deploy OK — https://mateen.academy"
