@@ -14,6 +14,7 @@ class BladePagesTest extends TestCase
     {
         return [
             ['/'],
+            ['/Mateen/html/home.html'],
             ['/about'],
             ['/Mateen/html/about.html'],
             ['/courses'],
@@ -79,8 +80,8 @@ class BladePagesTest extends TestCase
 
     public function test_home_is_blade_and_legacy_path_redirects(): void
     {
-        $this->get('/')->assertOk()->assertSee('برنامج متين العلمي', false);
-        $this->get('/Mateen/html/home.html')->assertRedirect('/');
+        $this->get('/')->assertOk()->assertSee('برنامج متين العلمي', false)->assertSee('data-blade-home', false);
+        $this->get('/Mateen/html/home.html')->assertOk()->assertSee('برنامج متين العلمي', false)->assertSee('data-blade-home', false);
     }
 
     public function test_contact_and_registration_endpoints(): void

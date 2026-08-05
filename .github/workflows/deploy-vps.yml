@@ -122,6 +122,12 @@ jobs:
             fi
             cd "$APP_DIR"
             python3 "$APP_DIR/scripts/ci_apply_prod_env.py" "$APP_DIR"
+            rm -f "$APP_DIR/public/index.html" /var/www/mateen.academy/index.html /var/www/mateen.academy/public/index.html
+            grep -RIl 'Mateen/html/home.html' /etc/apache2 2>/dev/null | while read -r f; do
+              sed -i '/Redirect[[:space:]].*\/Mateen\/html\/home\.html/d' "$f"
+              sed -i '/RedirectMatch[[:space:]].*home\.html/d' "$f"
+              sed -i '/RewriteRule[[:space:]].*Mateen\/html\/home\.html/d' "$f"
+            done || true
             composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
             mkdir -p storage/framework/{sessions,views,cache/data} storage/logs storage/app/public bootstrap/cache
             php artisan migrate --force
@@ -129,9 +135,10 @@ jobs:
             php artisan storage:link || true
             php artisan config:clear
             php artisan route:clear
+            php artisan view:clear || true
             php artisan config:cache || true
             php artisan route:cache || true
-            # Point Apache docroot at Laravel public/
+            # Point Apache docroot at Laravel public/ and drop old / → home.html redirects
             for conf in /etc/apache2/sites-available/mateen.academy.conf \
                         /etc/apache2/sites-available/mateen.academy-le-ssl.conf \
                         /etc/apache2/sites-enabled/mateen.academy.conf \
@@ -141,16 +148,24 @@ jobs:
                 sed -i 's|DocumentRoot /var/www/mateen.academy/public|DocumentRoot '"$APP_DIR"'/public|g' "$conf"
                 sed -i 's|<Directory /var/www/mateen.academy>|<Directory '"$APP_DIR"'/public>|g' "$conf"
                 sed -i 's|<Directory /var/www/mateen.academy/public>|<Directory '"$APP_DIR"'/public>|g' "$conf"
+                sed -i '/Redirect[[:space:]].*\/Mateen\/html\/home\.html/d' "$conf"
+                sed -i '/RedirectMatch[[:space:]].*home\.html/d' "$conf"
+                sed -i '/RewriteRule[[:space:]].*Mateen\/html\/home\.html/d' "$conf"
+                grep -q 'DirectoryIndex index.php' "$conf" || sed -i '/DocumentRoot/a\        DirectoryIndex index.php' "$conf"
               fi
             done
             chown -R www-data:www-data storage bootstrap/cache
             chmod -R ug+rwx storage bootstrap/cache
             a2dismod php8.3 || true
             a2enmod rewrite php8.4 headers || true
+            echo "==== apache docroot/redirect dump ===="
+            grep -nR -E 'Redirect|RewriteRule|DocumentRoot|DirectoryIndex|home\.html' /etc/apache2 --include='*.conf' 2>/dev/null | head -200 || true
+            find /var/www -maxdepth 4 -name '.htaccess' -exec grep -nH -E 'Redirect|RewriteRule|home\.html' {} + 2>/dev/null | head -80 || true
             apache2ctl configtest
             systemctl restart apache2
-            curl -fsS -o /dev/null "https://mateen.academy/"
-            curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/home.html"
+            curl -sI "https://mateen.academy/" | head -20
+            curl -fsSL --max-redirs 5 "https://mateen.academy/" | grep -q 'data-blade-home'
+            curl -fsSL --max-redirs 5 "https://mateen.academy/Mateen/html/home.html" | grep -q 'data-blade-home'
             curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
             curl -fsS -o /dev/null "https://mateen.academy/api/v1/subjects"
             echo "Production deploy OK — https://mateen.academy"
