@@ -22,12 +22,17 @@
 /* ===== FOUC PREVENTION ===== */
 html {
   overflow-x: hidden;
-  visibility: hidden;   /* Hide everything until CSS loads (FOUC prevention) */
+  visibility: hidden;   /* Hide until html.ready — CSS fallback unhides if JS is late */
+  animation: foucFallback 0s 0.2s forwards;
 }
 
 html.ready {
   visibility: visible;
   animation: pageReveal 0.25s ease forwards;
+}
+
+@keyframes foucFallback {
+  to { visibility: visible; }
 }
 
 @keyframes pageReveal {

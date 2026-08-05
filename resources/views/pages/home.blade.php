@@ -3,7 +3,7 @@
 @section('title', 'برنامج متين العلمي — الصفحة الرئيسية')
 
 @push('styles')
-<link href="{{ mateen_asset('css/home.css') }}" rel="stylesheet"/>
+<link href="{{ mateen_asset('css/home.css') }}?v=20260805reveal" rel="stylesheet"/>
 @endpush
 
 @section('content')
@@ -356,6 +356,9 @@
 @endsection
 
 @push('scripts')
+<script>
+document.documentElement.classList.add('ready');
+</script>
 <script src="{{ mateen_asset('libs/bootstrap/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ mateen_asset('js/home.js') }}?v=20260805" type="module"></script>
 <script src="{{ mateen_asset('js/home-msg.js') }}?v=20260805" type="module"></script>

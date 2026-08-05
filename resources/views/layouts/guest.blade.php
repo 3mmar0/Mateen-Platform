@@ -16,6 +16,16 @@
 <link href="{{ mateen_asset('css/notifications.css') }}" rel="stylesheet"/>
 <link href="{{ mateen_asset('css/islamic.css') }}" rel="stylesheet"/>
 @stack('styles')
+<noscript><style>html{visibility:visible!important}</style></noscript>
+<script>
+(function () {
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { clearTimeout(t); revealPage(); });
+  }
+})();
+</script>
 </head>
 <body>
 @include('partials.basmala')
