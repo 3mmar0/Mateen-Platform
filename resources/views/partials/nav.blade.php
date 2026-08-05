@@ -14,7 +14,7 @@
 
 
     <ul class="nav-links d-none d-lg-flex">
-      <li><a class="active" href="/Mateen/html/home.html">الرئيسية</a></li>
+      <li><a class="active" href="/">الرئيسية</a></li>
       <li><a href="/Mateen/html/about.html">عن البرنامج</a></li>
       <li><a href="/Mateen/html/courses.html">المواد العلمية</a></li>
       <li><a href="/Mateen/html/library.html">المكتبة</a></li>
@@ -73,7 +73,7 @@
   <!-- Mobile Menu -->
   <div class="mobile-menu d-lg-none" id="mobileMenu">
     <ul>
-      <li><a href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a></li>
+      <li><a href="/"><i class="ti ti-home"></i> الرئيسية</a></li>
       <li><a href="/Mateen/html/about.html"><i class="ti ti-info-circle"></i> عن البرنامج</a></li>
       <li><a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a></li>
       <li><a href="/Mateen/html/library.html"><i class="ti ti-library"></i> المكتبة</a></li>

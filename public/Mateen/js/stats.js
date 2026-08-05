@@ -37,7 +37,7 @@ async function initStatsApi() {
     window.location.href = '../html/login.html'; return;
   }
   if (!['admin', 'supervisor', 'teacher'].includes(role)) {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   loadAllApi();
 }
@@ -52,7 +52,7 @@ if (useApi()) {
       const snap = await getDoc(doc(db, 'users', user.uid));
       const role = snap.exists() ? snap.data().role : '';
       if (!['admin', 'supervisor', 'teacher'].includes(role)) {
-        window.location.href = '../html/home.html'; return;
+        window.location.href = '/'; return;
       }
       loadAll();
     });

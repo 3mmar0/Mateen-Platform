@@ -63,7 +63,7 @@ async function initSupportApi() {
   const role = effectiveRole(userData, userData.email || '');
   currentViewerEmail = (userData.email || '').toLowerCase();
   if (role !== 'support' && role !== 'admin') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   mountTestModeSwitcher(userData, userData.email || '');
   applyCustomTheme(userData);
@@ -89,7 +89,7 @@ if (useApi()) {
     currentViewerEmail = (user.email || '').toLowerCase();
 
     if (role !== 'support' && role !== 'admin') {
-      window.location.href = '../html/home.html'; return;
+      window.location.href = '/'; return;
     }
     mountTestModeSwitcher(userData, user.email);
     applyCustomTheme(userData);

@@ -66,10 +66,10 @@ async function initTeacherScheduleApi() {
   }
   const role = data.role || '';
   if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   if (data.status === 'pending' || data.status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   teacherSubject = data.subject_id != null ? String(data.subject_id) : (data.subject || String(data.id));
   apiSubjectId = null;
@@ -92,10 +92,10 @@ async function bootTeacherScheduleFirebase() {
     const status = data.status || '';
 
     if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
-      window.location.href = '../html/home.html'; return;
+      window.location.href = '/'; return;
     }
     if (status === 'pending' || status === 'suspended') {
-      window.location.href = '../html/home.html'; return;
+      window.location.href = '/'; return;
     }
 
     currentUser    = user;

@@ -67,7 +67,7 @@
   <!-- Navbar -->
   <nav>
 
-    <a href="/Mateen/html/home.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <div class="logo-circle">
         <img src="/Mateen/logo.png" alt="متين" class="nav-logo-img">
       </div>
@@ -78,7 +78,7 @@
     </a>
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
       <ul class="nav-links">
-      <li><a href="/Mateen/html/home.html">الرئيسية</a></li>
+      <li><a href="/">الرئيسية</a></li>
       <li><a href="/Mateen/html/messages.html" class="active">الرسائل</a></li>
     </ul>
     <div class="nav-btns">
@@ -87,7 +87,7 @@
     <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
       <i class="ti ti-menu-2"></i>
     </button>
-      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
     <button onclick="startPageTour()" title="جولة تعريفية"

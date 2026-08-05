@@ -159,7 +159,7 @@
 
 <script>
 const SITE_PAGES = [
-  'home.html','courses.html','library.html','messages.html','news.html',
+  '/','courses.html','library.html','messages.html','news.html',
   'schedule.html','student.html','admin.html','supervisor.html','about.html',
   'stats.html','student-general.html','student-view.html',
   'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',

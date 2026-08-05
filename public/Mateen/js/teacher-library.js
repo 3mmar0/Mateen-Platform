@@ -19,11 +19,11 @@ async function showLibrary(session) {
   const role = data.role || session.role || '';
   const status = session.status || data.status || '';
   if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
-    window.location.href = '../html/home.html';
+    window.location.href = '/';
     return;
   }
   if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html';
+    window.location.href = '/';
     return;
   }
   teacherSubject = data.subject || session.subject || String(session.id);
@@ -58,11 +58,11 @@ async function bootFirebase() {
     const role = data.role || '';
     const status = data.status || '';
     if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
-      window.location.href = '../html/home.html';
+      window.location.href = '/';
       return;
     }
     if (status === 'pending' || status === 'suspended') {
-      window.location.href = '../html/home.html';
+      window.location.href = '/';
       return;
     }
     teacherSubject = data.subject || user.uid;

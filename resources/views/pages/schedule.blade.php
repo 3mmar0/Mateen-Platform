@@ -214,23 +214,23 @@
 
   <nav class="stu-nav">
 
-    <a href="/Mateen/html/home.html" class="stu-nav-logo">
+    <a href="/" class="stu-nav-logo">
       <img src="/Mateen/logo.png" alt="متين"/>
       <span>برنامج متين العلمي</span>
     </a>
     <div class="stu-nav-btns">
-      <a href="/Mateen/html/home.html" style="color:var(--gold-light);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:5px">
+      <a href="/" style="color:var(--gold-light);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:5px">
         <i class="ti ti-home"></i> الرئيسية
       </a>
     </div>
-      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
 </nav>
 
   <div class="sched-page">
 
-    <a href="/Mateen/html/home.html" class="back-btn">
+    <a href="/" class="back-btn">
       <i class="ti ti-arrow-right"></i> رجوع
     </a>
 
@@ -268,7 +268,7 @@ onAuthStateChanged(auth, async user => {
 
   // but/only بنات متين
   if (role !== 'mateen' || status === 'pending' || status === 'suspended') {
-    window.location.href = '/Mateen/html/home.html'; return;
+    window.location.href = '/'; return;
   }
 
   document.getElementById('authGate').style.display    = 'none';

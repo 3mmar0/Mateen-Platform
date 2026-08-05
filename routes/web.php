@@ -12,7 +12,7 @@ $alias = function (string $html, string $name, array|string $action) {
 };
 
 Route::get('/', [PublicPageController::class, 'home'])->name('mateen.home');
-$alias('home.html', 'mateen.home', [PublicPageController::class, 'home']);
+Route::redirect('/Mateen/html/home.html', '/', 301)->name('mateen.home.html');
 
 Route::get('/about', [PublicPageController::class, 'about'])->name('mateen.about');
 $alias('about.html', 'mateen.about', [PublicPageController::class, 'about']);

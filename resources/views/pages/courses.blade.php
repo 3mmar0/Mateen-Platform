@@ -56,19 +56,19 @@
   </div>
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);" width="40" height="40"/></div>
   <ul class="nav-links">
-    <li><a href="/Mateen/html/home.html">الرئيسية</a></li>
+    <li><a href="/">الرئيسية</a></li>
     <li><a href="/Mateen/html/about.html">عن البرنامج</a></li>
     <li><a href="/Mateen/html/courses.html" class="active">المواد العلمية</a></li>
     <li><a href="/Mateen/html/library.html">المكتبة</a></li>
     <li><a href="/Mateen/html/news.html">الأخبار</a></li>
-    <li><a href="/Mateen/html/home.html#contact">تواصل معنا</a></li>
+    <li><a href="/#contact">تواصل معنا</a></li>
   </ul>
   <div class="nav-btns">
   </div>
   <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
     <i class="ti ti-menu-2"></i>
   </button>
-    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
     <button onclick="startPageTour()" title="جولة تعريفية"
@@ -84,7 +84,7 @@
 
 <!-- BREADCRUMB -->
 <div class="breadcrumb">
-  <a href="/Mateen/html/home.html">الرئيسية</a>
+  <a href="/">الرئيسية</a>
   <i class="ti ti-chevron-left"></i>
   <span>المواد العلمية</span>
 </div>

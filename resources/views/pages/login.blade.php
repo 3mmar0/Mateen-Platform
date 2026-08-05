@@ -257,7 +257,7 @@
 </div>
 </div>
 </div>
-<a class="back-link" href="/Mateen/html/home.html">
+<a class="back-link" href="/">
 <i class="ti ti-arrow-right"></i> العودة إلى الصفحة الرئيسية
     </a>
 </div>

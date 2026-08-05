@@ -162,7 +162,7 @@ async function initAdminApi() {
   currentUserRole = role;
   currentViewerEmail = (userData.email || '').toLowerCase();
   if (role !== 'admin') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   mountTestModeSwitcher(userData, userData.email || '');
   document.getElementById('navUserName').textContent = userData.name || 'الإدارة';
@@ -193,7 +193,7 @@ async function bootAdminFirebase() {
   currentUserRole = role;
   currentViewerEmail = (user.email || '').toLowerCase();
   if (role !== 'admin') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   mountTestModeSwitcher(userData, user.email);
   document.getElementById('navUserName').textContent  = user.displayName || 'الإدارة';

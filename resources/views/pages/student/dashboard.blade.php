@@ -65,15 +65,15 @@
   <!-- Navbar -->
   <nav class="stu-nav">
 
-    <a href="/Mateen/html/home.html" class="stu-nav-logo">
+    <a href="/" class="stu-nav-logo">
       <img src="/Mateen/logo.png" alt="متين"/>
       <span>برنامج متين العلمي</span>
     </a>
     <div class="stu-nav-btns">
-      <a href="/Mateen/html/home.html" class="stu-btn-home"><i class="ti ti-home"></i> الرئيسية</a>
+      <a href="/" class="stu-btn-home"><i class="ti ti-home"></i> الرئيسية</a>
       <button class="stu-btn-logout" id="logoutBtn"><i class="ti ti-logout"></i> خروج</button>
     </div>
-      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
     <button onclick="startPageTour()" title="جولة تعريفية"
