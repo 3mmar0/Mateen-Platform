@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title>المكتبة — متين العلمي</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+  }catch(e){}
+})();
+</script>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/library.css" rel="stylesheet"/>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+<link href="/Mateen/css/notifications.css" rel="stylesheet"/>
+<link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<link href="/Mateen/css/modals.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+  <i class="ti ti-arrow-right"></i>
+</button>
+
+<!-- BASMALA -->
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+<div id="nav-placeholder"></div>
+
+<!-- HERO -->
+<div class="page-hero">
+  <div class="hero-badge">📚 المكتبة</div>
+  <h1>مكتبة متين العلمي</h1>
+  <p>مصادر علمية متنوعة لطالبات برنامج متين</p>
+</div>
+
+<div class="breadcrumb">
+  <a href="/Mateen/html/home.html">الرئيسية</a>
+  <i class="ti ti-chevron-left"></i>
+  <span>المكتبة</span>
+</div>
+
+<div class="main-wrap">
+
+  <!-- ══ تابات الأقسام ══ -->
+  <div class="lib-tabs" id="libTabs">
+    <button class="lib-tab active" onclick="showSection('mateen-lib', this)">
+      <span class="tab-icon">📖</span> مكتبة متين
+    </button>
+    <button class="lib-tab" onclick="showSection('enrichment', this)">
+      <span class="tab-icon">🌱</span> المسار الإثرائي
+    </button>
+    <button class="lib-tab" onclick="showSection('podcast', this)">
+      <span class="tab-icon">🎙️</span> بودكاست تبصرة
+    </button>
+    <button class="lib-tab" onclick="showSection('courses', this)">
+      <span class="tab-icon">🎓</span> دورات متنوعة
+    </button>
+  </div>
+
+  <!-- ══ 1. Library متين (Subjects من Firebase) ══ -->
+  <div class="lib-section active" id="section-mateen-lib">
+    <div class="section-header">
+      <div class="section-title"><i class="ti ti-books"></i> مكتبة متين</div>
+    </div>
+
+    <!-- فلتر المواد — ديناميكي حسب المواد المُضافة فعليًا -->
+    <div class="lib-filters" id="libFiltersRow">
+      <button class="lib-btn active" onclick="filterLibMats(this,'all')">الكل</button>
+    </div>
+
+    <div id="libMatsGrid" class="lib-cards-grid">
+      <div class="lib-empty"><i class="ti ti-loader" style="font-size:28px;"></i><div>جاري التحميل...</div></div>
+    </div>
+
+    <!-- Button Add للأدمن -->
+    <div id="libAddBtn" style="display:none;margin-top:16px;">
+      <button onclick="openAddLibModal('mateen-lib')"
+        class="btn-add-lib">
+        <i class="ti ti-plus"></i> إضافة مادة
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ 2. المسار الإثرائي ══ -->
+  <div class="lib-section" id="section-enrichment">
+    <div class="section-header">
+      <div class="section-title"><i class="ti ti-plant"></i> المسار الإثرائي</div>
+      <div class="section-desc">محتوى إثرائي يُعمّق الفهم ويوسّع المدارك</div>
+    </div>
+
+    <div id="enrichmentGrid" class="lib-cards-grid">
+      <div class="lib-empty"><i class="ti ti-files-off" style="font-size:28px;"></i><div>لا يوجد محتوى بعد</div></div>
+    </div>
+
+    <div id="enrichmentAddBtn" style="display:none;margin-top:16px;">
+      <button onclick="openAddLibModal('enrichment')" class="btn-add-lib">
+        <i class="ti ti-plus"></i> إضافة محتوى
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ 3. بودكاست تبصرة ══ -->
+  <div class="lib-section" id="section-podcast">
+    <div class="section-header">
+      <div class="section-title"><i class="ti ti-microphone"></i> بودكاست تبصرة</div>
+      <div class="section-desc">حلقات صوتية تُبصّرك بأصول العلم وثمراته</div>
+    </div>
+
+    <div id="podcastGrid" class="lib-cards-grid">
+      <div class="lib-empty"><i class="ti ti-files-off" style="font-size:28px;"></i><div>لا يوجد محتوى بعد</div></div>
+    </div>
+
+    <div id="podcastAddBtn" style="display:none;margin-top:16px;">
+      <button onclick="openAddLibModal('podcast')" class="btn-add-lib">
+        <i class="ti ti-plus"></i> إضافة حلقة
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ 4. دورات متنوعة ══ -->
+  <div class="lib-section" id="section-courses">
+    <div class="section-header">
+      <div class="section-title"><i class="ti ti-certificate"></i> دورات متنوعة</div>
+      <div class="section-desc">دورات علمية وتطويرية متنوعة</div>
+    </div>
+
+    <div id="coursesGrid" class="lib-cards-grid">
+      <div class="lib-empty"><i class="ti ti-files-off" style="font-size:28px;"></i><div>لا يوجد محتوى بعد</div></div>
+    </div>
+
+    <div id="coursesAddBtn" style="display:none;margin-top:16px;">
+      <button onclick="openAddCourseContainerModal()" class="btn-add-lib">
+        <i class="ti ti-plus"></i> إضافة دورة جديدة
+      </button>
+    </div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<!-- ══ Modal Add Content ══ -->
+<div id="addLibModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:28px;width:90%;max-width:480px;direction:rtl;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:Amiri,serif;font-size:17px;color:var(--green-dark);font-weight:700;" id="addLibModalTitle">إضافة محتوى</div>
+      <button onclick="document.getElementById('addLibModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="addLibSection"/>
+      <input type="hidden" id="addLibCourseId"/>
+      <div id="libSubjectWrap" style="display:none">
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">المادة <span style="color:#c0392b">*</span></label>
+        <input id="addLibSubject" type="text" oninput="updateLibLectureOptions()" placeholder="اكتبي اسم المادة" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div id="libLectureWrap" style="display:none">
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">رقم المحاضرة (اختياري)</label>
+        <select id="addLibLecture" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+          <option value="">بدون محاضرة محددة</option>
+        </select>
+        <div id="libLectureNumWrap" style="display:none;margin-top:8px">
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">رقم المحاضرة الجديدة</label>
+          <input type="number" id="libLectureNumInput" min="1" style="width:120px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">العنوان <span style="color:#c0392b">*</span></label>
+        <input id="addLibTitle" type="text" placeholder="عنوان المحتوى" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">النوع</label>
+        <select id="addLibType" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+          <option>مقال</option><option>فيديو</option><option>ملف PDF</option><option>حلقة صوتية</option><option>دورة</option><option>أخرى</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">الرابط <span style="color:#c0392b">*</span></label>
+        <input id="addLibUrl" type="url" placeholder="https://..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">ملاحظة (اختياري)</label>
+        <textarea id="addLibNotes" rows="2" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;"></textarea>
+      </div>
+      <div id="addLibErr" style="display:none;color:#c0392b;font-size:13px;"></div>
+      <button id="addLibSubmit" onclick="submitAddLib()"
+        style="padding:11px;background:var(--green-dark);color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <i class="ti ti-plus"></i> إضافة
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal إضافة دورة جديدة (نفس إعدادات المادة الرئيسية) ══ -->
+<div id="addCourseContainerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+  <div style="background:white;border-radius:16px;padding:28px;width:90%;max-width:480px;direction:rtl;max-height:90vh;overflow-y:auto;margin:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:Amiri,serif;font-size:17px;color:var(--green-dark);font-weight:700;">🎓 إضافة دورة جديدة</div>
+      <button onclick="document.getElementById('addCourseContainerModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">اسم الدورة <span style="color:#c0392b">*</span></label>
+        <input id="crsName" type="text" placeholder="مثال: دورة مهارات التدبر" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">صورة الأيقونة</label>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div id="crsIconPreview" style="width:64px;height:64px;border-radius:12px;background:var(--beige);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+            <i class="ti ti-photo" style="font-size:24px;color:var(--text-mid);"></i>
+          </div>
+          <div style="flex:1;">
+            <input id="crsIconFile" type="file" accept="image/*" onchange="previewIcon(this,'crsIconPreview','crsIconData')" style="display:none;">
+            <button type="button" onclick="document.getElementById('crsIconFile').click()"
+              style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:var(--beige);font-family:inherit;font-size:13px;cursor:pointer;color:var(--text-dark);margin-bottom:6px;">
+              <i class="ti ti-upload"></i> رفع صورة
+            </button>
+            <input id="crsIconUrl" type="url" placeholder="أو الصق رابط صورة..." onchange="previewIconUrl(this,'crsIconPreview')"
+              style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;box-sizing:border-box;">
+          </div>
+        </div>
+        <input type="hidden" id="crsIconData">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">لون البانر <span style="color:#c0392b">*</span></label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div id="crsColorPreview" style="width:48px;height:48px;border-radius:10px;border:2px solid var(--border);background:linear-gradient(135deg,#5c3d2e,#8a5e3c);flex-shrink:0;"></div>
+          <div style="flex:1;min-width:200px;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <input type="color" id="crsColor1" value="#5c3d2e" oninput="updateColorPreview('crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:48px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;">
+              <input type="color" id="crsColor2" value="#8a5e3c" oninput="updateColorPreview('crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:48px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;">
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <div onclick="setPresetColor('#5c3d2e','#8a5e3c','crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:28px;height:28px;border-radius:6px;cursor:pointer;background:linear-gradient(135deg,#5c3d2e,#8a5e3c);"></div>
+              <div onclick="setPresetColor('#1a3a5c','#2a5298','crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:28px;height:28px;border-radius:6px;cursor:pointer;background:linear-gradient(135deg,#1a3a5c,#2a5298);"></div>
+              <div onclick="setPresetColor('#2e1a4a','#5e3c8b','crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:28px;height:28px;border-radius:6px;cursor:pointer;background:linear-gradient(135deg,#2e1a4a,#5e3c8b);"></div>
+              <div onclick="setPresetColor('#1a4a2e','#2e7d4a','crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:28px;height:28px;border-radius:6px;cursor:pointer;background:linear-gradient(135deg,#1a4a2e,#2e7d4a);"></div>
+              <div onclick="setPresetColor('#4a2e1a','#9a6a3c','crsColor1','crsColor2','crsColorPreview','crsColorVal')" style="width:28px;height:28px;border-radius:6px;cursor:pointer;background:linear-gradient(135deg,#4a2e1a,#9a6a3c);"></div>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" id="crsColorVal" value="linear-gradient(135deg,#5c3d2e,#8a5e3c)">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">وصف الدورة <span style="color:#c0392b">*</span></label>
+        <textarea id="crsDesc" placeholder="وصف مختصر للدورة..." style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;height:80px;"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">عدد اللقاءات</label>
+          <input id="crsMeetings" type="text" placeholder="مثال: ٢ لقاءات أسبوعياً" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">المدة</label>
+          <input id="crsWeeks" type="text" placeholder="مثال: ٦ أسابيع" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px">المستوى</label>
+        <input id="crsLevel" type="text" placeholder="مثال: مبتدئات" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div id="addCourseContainerErr" style="display:none;color:#c0392b;font-size:13px;"></div>
+      <button id="addCourseContainerSubmit" onclick="submitNewCourseContainer()"
+        style="padding:11px;background:var(--green-dark);color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <i class="ti ti-plus"></i> إضافة الدورة
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal تفاصيل الدورة + موادها ══ -->
+<div id="courseDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
+  <div id="courseDetailModalBody" style="background:white;border-radius:16px;width:94%;max-width:600px;direction:rtl;max-height:90vh;overflow-y:auto;margin:auto;">
+    <!-- يُبنى ديناميكيًا -->
+  </div>
+</div>
+<div id="editLibModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:28px;width:90%;max-width:480px;direction:rtl;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:Amiri,serif;font-size:17px;color:var(--green-dark);font-weight:700;">تعديل المحتوى</div>
+      <button onclick="document.getElementById('editLibModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <input type="hidden" id="editLibId"/>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">العنوان</label>
+        <input id="editLibTitle" type="text" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">النوع</label>
+        <select id="editLibType" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+          <option>مقال</option><option>فيديو</option><option>ملف PDF</option><option>حلقة صوتية</option><option>دورة</option><option>أخرى</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">الرابط</label>
+        <input id="editLibUrl" type="url" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:13px;color:var(--text-dark);display:block;margin-bottom:6px;">ملاحظة</label>
+        <textarea id="editLibNotes" rows="2" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;"></textarea>
+      </div>
+      <div id="editLibErr" style="display:none;color:#c0392b;font-size:13px;"></div>
+      <button id="editLibSubmit" onclick="submitEditLib()"
+        style="padding:11px;background:var(--green-dark);color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <i class="ti ti-device-floppy"></i> حفظ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal تأكيد الDelete -->
+<div id="deleteLibModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:16px;padding:28px;width:90%;max-width:400px;direction:rtl;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;">🗑️</div>
+    <div style="font-family:Amiri,serif;font-size:17px;color:var(--green-dark);font-weight:700;margin-bottom:8px;">تأكيد الحذف</div>
+    <div style="font-size:14px;color:var(--text-mid);margin-bottom:20px;">هل أنتِ متأكدة من حذف "<span id="deleteLibItemTitle"></span>"؟</div>
+    <input type="hidden" id="deleteLibId"/>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button id="deleteLibConfirm" onclick="executeDeleteLib()"
+        style="padding:10px 24px;background:#c0392b;color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;">
+        <i class="ti ti-trash"></i> حذف
+      </button>
+      <button onclick="document.getElementById('deleteLibModal').style.display='none'"
+        style="padding:10px 24px;background:var(--beige);color:var(--text-dark);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;">
+        إلغاء
+      </button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <img alt="متين" src="/Mateen/logo.png" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;"/>
+    <span style="color:rgba(255,255,255,0.8);font-family:Amiri,serif;font-size:14px">متين العلمي</span>
+  </div>
+  <div class="footer-dua">اللهم علمنا ما ينفعنا وانفعنا بما علمتنا</div>
+  <div class="footer-social"><a href="#"><i class="ti ti-brand-telegram"></i></a><a href="https://x.com/programMateen?t=HENBpRB5qS0lFAyW4d10mg&s=35" target="_blank" rel="noopener"><i class="ti ti-brand-twitter"></i></a></div>
+</footer>
+
+<script>
+  // Color/icon preview helpers (نفس اللي في courses.html)
+  function updateColorPreview(c1Id, c2Id, previewId, valId) {
+    const c1 = document.getElementById(c1Id).value;
+    const c2 = document.getElementById(c2Id).value;
+    const grad = `linear-gradient(135deg,${c1},${c2})`;
+    document.getElementById(previewId).style.background = grad;
+    document.getElementById(valId).value = grad;
+  }
+  function setPresetColor(c1, c2, c1Id, c2Id, previewId, valId) {
+    document.getElementById(c1Id).value = c1;
+    document.getElementById(c2Id).value = c2;
+    updateColorPreview(c1Id, c2Id, previewId, valId);
+  }
+  function previewIcon(input, previewId, dataId) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const prev = document.getElementById(previewId);
+      prev.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`;
+      if (dataId) document.getElementById(dataId).value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  function previewIconUrl(input, previewId) {
+    const url = input.value.trim();
+    if (!url) return;
+    const prev = document.getElementById(previewId);
+    prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy">`;
+  }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function card(item) {
+    return '<div class="lib-card" style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px">' +
+      '<div style="font-weight:700;color:var(--green-dark);margin-bottom:6px">' + esc(item.title) + '</div>' +
+      '<div style="font-size:13px;color:var(--text-mid);margin-bottom:8px">' + esc((item.description||'').replace(/^type:[^\n]*\n?/m,'')) + '</div>' +
+      (item.media_url ? '<a href="' + esc(item.media_url) + '" target="_blank" rel="noopener" style="font-size:13px;color:var(--gold-dark,#b8860b)">فتح المصدر</a>' : '') +
+      '</div>';
+  }
+  fetch('/api/v1/library', { headers: { Accept: 'application/json' } })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (j) {
+      var raw = (j && j.data) || [];
+      var mateen = raw.filter(function (r) { return r.section === 'mateen_library'; });
+      var enrichment = raw.filter(function (r) { return r.section === 'enrichment'; });
+      var podcast = raw.filter(function (r) { return r.section === 'podcast'; });
+      var grid = document.getElementById('libMatsGrid');
+      if (grid && !grid.dataset.apiFilled) {
+        grid.dataset.apiFilled = '1';
+        grid.innerHTML = mateen.length
+          ? mateen.map(card).join('')
+          : '<div class="lib-empty"><i class="ti ti-files-off" style="font-size:28px;"></i><div>لا يوجد محتوى</div></div>';
+      }
+      var eg = document.getElementById('enrichmentGrid');
+      if (eg && !eg.dataset.apiFilled) {
+        eg.dataset.apiFilled = '1';
+        eg.innerHTML = enrichment.length ? enrichment.map(card).join('') : '<div class="lib-empty"><div>لا يوجد محتوى بعد</div></div>';
+      }
+      var pg = document.getElementById('podcastGrid');
+      if (pg && !pg.dataset.apiFilled) {
+        pg.dataset.apiFilled = '1';
+        pg.innerHTML = podcast.length ? podcast.map(card).join('') : '<div class="lib-empty"><div>لا يوجد محتوى بعد</div></div>';
+      }
+    })
+    .catch(function (e) { console.warn('[library] inline load failed', e); });
+})();
+</script>
+<script src="/Mateen/js/nav.js?v=20260731c"></script>
+<script src="/Mateen/js/library.js?v=20260731c"></script>
+<script type="module" src="/Mateen/js/library-firebase.js?v=20260731c"></script>
+<script type="module" src="/Mateen/js/notifications.js?v=20260731c"></script>
+<script src="/Mateen/js/sw-register.js?v=20260731c"></script>
+</body>
+</html>

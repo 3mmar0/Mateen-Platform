@@ -140,6 +140,32 @@ class DocumentMapper
         ];
     }
 
+    public function contact(array $d): array
+    {
+        return [
+            'name' => $d['name'] ?? $d['senderName'] ?? null,
+            'recipient' => $d['recipient'] ?? $d['to'] ?? null,
+            'topic' => $d['topic'] ?? $d['subject'] ?? null,
+            'body' => $d['body'] ?? $d['message'] ?? $d['text'] ?? '',
+            'email' => $d['email'] ?? null,
+            'meta' => ['legacy_id' => $d['id'] ?? null],
+        ];
+    }
+
+    public function registration(array $d): array
+    {
+        return [
+            'name' => $d['name'] ?? $d['fullName'] ?? 'طالبة',
+            'phone' => $d['phone'] ?? $d['mobile'] ?? '',
+            'email' => $d['email'] ?? ('import.'.Str::lower(Str::random(8)).'@mateen.import'),
+            'age' => isset($d['age']) ? (int) $d['age'] : null,
+            'level' => $d['level'] ?? $d['track'] ?? null,
+            'source' => $d['source'] ?? $d['heardFrom'] ?? null,
+            'status' => $d['status'] ?? 'new',
+            'meta' => ['legacy_id' => $d['id'] ?? null],
+        ];
+    }
+
     public function plain(array $d, array $allowed): array
     {
         return array_intersect_key($d, array_flip($allowed));

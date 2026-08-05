@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Models\{
     Assignment,
+    ContactMessage,
     Conversation,
     LearningMaterial,
     LibraryItem,
     Message,
     NewsItem,
+    RegistrationRequest,
     ScheduleEntry,
     StudentProfile,
     Subject,
@@ -183,6 +185,16 @@ class FirebaseMigrationService
                 $counts['messages_skipped'] = 1 + ($counts['messages_skipped'] ?? 0);
             }
 
+            foreach ($json['contactMessages'] ?? $json['contacts'] ?? $json['contact_messages'] ?? [] as $d) {
+                ContactMessage::create($this->mapper->contact($d));
+                $counts['contactMessages'] = 1 + ($counts['contactMessages'] ?? 0);
+            }
+
+            foreach ($json['registrationRequests'] ?? $json['registrations'] ?? $json['registration_requests'] ?? [] as $d) {
+                RegistrationRequest::create($this->mapper->registration($d));
+                $counts['registrationRequests'] = 1 + ($counts['registrationRequests'] ?? 0);
+            }
+
             foreach ($json['tokens'] ?? $json['fcmTokens'] ?? $json['devices'] ?? [] as $d) {
                 $uid = $userByFirebase[(string) ($d['userId'] ?? $d['uid'] ?? '')] ?? null;
                 $token = $d['token'] ?? $d['fcm_token'] ?? $d['fcmToken'] ?? null;
@@ -207,6 +219,7 @@ class FirebaseMigrationService
             'users', 'students', 'subjects', 'staticSubjects', 'materials', 'learningMaterials',
             'libraryItems', 'library', 'assignments', 'conversations', 'messages',
             'news', 'newsItems', 'schedules', 'scheduleEntries', 'tokens', 'fcmTokens', 'devices',
+            'contactMessages', 'contacts', 'contact_messages', 'registrationRequests', 'registrations', 'registration_requests',
         ];
         $out = [];
         foreach ($keys as $k) {

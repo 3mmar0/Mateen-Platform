@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>لوحة الإداريات — متين العلمي</title>
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<!-- Bootstrap CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet"/>
+<link rel="stylesheet" href="/Mateen/css/common.css"/>
+<link href="/Mateen/css/admin.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+<link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<link href="/Mateen/css/modals.css" rel="stylesheet"/>
+<link href="/Mateen/css/notifications.css" rel="stylesheet"/>
+<link rel="manifest" href="/Mateen/manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="متين">
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- BASMALA -->
+<div class="basmala-bar">
+  <span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span>
+</div>
+
+<!-- NAV — Bootstrap navbar -->
+<nav class="navbar sticky-top d-flex align-items-center" style="background:var(--green-dark);padding:0 16px;min-height:56px;box-shadow:0 2px 12px rgba(0,0,0,0.3);gap:8px;flex-wrap:nowrap;">
+
+
+  <!-- الIfجو -->
+  <a class="nav-logo navbar-brand p-0 flex-shrink-0" href="/Mateen/html/home.html">
+    <div class="logo-circle">
+      <img alt="متين" src="/Mateen/logo.png" class="logo-circle-img"/>
+    </div>
+    <div class="ms-2 d-none d-sm-block">
+      <div class="nav-brand">برنامج متين العلمي</div>
+      <div class="nav-tagline">نحو بناء علميٍّ متين</div>
+    </div>
+  </a>
+
+  <!-- Khayr Partners -->
+  <div class="d-none d-lg-flex align-items-center ms-2 ps-2 flex-shrink-0" style="border-inline-start:1px solid rgba(201,162,39,0.35);">
+    <img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" style="height:36px;width:90px;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/>
+  </div>
+
+  <!-- روابط الNavigation — Center -->
+  <ul class="navbar-nav flex-row mx-auto gap-1 admin-nav-links mb-0">
+    <li class="nav-item">
+      <a class="nav-link px-2" href="/Mateen/html/home.html"><i class="ti ti-home"></i> <span class="d-none d-md-inline">الرئيسية</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link px-2" href="/Mateen/html/courses.html"><i class="ti ti-books"></i> <span class="d-none d-md-inline">المواد</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link px-2" href="/Mateen/html/news.html"><i class="ti ti-speakerphone"></i> <span class="d-none d-md-inline">الأخبار</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link px-2" href="/Mateen/html/messages.html"><i class="ti ti-message-2"></i> <span class="d-none d-md-inline">الرسائل</span></a>
+    </li>
+  </ul>
+
+  <!-- اسم User + خروج -->
+  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+    <div class="nav-user d-none d-sm-flex">
+      <i class="ti ti-shield" style="color:var(--gold);"></i>
+      <span class="nav-user-name" id="navUserName">إدارية</span>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">
+      <i class="ti ti-logout"></i> <span class="d-none d-sm-inline">خروج</span>
+    </button>
+  </div>
+
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+    <button onclick="startPageTour()" title="جولة تعريفية"
+      style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:6px 8px;display:flex;align-items:center;opacity:0.85;">❓</button>
+</nav>
+<!-- AUTH GATE -->
+<div id="authGate">
+<i class="ti ti-loader spin"></i>
+<p>جارٍ التحقق من الصلاحيات...</p>
+</div>
+<!-- MAIN -->
+<div id="mainContent" class="main-content-hidden">
+<div class="container">
+
+<!-- ══ ADMIN TABS BAR ══ -->
+<div class="admin-tabs-bar" id="adminTabsBar">
+  <button class="admin-tab active" id="tab-btn-students" onclick="switchAdminTab('students')">
+    <i class="ti ti-users"></i> <span>الطالبات</span>
+  </button>
+  <button class="admin-tab" id="tab-btn-accounts" onclick="switchAdminTab('accounts')">
+    <i class="ti ti-user-check"></i> <span>الحسابات</span>
+    <span class="admin-tab-badge" id="tab-badge-accounts" style="display:none"></span>
+  </button>
+  <button class="admin-tab" id="tab-btn-teachers" onclick="switchAdminTab('teachers')">
+    <i class="ti ti-school"></i> <span>المعلمات</span>
+  </button>
+  <button class="admin-tab" id="tab-btn-content" onclick="switchAdminTab('content')">
+    <i class="ti ti-books"></i> <span>المحتوى</span>
+  </button>
+  <button class="admin-tab" id="tab-btn-news" onclick="switchAdminTab('news')">
+    <i class="ti ti-speakerphone"></i> <span>الأخبار</span>
+  </button>
+  <button class="admin-tab" id="tab-btn-tools" onclick="switchAdminTab('tools')">
+    <i class="ti ti-settings"></i> <span>الأدوات</span>
+  </button>
+</div>
+
+<!-- ══ TAB: STUDENTS ══ -->
+<div id="admin-tab-students" class="admin-tab-panel">
+<!-- STATS -->
+<div class="stats-row">
+<div class="stat-card"><div class="stat-num" id="sTotal">0</div><div class="stat-label">إجمالي المواد</div></div>
+<div class="stat-card"><div class="stat-num" id="sMah">0</div><div class="stat-label">محاضرات</div></div>
+<div class="stat-card"><div class="stat-num" id="sVid">0</div><div class="stat-label">فيديو</div></div>
+<div class="stat-card"><div class="stat-num" id="sOth">0</div><div class="stat-label">ملفات أخرى</div></div>
+</div>
+<!-- STUDENTS / INTERVIEWS SECTION -->
+<div class="section" id="studentsSection">
+<div class="section-head">
+<div class="section-head-title"><i class="ti ti-users"></i> قاعدة بيانات الطالبات والمقابلات</div>
+<button class="btn-add-student" id="btnAddStudent"><i class="ti ti-user-plus"></i> إضافة طالبة</button>
+</div>
+<!-- Stats bar -->
+<div class="stu-stats-row">
+<div class="stu-stat"><span id="stuTotal">0</span><small>الإجمالي</small></div>
+<div class="stu-stat done"><span id="stuDone">0</span><small>تمت المقابلة</small></div>
+<div class="stu-stat pending"><span id="stuPending">0</span><small>لم تتم</small></div>
+<div class="stu-stat accepted"><span id="stuAccepted">0</span><small>مقبولة</small></div>
+<div class="stu-stat rejected"><span id="stuRejected">0</span><small>غير مقبولة</small></div>
+</div>
+<!-- Bulk add -->
+<div class="stu-bulk-area">
+<textarea id="bulkNames" placeholder="أضيفي عدة أسماء دفعة واحدة — كل اسم في سطر"></textarea>
+<button class="btn-bulk-add" onclick="addBulkNames()"><i class="ti ti-list-check"></i> إضافة الكل</button>
+</div>
+<!-- Filters -->
+<div class="stu-filter-bar">
+<input id="stuSearch" oninput="applyStudentFilters()" placeholder="🔎 ابحثي عن طالبة..." type="text"/>
+<select id="stuFilterInterview" onchange="applyStudentFilters()">
+<option value="all">🎙️ كل المقابلات</option>
+<option value="done">✅ تمت</option>
+<option value="pending">⏳ لم تتم</option>
+</select>
+<select id="stuFilterResult" onchange="applyStudentFilters()">
+<option value="all">📊 كل النتائج</option>
+<option value="accepted">✔️ المقبولات</option>
+<option value="rejected">✖️ غير المقبولات</option>
+<option value="na">⏳ لم يحدد</option>
+</select>
+<select id="stuFilterStatus" onchange="applyStudentFilters()">
+<option value="all">📖 كل الطالبات</option>
+<option value="mateen">📖 بنات متين</option>
+<option value="new">✨ المستجدات</option>
+</select>
+<button id="sortAlphaBtn" class="sort-alpha-btn active" onclick="toggleAlphaSort()">🔤 أبجدي</button>
+</div>
+<!-- Bulk apply bar -->
+<div class="stu-bulk-bar">
+<div class="stu-bulk-info">
+<input id="selectAll" onchange="toggleSelectAll(this.checked)" type="checkbox"/>
+<label for="selectAll">تحديد الكل</label>
+<span class="selected-badge" id="selectedCount">0 محددة</span>
+</div>
+<div class="stu-bulk-fields">
+<select class="bulk-sel" id="bulkDay">
+<option value="">-اليوم-</option>
+<option>الأحد</option><option>الاثنين</option><option>الثلاثاء</option>
+<option>الأربعاء</option><option>الخميس</option><option>الجمعة</option><option>السبت</option>
+</select>
+<input class="bulk-num" id="bulkDD" max="30" min="1" placeholder="يوم" type="number"/>
+<select class="bulk-sel" id="bulkMM">
+<option value="">-الشهر-</option>
+<option value="01">محرم</option><option value="02">صفر</option>
+<option value="03">ربيع الأول</option><option value="04">ربيع الثاني</option>
+<option value="05">جمادى الأولى</option><option value="06">جمادى الثانية</option>
+<option value="07">رجب</option><option value="08">شعبان</option>
+<option value="09">رمضان</option><option value="10">شوال</option>
+<option value="11">ذو القعدة</option><option value="12">ذو الحجة</option>
+</select>
+<input class="bulk-num bulk-num-narrow" id="bulkYY" placeholder="سنة" type="number"/>
+<span class="bulk-divider">|</span>
+<select class="bulk-sel bulk-sel-hour" id="bulkHour">
+<option value="">-الساعة-</option>
+<option>1</option><option>2</option><option>3</option><option>4</option>
+<option>5</option><option>6</option><option>7</option><option>8</option>
+<option>9</option><option>10</option><option>11</option><option>12</option>
+</select>
+<select class="bulk-sel bulk-sel-ampm" id="bulkAmpm">
+<option value="">-ص/م-</option>
+<option value="ص">صباحاً</option>
+<option value="م">مساءً</option>
+</select>
+<button class="bulk-apply-btn" onclick="applyBulkDateTime()">✅ تطبيق</button>
+</div>
+</div>
+<!-- Mobile cards (shown on small screens) -->
+<div id="stu-cards-wrap" class="stu-cards-wrap-base"></div>
+<!-- Table (shown on desktop) -->
+<div class="stu-table-wrap">
+<table class="stu-table">
+<thead>
+<tr>
+<th class="col-narrow"></th>
+<th>#</th>
+<th>اسم الطالبة</th>
+<th>اليوم والتاريخ</th>
+<th>الوقت</th>
+<th>المقابلة</th>
+<th>القبول</th>
+<th>درجة الاختبار</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="stuTableBody">
+<tr><td colspan="9" class="table-loader-cell-lg"><i class="ti ti-loader spin loader-spin-lg"></i></td></tr>
+</tbody>
+</table>
+</div>
+<div class="foot-actions-row">
+  <!-- زراران رئيسيان -->
+  <button class="btn-add-row" onclick="addStudentRow()"><i class="ti ti-user-plus"></i> إضافة طالبة</button>
+  <a href="/Mateen/html/stats.html" class="btn-add-row btn-export-stats"><i class="ti ti-chart-bar"></i> الإحصائيات</a>
+
+  <!-- قوائم الإجراءات — كل مجموعة في زرار منفصل -->
+  <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="examsMenuBtn" onclick="toggleActionMenu('examsMenu')" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-clipboard-text"></i> الاختبارات ▾
+    </button>
+    <div id="examsMenu" class="am-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(44,26,14,0.15);padding:4px 6px 6px;min-width:230px;z-index:200;overflow:hidden">
+      <button class="actions-menu-item" onclick="openBulkGradeModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(44,110,69,0.12);color:var(--green-dark)"><i class="ti ti-clipboard-plus"></i></span>
+        <span class="ami-text"><strong>إضافة اختبار جماعي</strong><small>أضيفي درجات لعدة طالبات</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openDeleteExamModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(192,57,43,0.1);color:#c0392b"><i class="ti ti-pencil"></i></span>
+        <span class="ami-text"><strong>تعديل / حذف اختبار جماعي</strong><small>عدّلي أو احذفي اختباراً من كل الطالبات</small></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="attMenuBtn" onclick="toggleActionMenu('attMenu')" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-calendar-stats"></i> الحضور ▾
+    </button>
+    <div id="attMenu" class="am-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(44,26,14,0.15);padding:4px 6px 6px;min-width:250px;z-index:200;overflow:hidden">
+      <button class="actions-menu-item" onclick="openBulkAttModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(44,110,69,0.12);color:var(--green-dark)"><i class="ti ti-calendar-plus"></i></span>
+        <span class="ami-text"><strong>إضافة حضور جماعي</strong><small>سجّلي حضور عدة طالبات لجلسة واحدة</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openDeleteAttModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(192,57,43,0.1);color:#c0392b"><i class="ti ti-calendar-x"></i></span>
+        <span class="ami-text"><strong>تعديل / حذف حضور جماعي</strong><small>عدّلي اسم اليوم أو احذفي جلسة من عند كل الطالبات</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openMissingAttModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(230,126,34,0.12);color:#e67e22"><i class="ti ti-alert-triangle"></i></span>
+        <span class="ami-text"><strong>فحص نقص الحضور</strong><small>اعرفي مين من الطالبات ناقصها تسجيل حضور يوم معين</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openPasteAttModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(155,89,182,0.12);color:#8e44ad"><i class="ti ti-message-2"></i></span>
+        <span class="ami-text"><strong>استيراد حضور من رسالة</strong><small>الصقي رسالة الحضور وهيتم تفريغها تلقائيًا</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openExcelAttModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(39,174,96,0.12);color:#1e8449"><i class="ti ti-file-spreadsheet"></i></span>
+        <span class="ami-text"><strong>استيراد حضور من Excel</strong><small>ملف أسبوعي: أعمدة = أيام الأسبوع</small></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="expMenuBtn" onclick="toggleActionMenu('expMenu')" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-file-export"></i> التصدير ▾
+    </button>
+    <div id="expMenu" class="am-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(44,26,14,0.15);padding:4px 6px 6px;min-width:230px;z-index:200;overflow:hidden">
+      <button class="actions-menu-item" onclick="openExportModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(30,100,180,0.1);color:#1a5fb4"><i class="ti ti-file-type-docx"></i></span>
+        <span class="ami-text"><strong>تصدير Word / PDF</strong><small>تقرير بيانات الطالبات</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openAttModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(39,174,96,0.1);color:#1e8449"><i class="ti ti-calendar-stats"></i></span>
+        <span class="ami-text"><strong>تصدير الحضور والغياب</strong><small>سجل الحضور كامل</small></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="certMenuBtn" onclick="toggleActionMenu('certMenu')" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-certificate"></i> الشهادات ▾
+    </button>
+    <div id="certMenu" class="am-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(44,26,14,0.15);padding:4px 6px 6px;min-width:250px;z-index:200;overflow:hidden">
+      <button class="actions-menu-item" onclick="openBulkCertAwardModal('certificates');closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(138,109,31,0.12);color:#8a6d1f"><i class="ti ti-certificate"></i></span>
+        <span class="ami-text"><strong>إضافة شهادة جماعية</strong><small>لعدة طالبات مرة واحدة</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openBulkCertAwardModal('awards');closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(31,111,138,0.12);color:#1f6f8a"><i class="ti ti-award"></i></span>
+        <span class="ami-text"><strong>إضافة إجازة جماعية</strong><small>لعدة طالبات مرة واحدة</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openManageCertAwards();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(127,140,141,0.12);color:#7f8c8d"><i class="ti ti-folders"></i></span>
+        <span class="ami-text"><strong>إدارة الشهادات والإجازات</strong><small>عرض، بحث، وحذف</small></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="notesMenuBtn" onclick="openBulkNotesModal()" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-notes"></i> الملاحظات
+    </button>
+  </div>
+
+  <div class="am-group" style="position:relative;display:inline-block">
+    <button class="btn-add-row am-menu-btn" id="otherMenuBtn" onclick="toggleActionMenu('otherMenu')" style="background:var(--beige2);border-color:var(--border)">
+      <i class="ti ti-dots"></i> أخرى ▾
+    </button>
+    <div id="otherMenu" class="am-dropdown" style="display:none;position:absolute;bottom:110%;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(44,26,14,0.15);padding:4px 6px 6px;min-width:230px;z-index:200;overflow:hidden">
+      <button class="actions-menu-item" onclick="showArchive();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(127,140,141,0.12);color:#7f8c8d"><i class="ti ti-archive"></i></span>
+        <span class="ami-text"><strong>الأرشيف</strong><small>الطالبات المؤرشفات</small></span>
+      </button>
+      <button class="actions-menu-item" onclick="openDuplicateNamesModal();closeActionMenus()">
+        <span class="ami-icon" style="background:rgba(192,57,43,0.1);color:#c0392b"><i class="ti ti-users-group"></i></span>
+        <span class="ami-text"><strong>فحص الأسماء المكررة</strong><small>اكتشفي ملفات مكررة لنفس الطالبة في القائمة كلها</small></span>
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+</div><!-- /admin-tab-students -->
+
+<!-- ══ Modal فحص الأسماء المكررة ══ -->
+<div id="duplicateNamesModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,540px)">
+    <div class="modal-head">
+      <span class="m-title">👯 فحص الأسماء المكررة</span>
+      <button class="m-close" onclick="document.getElementById('duplicateNamesModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px">بيدوّر على أي اسمين متطابقين (أو قريبين جدًا) بين الطالبات غير المؤرشفات، عشان تكتشفي ملفات مكررة لنفس الطالبة.</p>
+      <div id="duplicateNamesList" style="display:flex;flex-direction:column;gap:12px;max-height:420px;overflow-y:auto">
+        <div style="text-align:center;color:var(--text-mid);font-size:13px;padding:20px">جارٍ الفحص...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: ACCOUNTS ══ -->
+<div id="admin-tab-accounts" class="admin-tab-panel" style="display:none">
+<!-- DELETION REQUESTS SECTION -->
+<div class="section" id="deletionRequestsSection">
+  <div class="section-head">
+    <div class="section-head-title">
+      <i class="ti ti-trash"></i> طلبات حذف الحسابات
+      <span id="deletionBadge" style="display:none;background:#c0392b;color:#fff;border-radius:20px;padding:2px 10px;font-size:12px;margin-right:8px;"></span>
+    </div>
+  </div>
+  <div id="deletionRequestsContainer">
+    <div class="empty-state"><i class="ti ti-inbox"></i> لا توجد طلبات حذف حالياً</div>
+  </div>
+</div>
+<!-- PENDING ACCOUNTS SECTION (admin only) -->
+<div class="section" id="pendingSection">
+<div class="section-head">
+<div class="section-head-title">
+<i class="ti ti-user-check"></i> الحسابات المعلقة — بانتظار الموافقة
+          <span class="pending-badge badge-hidden" id="pendingBadge"></span>
+</div>
+</div>
+<div id="pendingContainer">
+<div class="empty-state"><i class="ti ti-inbox"></i>لا توجد حسابات معلقة</div>
+</div>
+</div>
+<!-- ALL USERS SECTION (admin only) -->
+<div class="section" id="allUsersSection">
+  <div class="section-head">
+    <div class="section-head-title">
+      <i class="ti ti-users"></i> جميع الحسابات المسجلة
+      <span class="pending-badge badge-hidden badge-green" id="allUsersBadge"></span>
+    </div>
+    <div class="users-filter-row">
+      <input id="usersSearch" type="text" placeholder="ابحثي بالاسم أو البريد..."
+        oninput="renderAllUsers()"
+        class="users-search-input"/>
+      <select id="usersFilterRole" onchange="renderAllUsers()"
+        class="users-filter-select">
+        <option value="all">كل الأدوار</option>
+        <option value="student">أصدقاء متين</option>
+        <option value="mateen">بنات متين</option>
+        <option value="teacher">معلمة</option>
+        <option value="supervisor">مشرفة</option>
+        <option value="admin">إدارة</option>
+      </select>
+      <select id="usersFilterStatus" onchange="renderAllUsers()"
+        class="users-filter-select">
+        <option value="all">كل الحالات</option>
+        <option value="active">مفعّل</option>
+        <option value="pending">معلق</option>
+        <option value="suspended">موقوف</option>
+      </select>
+    </div>
+  </div>
+  <div class="stu-stats-row">
+    <div class="stu-stat"><span id="uTotal">0</span><small>الكل</small></div>
+    <div class="stu-stat accepted"><span id="uActive">0</span><small>مفعّلون</small></div>
+    <div class="stu-stat pending"><span id="uPending">0</span><small>معلقون</small></div>
+    <div class="stu-stat rejected"><span id="uSuspended">0</span><small>موقوفون</small></div>
+  </div>
+  <div class="table-scroll-wrap">
+    <table class="pending-table">
+      <thead><tr>
+        <th>#</th><th>الاسم</th><th>الدور</th>
+        <th>البريد الإلكتروني</th><th>الجوال</th>
+        <th>السنة</th><th>تاريخ التسجيل</th><th>الحالة</th>
+        <th>الربط</th><th>إجراء</th>
+      </tr></thead>
+      <tbody id="allUsersBody">
+        <tr><td colspan="8" class="table-loader-cell">
+          <i class="ti ti-loader spin loader-spin-lg"></i>
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div><!-- /admin-tab-accounts -->
+
+<!-- ══ TAB: TEACHERS ══ -->
+<div id="admin-tab-teachers" class="admin-tab-panel" style="display:none">
+<div class="section" id="teachersSection">
+  <div class="section-head">
+    <div class="section-head-title"><i class="ti ti-school"></i> المعلمات</div>
+  </div>
+  <div id="teachersList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px">
+    <div class="empty-state"><i class="ti ti-loader ti-spin"></i> جارٍ التحميل...</div>
+  </div>
+</div>
+</div><!-- /admin-tab-teachers -->
+
+<!-- ══ TAB: CONTENT ══ -->
+<div id="admin-tab-content" class="admin-tab-panel" style="display:none">
+<!-- ADD FORM -->
+<div class="section">
+<div class="section-head">
+<div class="section-head-title"><i class="ti ti-plus"></i> إضافة مادة جديدة</div>
+</div>
+<div class="section-body">
+<div class="howto">
+<div class="howto-title"><i class="ti ti-info-circle"></i> كيف أحصل على الرابط؟</div>
+<div class="howto-steps">
+<div class="howto-step"><span class="step-num">1</span>ارفعي الملف على Google Drive أو Dropbox أو أي خدمة تخزين</div>
+<div class="howto-step"><span class="step-num">2</span>اضغطي "مشاركة" واجعليه "يمكن لأي شخص لديه الرابط العرض"</div>
+<div class="howto-step"><span class="step-num">3</span>انسخي الرابط والصقيه في الحقل أدناه</div>
+</div>
+</div>
+<div class="err-msg" id="errMsg"><i class="ti ti-alert-circle"></i><span id="errText"></span></div>
+<div class="add-form">
+<div class="field">
+<label>رابط الملف <span class="required-star">*</span></label>
+<div class="link-wrap">
+<i class="ti ti-link"></i>
+<input id="fUrl" placeholder="https://drive.google.com/file/d/..." type="url"/>
+</div>
+<div class="link-hint">Google Drive · Dropbox · OneDrive · YouTube · أي رابط مباشر</div>
+</div>
+<div class="form-row">
+<div class="field">
+<label>المادة / المسار <span class="required-star">*</span></label>
+<select id="fCourse">
+<option value="">اختاري المادة</option>
+</select>
+</div>
+<div class="field">
+<label>نوع المحتوى</label>
+<select id="fType">
+<option value="محاضرة">محاضرة</option>
+<option value="ملخص">ملخص</option>
+<option value="واجب">واجب</option>
+<option value="اختبار">اختبار</option>
+<option value="مرجع">مرجع علمي</option>
+<option value="فيديو">فيديو</option>
+<option value="أخرى">أخرى</option>
+</select>
+</div>
+</div>
+<div class="field">
+<label>عنوان المادة <span class="required-star">*</span></label>
+<input id="fTitle" placeholder="مثال: محاضرة تفسير سورة الفاتحة — الأسبوع الأول" type="text"/>
+</div>
+<div class="field">
+<label>ملاحظات للطالبات (اختياري)</label>
+<textarea id="fNotes" placeholder="أي تعليمات أو ملاحظات..."></textarea>
+</div>
+<button class="btn-add" id="addBtn" onclick="doAdd()">
+<i class="ti ti-circle-plus"></i> إضافة المادة
+          </button>
+</div>
+</div>
+</div>
+<!-- ── قسم إدارة المواد الدراسية ── -->
+<div class="section" id="subjectsSection">
+  <div class="section-head">
+    <div class="section-head-title"><i class="ti ti-books"></i> إدارة المواد الدراسية</div>
+  </div>
+  <div style="padding:20px;text-align:center">
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px">إدارة المواد (الإضافة، الأقسام الظاهرة فيها، الحذف) أصبحت في صفحة المواد العلمية مباشرة.</p>
+    <a href="/Mateen/html/courses.html" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;text-decoration:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:600">
+      <i class="ti ti-external-link"></i> الذهاب لإدارة المواد
+    </a>
+  </div>
+</div>
+
+
+<div class="section">
+<div class="section-head">
+<div class="section-head-title"><i class="ti ti-files"></i> المواد المضافة</div>
+</div>
+<div class="filter-bar">
+<input id="searchQ" oninput="renderMats()" placeholder="🔍 بحث..." type="text">
+<select id="filterCourse" onchange="renderMats()">
+<option value="">كل المواد</option>
+</select>
+<select id="filterType" onchange="renderMats()">
+<option value="">كل الأنواع</option>
+<option>محاضرة</option><option>ملخص</option><option>واجب</option>
+<option>اختبار</option><option>مرجع</option><option>فيديو</option><option>أخرى</option>
+</select>
+</input></div>
+<div id="matsContainer">
+<div class="empty-state"><i class="ti ti-inbox"></i>لا توجد مواد مضافة بعد</div>
+</div>
+</div>
+</div>
+</div><!-- /admin-tab-content -->
+
+<!-- ══ TAB: NEWS ══ -->
+<div id="admin-tab-news" class="admin-tab-panel" style="display:none">
+<!-- NEWS & EVENTS MANAGEMENT SECTION -->
+<div class="section" id="newsSection">
+  <div class="section-head">
+    <div class="section-head-title"><i class="ti ti-speakerphone"></i> إدارة الأخبار والمواعيد</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-add-row" onclick="openAddNewsModal()"><i class="ti ti-plus"></i> خبر جديد</button>
+      <button class="btn-add-row" style="background:rgba(59,130,246,0.12);color:#2563eb;border-color:#93c5fd" onclick="openAddEventModal()"><i class="ti ti-calendar-plus"></i> موعد مهم</button>
+    </div>
+  </div>
+
+  <!-- tabs -->
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin:0 16px">
+    <button id="newsTabBtn" onclick="switchNewsTab('news')"
+      style="padding:10px 20px;border:none;background:none;font-family:inherit;font-size:13px;font-weight:600;color:var(--green-dark);border-bottom:2px solid var(--green-dark);margin-bottom:-2px;cursor:pointer">
+      📰 الأخبار
+    </button>
+    <button id="eventsTabBtn" onclick="switchNewsTab('events')"
+      style="padding:10px 20px;border:none;background:none;font-family:inherit;font-size:13px;color:var(--text-mid);cursor:pointer">
+      📅 المواعيد المهمة
+    </button>
+  </div>
+
+  <!-- قسم الأخبار -->
+  <div id="newsTabContent">
+    <div id="newsAdminList" style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+      <div style="color:var(--text-mid);font-size:13px;padding:20px;text-align:center"><i class="ti ti-loader spin"></i></div>
+    </div>
+  </div>
+
+  <!-- قسم المواعيد -->
+  <div id="eventsTabContent" style="display:none">
+    <div id="eventsAdminList" style="padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+      <div style="color:var(--text-mid);font-size:13px;padding:20px;text-align:center"><i class="ti ti-loader spin"></i></div>
+    </div>
+  </div>
+</div>
+</div><!-- /admin-tab-news -->
+
+<!-- ══ TAB: TOOLS ══ -->
+<div id="admin-tab-tools" class="admin-tab-panel" style="display:none">
+<div class="section">
+  <div class="section-head">
+    <div class="section-head-title"><i class="ti ti-settings"></i> أدوات النظام</div>
+  </div>
+  <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+    <a href="/Mateen/html/support.html" class="btn-add-row" style="text-align:center">
+      <i class="ti ti-bug"></i> فحص الموقع الشامل
+    </a>
+    <div style="border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:13px;color:var(--text-mid);margin-bottom:10px">🛠️ صيانة لمرة واحدة</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="fixOldParticipationGrades()" class="btn-add-row">
+          <i class="ti ti-wand"></i> تصحيح درجات المشاركة القديمة
+        </button>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:13px;color:var(--text-mid);margin-bottom:10px">⚠️ منطقة الخطر — هذه الإجراءات لا يمكن التراجع عنها</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="openResetDataModal()" class="btn-danger-solid">
+          <i class="ti ti-trash"></i> مسح البيانات
+        </button>
+      </div>
+    </div>
+  </div>
+</div><!-- /admin-tab-tools -->
+
+</div><!-- /container -->
+</div><!-- /mainContent -->
+
+<!-- Modal إضافة/تعديل خبر (Admin) -->
+<div id="adminNewsModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box" style="width:min(94vw,520px)">
+    <div class="modal-head">
+      <span class="m-title" id="adminNewsModalTitle">خبر جديد</span>
+      <button class="m-close" onclick="document.getElementById('adminNewsModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <input id="anTitle" type="text" placeholder="عنوان الخبر أو الإعلان" class="m-input-news"/>
+      <textarea id="anBody" rows="4" placeholder="تفاصيل الخبر..." class="m-textarea-news"></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <select id="anTag" class="m-select-news" style="flex:1">
+          <option value="📢 إعلان">📢 إعلان</option>
+          <option value="📝 خبر">📝 خبر</option>
+          <option value="🎉 مناسبة">🎉 مناسبة</option>
+          <option value="⚠️ تنبيه">⚠️ تنبيه</option>
+          <option value="📅 موعد">📅 موعد</option>
+        </select>
+        <select id="anVisibility" class="m-select-news" style="flex:1" onchange="anToggleRolesBox()">
+          <option value="public">🌐 للجميع (بدون تسجيل)</option>
+          <option value="members">🔒 للمسجلات فقط</option>
+        </select>
+      </div>
+      <div id="anRolesBox" style="display:none;flex-direction:column;gap:6px;background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:10px">
+        <span style="font-size:12px;color:var(--text-mid)">أنواع المستخدمين اللي يوصلهم الخبر (اتركي الكل بدون تحديد ليوصل للجميع):</span>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="an-role-check" value="student"/> 🎓 طالبات
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="an-role-check" value="teacher"/> 👩‍🏫 معلمات
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="an-role-check" value="supervisor"/> 🧑‍💼 مشرفات
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="an-role-check" value="admin"/> 🛡️ أدمن
+          </label>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="anPinned"> تثبيت الخبر في الأعلى
+      </label>
+    </div>
+    <div class="modal-body" style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:flex-end;gap:10px">
+      <button class="m-btn" style="background:var(--beige);color:var(--text-dark);border:1px solid var(--border)"
+        onclick="document.getElementById('adminNewsModal').classList.remove('show')">إلغاء</button>
+      <button class="m-btn" onclick="submitAdminNews()"><i class="ti ti-send"></i> نشر</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal إضافة/تعديل موعد مهم -->
+<div id="adminEventModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box" style="width:min(94vw,420px)">
+    <div class="modal-head">
+      <span class="m-title" id="adminEventModalTitle">موعد مهم جديد</span>
+      <button class="m-close" onclick="document.getElementById('adminEventModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <input id="aeName" type="text" placeholder="اسم الموعد / الحدث" class="m-input-news"/>
+      <input id="aeDate" type="text" placeholder="التاريخ (مثال: الأحد ١٩ صفر)" class="m-input-news"/>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="aeHighlight"> تمييز بالذهبي (حدث مهم)
+      </label>
+    </div>
+    <div class="modal-body" style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:flex-end;gap:10px">
+      <button class="m-btn" style="background:var(--beige);color:var(--text-dark);border:1px solid var(--border)"
+        onclick="document.getElementById('adminEventModal').classList.remove('show')">إلغاء</button>
+      <button class="m-btn" onclick="submitAdminEvent()"><i class="ti ti-calendar-check"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal تصthisر Attendance  and the غياب ── -->
+<div class="modal-overlay m-overlay z-mid" id="attModal">
+  <div class="m-box m-box-md m-box-flex">
+    <!-- Header -->
+    <div class="m-head">
+      <div class="m-title m-title-amber">📋 تصدير الحضور والغياب</div>
+      <button onclick="closeAttModal()" class="m-close">✕</button>
+    </div>
+    <!-- Body -->
+    <div class="m-body">
+      <!-- اختيار الطريقة -->
+      <div class="m-block">
+        <div class="m-label-row">طريقة التصدير:</div>
+        <select id="attMode" class="m-select">
+          <option value="perStudent">صفحة مستقلة لكل طالبة</option>
+          <option value="perWeek">صفحة لكل أسبوع (كل الطالبات وكل المواد)</option>
+          <option value="perSubject">صفحة لكل مادة (كل الطالبات)</option>
+        </select>
+      </div>
+      <hr class="m-hr">
+      <!-- الفترة الزمنية -->
+      <div class="m-block">
+        <div class="m-label-row">الفترة الزمنية (اختياري — سيبيها فاضية لتصدير كل الفترة):</div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="date" id="attFrom" class="m-select" style="flex:1">
+          <span style="color:var(--text-mid);font-size:12px">إلى</span>
+          <input type="date" id="attTo" class="m-select" style="flex:1">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button type="button" onclick="attQuickRange(7)" class="m-btn-select-all" style="font-size:11px">آخر أسبوع</button>
+          <button type="button" onclick="attQuickRange(30)" class="m-btn-select-all" style="font-size:11px">آخر شهر</button>
+          <button type="button" onclick="attQuickRange(0)" class="m-btn-deselect-all" style="font-size:11px">كل الفترة</button>
+        </div>
+      </div>
+      <hr class="m-hr">
+      <!-- Select students -->
+      <div class="m-label-row">اختاري الطالبات:</div>
+      <div class="m-select-row">
+        <button onclick="attSelectAll(true)"  class="m-btn-select-all">✔ تحديد الكل</button>
+        <button onclick="attSelectAll(false)" class="m-btn-deselect-all">✖ إلغاء الكل</button>
+      </div>
+      <div id="attStudentList" class="m-student-list m-student-list-lg">
+        <!-- تُبنى بـ JS -->
+      </div>
+      <hr class="m-hr">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="attIncludeSummary" checked/>
+        إضافة صفحة ملخص إجمالي (نسبة حضور كل طالبة) في البداية
+      </label>
+    </div>
+    <!-- Footer -->
+    <div class="m-foot">
+      <button onclick="doAttExport('excel')" class="m-btn-word">📊 Excel</button>
+      <button onclick="doAttExport('word')" class="m-btn-word">⬇️ Word</button>
+      <button onclick="doAttExport('pdf')"  class="m-btn-pdf">🖨️ PDF</button>
+      <button onclick="closeAttModal()"     class="m-btn-cancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+<style>
+  .att-stu-label { display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:1px solid #eee;cursor:pointer;font-size:13px;font-family:Cairo,sans-serif;transition:background .15s; }
+  .att-stu-label:hover { background:#f5f8fb; }
+  .att-stu-label input[type=checkbox] { width:16px;height:16px;accent-color:#1a4a2e;cursor:pointer; }
+
+/* ══ ADMIN TABS ══ */
+.admin-tabs-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--beige2, #f0e8d8);
+  border-radius: 14px;
+  padding: 6px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(44,26,14,0.08);
+}
+.admin-tabs-bar::-webkit-scrollbar { display: none; }
+.admin-tab {
+  flex: 1;
+  min-width: 80px;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-mid, #8a6a52);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  position: relative;
+}
+.admin-tab:hover { background: rgba(255,255,255,0.6); }
+.admin-tab.active {
+  background: var(--white, #fff);
+  color: var(--green-dark, #1b4332);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(44,26,14,0.12);
+}
+.admin-tab-badge {
+  background: #c0392b;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+.btn-danger-outline {
+  padding: 10px 16px;
+  border: 1.5px solid #c0392b;
+  background: transparent;
+  color: #c0392b;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-danger-outline:hover { background: rgba(192,57,43,0.08); }
+.btn-danger-solid {
+  padding: 10px 16px;
+  border: none;
+  background: #c0392b;
+  color: #fff;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-danger-solid:hover { background: #a93226; }
+@@media (max-width: 600px) {
+  .admin-tab span { display: none; }
+  .admin-tab { min-width: 44px; padding: 10px 6px; }
+  .admin-tabs-bar { gap: 2px; padding: 4px; }
+}
+
+/* ══ Actions Dropdown Menu ══ */
+.actions-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-dark, #2c1a0e);
+  cursor: pointer;
+  text-align: right;
+  transition: background 0.15s;
+  direction: rtl;
+}
+.actions-menu-item:hover { background: var(--beige, #faf7f2); }
+.ami-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.ami-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.ami-text strong { font-size: 13px; font-weight: 700; }
+.ami-text small { font-size: 11px; color: var(--text-mid); font-weight: 400; }
+</style>
+
+<!-- ── Modal التصthisر ── -->
+<div class="modal-overlay m-overlay z-low" id="exportModal">
+  <div class="m-box m-box-sm">
+    <div class="m-head">
+      <div class="m-title">⬇️ إعدادات التصدير</div>
+      <button onclick="closeExportModal()" class="m-close">✕</button>
+    </div>
+    <div class="m-body-scroll">
+      <!-- الأعمدة -->
+      <div class="m-label-row">الأعمدة المطلوبة:</div>
+      <div class="m-checkbox-row">
+        <label class="m-checkbox-label"><input type="checkbox" id="col_name" checked> اسم الطالبة</label>
+        <label class="m-checkbox-label"><input type="checkbox" id="col_day" checked> اليوم</label>
+        <label class="m-checkbox-label"><input type="checkbox" id="col_dateH" checked> التاريخ الهجري</label>
+        <label class="m-checkbox-label"><input type="checkbox" id="col_dateG"> التاريخ الميلادي</label>
+        <label class="m-checkbox-label"><input type="checkbox" id="col_time" checked> الوقت</label>
+        <label class="m-checkbox-label"><input type="checkbox" id="col_interview"> المقابلة</label>
+        <label class="m-checkbox-label"><input type="checkbox" id="col_result"> القبول</label>
+      </div>
+      <hr class="m-hr m-hr-lg">
+      <!-- تقسيم اIfقت -->
+      <div class="m-block">
+        <label class="m-checkbox-label-lg">
+          <input type="checkbox" id="groupByTime" onchange="document.getElementById('groupOptions').classList.toggle('show', this.checked)">
+          تقسيم كل نطاق وقت في صفحة مستقلة
+        </label>
+        <div id="groupOptions" class="m-group-options">
+          <label class="m-checkbox-label-lg">
+            حجم النطاق:
+            <select id="rangeSize" class="m-select-sm">
+              <option value="60">ساعة واحدة</option>
+              <option value="30">نصف ساعة</option>
+              <option value="120">ساعتين</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <hr class="m-hr">
+      <!-- Select students -->
+      <div class="m-label-row">اختاري الطالبات للتصدير:</div>
+      <div class="m-select-row">
+        <button onclick="exportSelectAll(true)"  class="m-btn-select-all">✔ تحديد الكل</button>
+        <button onclick="exportSelectAll(false)" class="m-btn-deselect-all">✖ إلغاء الكل</button>
+      </div>
+      <div id="exportStudentList" class="m-student-list m-student-list-sm">
+        <!-- تُبنى بـ JS -->
+      </div>
+    </div>
+    <div class="m-foot">
+      <button onclick="doExport('word')" class="m-btn-word">⬇️ Word</button>
+      <button onclick="doExport('pdf')" class="m-btn-pdf">🖨️ PDF</button>
+      <button onclick="closeExportModal()" class="m-btn-cancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── Modal ربط الحساب بطالبة in the Schedule/Table ── -->
+<div id="linkModal" class="m-overlay z-high">
+  <div class="m-box m-box-lg m-box-flex">
+
+    <!-- Header -->
+    <div class="m-head m-head-light">
+      <div>
+        <div class="m-title-serif">📖 قبول حساب بنات متين</div>
+        <div class="m-subtitle" id="linkModalSubtitle">اختاري طالبة لربطها أو اضغطي "قبول بدون ربط"</div>
+      </div>
+      <button onclick="closeLinkModal()" class="m-close">✕</button>
+    </div>
+
+    <!-- Search -->
+    <div class="m-search-wrap">
+      <input id="linkSearch" type="text" placeholder="ابحثي باسم الطالبة..."
+        oninput="filterLinkList()"
+        class="m-search-input"/>
+    </div>
+
+    <!-- List -->
+    <div id="linkStudentList" class="m-list-flex"></div>
+
+    <!-- Footer -->
+    <div class="m-foot m-foot-light">
+      <button onclick="confirmLinkModal(null)" class="m-btn-cancel-gold">
+        <i class="ti ti-check"></i> قبول بدون ربط
+      </button>
+      <button id="linkConfirmBtn" onclick="confirmLinkModal(window._selectedLinkId)" disabled
+        class="m-btn-confirm-green">
+        <i class="ti ti-link"></i> ربط واعتماد
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="/Mateen/js/admin-1.js?v=20260731c" type="module"></script>
+<script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+<script src="/Mateen/js/sw-register.js?v=20260723"></script>
+
+<!-- ══ Modal Add اختبار جماعي ══ -->
+<div id="bulkGradeModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:700px;width:95vw">
+    <div class="modal-head">
+      <span class="m-title m-title-amber">📝 إضافة اختبار لعدة طالبات</span>
+      <button class="m-close" onclick="closeBulkGradeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- اختيار اختبار موجود بالفعل لنفس المادة (بدل ما تتكرر تسميات مختلفة لنفس الاختبار) -->
+      <div style="margin-bottom:10px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">أو اختاري اختبار موجود بالفعل (اختياري)</label>
+        <select id="bgExistingExam" onchange="bgApplyExistingExam()" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+          <option value="">— اختبار جديد —</option>
+        </select>
+      </div>
+      <!-- معلومات الاختبار -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">اسم الاختبار *</label>
+          <input id="bgLabel" type="text" placeholder="مثال: اختبار نهاية الفصل" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">المادة *</label>
+          <select id="bgSubject" onchange="bgLoadExistingExams()" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+            <option value="">— اختاري المادة —</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">الدرجة الكلية <span style="font-weight:400">(لازمة بس لو "جزء من توتال المادة")</span></label>
+          <input id="bgTotal" type="number" min="1" max="100" value="100" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">الدرجة دي بتتحسب إزاي؟</label>
+        <select id="bgAddType" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+          <option value="subjectTotal">جزء من توتال المادة (الافتراضي — بتدخل في متوسط المادة الأساسي)</option>
+          <option value="subjectBonus">إضافة فوق توتال المادة (بتتضاف كنقط زيادة على درجة المادة)</option>
+          <option value="overallBonus">إضافة للتوتال العام (بتتضاف على متوسط الطالبة العام، مش لمادة معينة)</option>
+          <option value="bonus">بونص فقط — مش بيتحسب في أي توتال (للعرض بس)</option>
+        </select>
+      </div>
+
+      <!-- Excel Import Section -->
+      <div style="background:rgba(201,162,39,0.08);border:1px solid rgba(201,162,39,0.25);border-radius:12px;padding:14px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-dark);margin-bottom:10px">📊 رفع درجات من ملف Excel</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="bgExcelFile" type="file" accept=".xlsx,.xls,.csv" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;cursor:pointer"/>
+          <button onclick="importExcelGrades()" style="background:var(--gold);color:var(--green-dark);border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-weight:600;cursor:pointer;white-space:nowrap">استيراد</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-mid)">📌 الملف يجب أن يحتوي على عمود "اسم الطالبة:" و"Score"</div>
+      </div>
+
+      <!-- Preview Table (hidden initially) -->
+      <div id="bgPreviewSection" style="display:none;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+          <span>📋 معاينة الدرجات المستوردة</span>
+          <button onclick="document.getElementById('bgPreviewSection').style.display='none'" style="background:none;border:none;color:var(--text-mid);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div id="bgPreviewTable" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;font-size:12px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead style="background:var(--beige2);position:sticky;top:0">
+              <tr>
+                <th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-weight:600">الطالبة</th>
+                <th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-weight:600">الدرجة</th>
+                <th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-weight:600;color:#888">الحالة</th>
+              </tr>
+            </thead>
+            <tbody id="bgPreviewBody"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-mid)">
+          <span id="bgMatchCount"></span>
+          <span>
+            <button onclick="clearExcelImport()" style="background:none;border:none;color:#c0392b;cursor:pointer;text-decoration:underline;font-family:inherit;font-size:11px">مسح</button>
+            <button onclick="applyExcelImport()" style="margin-right:10px;background:var(--green-dark);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-family:inherit;font-weight:600;font-size:12px;cursor:pointer">✅ تطبيق على القائمة تحت</button>
+          </span>
+        </div>
+      </div>
+
+      <!-- Select students -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-dark)">الطالبات</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="bgSelectAll()" style="font-size:12px;background:var(--beige2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">تحديد الكل</button>
+          <button onclick="bgClearAll()" style="font-size:12px;background:var(--beige2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">إلغاء الكل</button>
+        </div>
+      </div>
+
+      <div id="bgStudentsList" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button onclick="closeBulkGradeModal()" style="background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-family:inherit;cursor:pointer">إلغاء</button>
+        <button onclick="saveBulkGrades()" style="background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;border:none;border-radius:8px;padding:9px 24px;font-family:inherit;font-weight:700;cursor:pointer"><i class="ti ti-device-floppy"></i> حفظ الدرجات</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ مودال إضافة حضور جماعي ══ -->
+<div id="bulkAttModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:700px;width:95vw">
+    <div class="modal-head">
+      <span class="m-title m-title-amber">📋 إضافة حضور لعدة طالبات</span>
+      <button class="m-close" onclick="closeBulkAttModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">اليوم *</label>
+          <select id="baDay" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+            <option value="السبت">السبت</option>
+            <option value="الأحد">الأحد</option>
+            <option value="الاثنين">الاثنين</option>
+            <option value="الثلاثاء">الثلاثاء</option>
+            <option value="الأربعاء">الأربعاء</option>
+            <option value="الخميس">الخميس</option>
+            <option value="الجمعة">الجمعة</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">التاريخ *</label>
+          <input id="baDate" type="date" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">المادة *</label>
+          <select id="baSubject" onchange="renderBAStudents()" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+            <option value="">— اختاري —</option>
+            <option value="__ALL__">📅 كل مواد اليوم</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-dark)">الطالبات</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="baSelectAll()" style="font-size:12px;background:var(--beige2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">تحديد الكل</button>
+          <button onclick="baClearAll()" style="font-size:12px;background:var(--beige2);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">إلغاء الكل</button>
+          <button onclick="baMarkAllPresent()" style="font-size:12px;background:rgba(39,174,96,0.1);color:#1e8449;border:1px solid rgba(39,174,96,0.3);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">الكل حاضرة</button>
+          <button onclick="baMarkAllAbsent()" style="font-size:12px;background:rgba(192,57,43,0.1);color:#c0392b;border:1px solid rgba(192,57,43,0.3);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">الكل غائبة</button>
+          <button onclick="baMarkAllExcused()" style="font-size:12px;background:rgba(201,162,39,0.1);color:#a3801d;border:1px solid rgba(201,162,39,0.3);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit">الكل معتذرة</button>
+        </div>
+      </div>
+
+      <div id="baStudentsList" style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;background:rgba(230,126,34,0.1);border:1px solid rgba(230,126,34,0.3);border-radius:8px;padding:8px 14px">
+        <span style="font-size:13px;font-weight:600;color:#a3552a"><i class="ti ti-clock"></i> إجمالي دقائق التأخير لهذا اليوم</span>
+        <span id="baLateTotal" style="font-size:15px;font-weight:800;color:#a3552a">0</span>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+        <button onclick="closeBulkAttModal()" style="background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-family:inherit;cursor:pointer">إلغاء</button>
+        <button onclick="saveBulkAttendance()" style="background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;border:none;border-radius:8px;padding:9px 24px;font-family:inherit;font-weight:700;cursor:pointer"><i class="ti ti-device-floppy"></i> حفظ الحضور</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ مودال فحص نقص الحضور ══ -->
+<div id="missingAttModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,480px)">
+    <div class="modal-head">
+      <span class="m-title">⚠️ فحص نقص الحضور</span>
+      <button class="m-close" onclick="document.getElementById('missingAttModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px">بيوريكي أي يوم فيه طالبات (من غير المؤرشفات) ناقصهم تسجيل حضور، بينما باقي الطالبات مسجل لهم.</p>
+      <div id="missingAttList" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto">
+        <div style="text-align:center;color:var(--text-mid);font-size:13px;padding:20px">جارٍ التحميل...</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="deleteAttModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,480px)">
+    <div class="modal-head">
+      <span class="m-title">📅 تعديل / حذف حضور جماعي</span>
+      <button class="m-close" onclick="document.getElementById('deleteAttModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px">اختاري جلسة حضور: عدّلي اسم اليوم بتاعها أو احذفيها من عند كل الطالبات دفعة واحدة.</p>
+      <div id="attListToDelete" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
+        <div style="text-align:center;color:var(--text-mid);font-size:13px;padding:20px">جارٍ التحميل...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ مودال استيراد حضور من رسالة نصية ══ -->
+<div id="pasteAttModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:760px;width:96vw">
+    <div class="modal-head">
+      <span class="m-title m-title-amber">💬 استيراد حضور من رسالة</span>
+      <button class="m-close" onclick="closePasteAttModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">التاريخ *</label>
+        <input id="paDate" type="date" onchange="paUpdateDayInfo()" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+      </div>
+
+      <div id="paDayInfo" style="display:none;margin-top:10px"></div>
+
+      <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="paExtraSubjectSelect" style="flex:1;min-width:140px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:inherit;font-size:12px">
+          <option value="">— اختاري مادة تضيفيها يدويًا —</option>
+        </select>
+        <button type="button" onclick="paAddExtraSubject()" style="font-size:12px;background:var(--beige2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit">+ إضافة</button>
+      </div>
+      <div id="paExtraSubjectsList" style="margin-top:6px"></div>
+
+      <label style="font-size:12px;color:var(--text-mid);display:block;margin:12px 0 4px">الصقي نص الرسالة هنا *</label>
+      <textarea id="paMessage" rows="8" placeholder="أسماء محمد سليمان ✅️✅️✅️ أميرة بشير خلف✅️✅️✅️ ..." style="width:100%;border:1px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:13px;resize:vertical"></textarea>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button onclick="parseAttendanceMessageUI()" style="background:var(--green-dark);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-family:inherit;font-weight:700;cursor:pointer"><i class="ti ti-wand"></i> تحليل الرسالة</button>
+      </div>
+
+      <div id="paPreviewSection" style="display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <div id="paSummary" style="font-size:13px;margin-bottom:10px;font-weight:600"></div>
+        <div id="paNotMentioned" style="display:none;margin-bottom:12px;background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.3);border-radius:8px;padding:10px;font-size:12px"></div>
+        <div id="paRowsList" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+          <button onclick="closePasteAttModal()" style="background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-family:inherit;cursor:pointer">إلغاء</button>
+          <button onclick="confirmPasteAttendance()" style="background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;border:none;border-radius:8px;padding:9px 24px;font-family:inherit;font-weight:700;cursor:pointer"><i class="ti ti-device-floppy"></i> تأكيد وحفظ الحضور</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/Mateen/js/tour.js?v=20260723"></script>
+
+
+<!-- ══ مودال الأرشيف ══ -->
+<div id="archiveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1100;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:min(600px,95vw);max-height:80vh;overflow-y:auto;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="font-family:Amiri,serif;color:var(--green-dark);margin:0"><i class="ti ti-archive"></i> أرشيف الطالبات المحذوفات</h3>
+      <button onclick="closeArchiveModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-mid)">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px">يمكنك استعادة أي طالبة أو حذفها نهائياً من هنا.</p>
+    <table class="pending-table" style="width:100%">
+      <thead><tr>
+        <th>الاسم</th><th>تاريخ الأرشفة</th><th>إجراء</th>
+      </tr></thead>
+      <tbody id="archiveBody">
+        <tr><td colspan="3" class="empty-state">جارٍ التحميل...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+
+<!-- ── قسم فحص الموقع (للدعم الفني) ── -->
+<div class="section" id="siteTesterSection">
+  <div class="section-head">
+    <div class="section-head-title"><i class="ti ti-radar"></i> فحص الموقع الشامل</div>
+  </div>
+  <div class="section-body" style="padding:20px">
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px">فحص شامل لجميع صفحات الموقع — أداء، SEO، صور، روابط، إمكانية الوصول، وأفضل الممارسات.</p>
+    <button id="runSiteTestBtn" onclick="runSiteTest()" style="background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;border:none;border-radius:10px;padding:10px 24px;font-family:inherit;font-size:14px;cursor:pointer;font-weight:600;">
+      <i class="ti ti-player-play"></i> بدء الفحص الشامل
+    </button>
+    <div id="siteTestResults" style="margin-top:20px;"></div>
+  </div>
+</div>
+
+<script>
+const SITE_PAGES = [
+  'home.html','courses.html','library.html','messages.html','news.html',
+  'schedule.html','student.html','admin.html','supervisor.html','about.html',
+  'stats.html','student-general.html','student-view.html',
+  'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',
+  'teacher-fiqh.html','teacher-hadeeth.html','teacher-tafseer.html',
+  'teacher-profile.html','teacher-schedule.html','teacher-students.html',
+  'teacher-library.html','my-students.html','onboarding.html'
+];
+
+async function runSiteTest() {
+  const btn = document.getElementById('runSiteTestBtn');
+  const results = document.getElementById('siteTestResults');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> جارٍ الفحص...';
+
+  const base = window.location.origin + '/Mateen/html/';
+  let rows = '';
+  let summary = { ok:0, slow:0, err:0 };
+
+  for (const page of SITE_PAGES) {
+    const url = base + page;
+    const result = await checkPage(url, page);
+    if (result.httpOk === false) summary.err++;
+    else if (result.loadTime > 2000) summary.slow++;
+    else summary.ok++;
+
+    const perfScore = result.perfScore;
+    const perfColor = perfScore >= 90 ? '#27ae60' : perfScore >= 50 ? '#e67e22' : '#e74c3c';
+
+    rows += `<tr style="border-bottom:1px solid rgba(0,0,0,0.06)">
+      <td style="padding:8px 10px;font-size:12px;font-weight:600">${page}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.httpOk?'#27ae60':'#e74c3c'}">${result.httpOk ? '✅ '+result.httpStatus : '❌ '+result.httpStatus}</td>
+      <td style="padding:8px 10px;font-size:12px">${result.loadTime} ms</td>
+      <td style="padding:8px 10px;font-size:12px">${result.size}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${perfColor};font-weight:700">${perfScore}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.seo.color}">${result.seo.text}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.a11y.color}">${result.a11y.text}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.bp.color}">${result.bp.text}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.images.color}">${result.images.text}</td>
+      <td style="padding:8px 10px"><a href="${url}" style="font-size:12px;color:var(--gold-mid)">فتح ↗</a></td>
+    </tr>`;
+
+    results.innerHTML = `
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <span style="background:#e8f5e9;color:#27ae60;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">✅ سليمة: ${summary.ok}</span>
+        <span style="background:#fff3e0;color:#e67e22;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">⚠️ بطيئة: ${summary.slow}</span>
+        <span style="background:#ffebee;color:#e74c3c;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">❌ أخطاء: ${summary.err}</span>
+        <span style="background:#f3f3f3;color:#666;padding:6px 14px;border-radius:20px;font-size:12px">تم فحص ${summary.ok+summary.slow+summary.err} / ${SITE_PAGES.length}</span>
+      </div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:900px">
+        <thead><tr style="background:rgba(92,61,46,0.08)">
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الصفحة</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">HTTP</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">وقت التحميل</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الحجم</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الأداء 🏎️</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">SEO 🔍</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">إمكانية الوصول ♿</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">أفضل الممارسات ✨</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الصور 🖼️</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">رابط</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-refresh"></i> إعادة الفحص';
+}
+
+async function checkPage(url, page) {
+  const start = performance.now();
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    const loadTime = Math.round(performance.now() - start);
+    const html = await res.text();
+    const size = formatSize(new Blob([html]).size);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // ── Performance Score ──
+    let perfDeductions = 0;
+    if (loadTime > 3000) perfDeductions += 40;
+    else if (loadTime > 2000) perfDeductions += 25;
+    else if (loadTime > 1000) perfDeductions += 10;
+    const scripts = doc.querySelectorAll('script[src]').length;
+    const styles = doc.querySelectorAll('link[rel="stylesheet"]').length;
+    if (scripts > 10) perfDeductions += 10;
+    if (styles > 5) perfDeductions += 5;
+    const imgs = doc.querySelectorAll('img');
+    const largeImgs = [...imgs].filter(i => {
+      const w = parseInt(i.getAttribute('width')||'0');
+      return w > 800;
+    }).length;
+    if (largeImgs > 0) perfDeductions += largeImgs * 5;
+    const hasViewport = !!doc.querySelector('meta[name="viewport"]');
+    if (!hasViewport) perfDeductions += 10;
+    const perfScore = Math.max(0, 100 - perfDeductions);
+
+    // ── SEO ──
+    const metaDesc = doc.querySelector('meta[name="description"]');
+    const h1 = doc.querySelector('h1');
+    const title = doc.querySelector('title')?.textContent?.trim() || '';
+    const canonical = doc.querySelector('link[rel="canonical"]');
+    const robots = doc.querySelector('meta[name="robots"]');
+    const ogTitle = doc.querySelector('meta[property="og:title"]');
+    let seoIssues = [];
+    if (!metaDesc) seoIssues.push('لا يوجد meta description');
+    if (!h1) seoIssues.push('لا يوجد H1');
+    if (title.length < 10) seoIssues.push('العنوان قصير');
+    if (!canonical) seoIssues.push('لا يوجد canonical');
+    if (!ogTitle) seoIssues.push('لا يوجد Open Graph');
+    const seoScore = Math.round((1 - seoIssues.length/5) * 100);
+    const seo = { 
+      text: seoIssues.length === 0 ? '✅ '+seoScore : '⚠️ '+seoScore+' — '+seoIssues[0],
+      color: seoScore >= 80 ? '#27ae60' : seoScore >= 50 ? '#e67e22' : '#e74c3c'
+    };
+
+    // ── Accessibility ──
+    const lang = doc.documentElement.getAttribute('lang');
+    const btnsNoText = [...doc.querySelectorAll('button')].filter(b => !b.textContent.trim() && !b.getAttribute('aria-label')).length;
+    const inputsNoLabel = [...doc.querySelectorAll('input,textarea,select')].filter(el => {
+      const id = el.getAttribute('id');
+      return !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby') && !(id && doc.querySelector(`label[for="${id}"]`));
+    }).length;
+    const linksNoText = [...doc.querySelectorAll('a')].filter(a => !a.textContent.trim() && !a.getAttribute('aria-label')).length;
+    let a11yIssues = [];
+    if (!lang) a11yIssues.push('لا يوجد lang');
+    if (btnsNoText > 0) a11yIssues.push(`${btnsNoText} زرار بدون نص`);
+    if (inputsNoLabel > 0) a11yIssues.push(`${inputsNoLabel} حقل بدون label`);
+    if (linksNoText > 0) a11yIssues.push(`${linksNoText} رابط بدون نص`);
+    const a11yScore = Math.round((1 - a11yIssues.length/4) * 100);
+    const a11y = {
+      text: a11yIssues.length === 0 ? '✅ '+a11yScore : '⚠️ '+a11yScore+' — '+a11yIssues[0],
+      color: a11yScore >= 80 ? '#27ae60' : a11yScore >= 50 ? '#e67e22' : '#e74c3c'
+    };
+
+    // ── Best Practices ──
+    const isHttps = url.startsWith('https://');
+    const viewportMeta = doc.querySelector('meta[name="viewport"]');
+    const charsetMeta = doc.querySelector('meta[charset]');
+    const faviconLink = doc.querySelector('link[rel*="icon"]');
+    let bpIssues = [];
+    if (!isHttps) bpIssues.push('ليس HTTPS');
+    if (!viewportMeta) bpIssues.push('لا يوجد viewport');
+    if (!charsetMeta) bpIssues.push('لا يوجد charset');
+    if (!faviconLink) bpIssues.push('لا يوجد favicon');
+    const bpScore = Math.round((1 - bpIssues.length/4) * 100);
+    const bp = {
+      text: bpIssues.length === 0 ? '✅ '+bpScore : '⚠️ '+bpScore+' — '+bpIssues[0],
+      color: bpScore >= 80 ? '#27ae60' : bpScore >= 50 ? '#e67e22' : '#e74c3c'
+    };
+
+    // ── Images ──
+    const missingAlt = [...imgs].filter(i => !i.getAttribute('alt')).length;
+    const images = {
+      text: missingAlt === 0 ? (imgs.length > 0 ? `✅ ${imgs.length} صورة` : '—') : `⚠️ ${missingAlt} بدون alt`,
+      color: missingAlt === 0 ? '#27ae60' : '#e67e22'
+    };
+
+    return { httpOk: res.ok, httpStatus: res.status, loadTime, size, perfScore, seo, a11y, bp, images };
+
+  } catch(e) {
+    const loadTime = Math.round(performance.now() - start);
+    return {
+      httpOk: false, httpStatus: 'خطأ', loadTime, size: '—', perfScore: 0,
+      seo: { text: '—', color: '#aaa' },
+      a11y: { text: '—', color: '#aaa' },
+      bp: { text: '—', color: '#aaa' },
+      images: { text: '—', color: '#aaa' }
+    };
+  }
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+</script>
+
+<!-- ══ Modal حذف اختبار جماعي ══ -->
+<div id="deleteExamModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,480px)">
+    <div class="modal-head">
+      <span class="m-title">🗑️ تعديل / حذف اختبار جماعي</span>
+      <button class="m-close" onclick="document.getElementById('deleteExamModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px">اختاري الاختبار اللي عاوزة تعدّليه أو تحذفيه من عند كل الطالبات.</p>
+      <div id="examListToDelete" style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto">
+        <div style="text-align:center;color:var(--text-mid);font-size:13px;padding:20px">جارٍ التحميل...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal تعديل اختبار جماعي — بيعدّل اسم/مادة/توتال/طريقة حساب الاختبار لكل الطالبات اللي عندها الاختبار ده دفعة واحدة ══ -->
+<div id="editExamModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,480px)">
+    <div class="modal-head">
+      <span class="m-title">✏️ تعديل اختبار جماعي</span>
+      <button class="m-close" onclick="document.getElementById('editExamModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="eeAffectedNote" style="font-size:12px;color:var(--text-mid);background:var(--beige2);border-radius:8px;padding:8px 10px;margin-bottom:14px"></div>
+
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">اسم الاختبار *</label>
+        <input id="eeLabel" type="text" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">المادة</label>
+          <select id="eeSubject" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+            <option value="">— اختاري المادة —</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">الدرجة الكلية <span style="font-weight:400">(لازمة بس لو "جزء من توتال المادة")</span></label>
+          <input id="eeTotal" type="number" min="1" max="100" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">الدرجة دي بتتحسب إزاي؟</label>
+        <select id="eeAddType" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px">
+          <option value="subjectTotal">جزء من توتال المادة (الافتراضي — بتدخل في متوسط المادة الأساسي)</option>
+          <option value="subjectBonus">إضافة فوق توتال المادة (بتتضاف كنقط زيادة على درجة المادة)</option>
+          <option value="overallBonus">إضافة للتوتال العام (بتتضاف على متوسط الطالبة العام، مش لمادة معينة)</option>
+          <option value="bonus">بونص فقط — مش بيتحسب في أي توتال (للعرض بس)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:6px">درجات الطالبات</label>
+        <div id="eeScoresList" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px"></div>
+      </div>
+
+      <button onclick="saveEditExam()" style="width:100%;background:var(--green-dark,#5c3d2e);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700">
+        <i class="ti ti-device-floppy"></i> حفظ التعديل
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal إضافة شهادة/إجازة سريعة من جدول الطالبات ══ -->
+<div id="quickAddModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,480px)">
+    <div class="modal-head">
+      <span class="m-title" id="quickAddTitle">🎓 إضافة شهادة</span>
+      <button class="m-close" onclick="document.getElementById('quickAddModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px" id="quickAddNameLabel">اسم الشهادة *</label>
+        <input type="text" id="quickAddTitleInput" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px" placeholder="مثال: شهادة إتمام حفظ جزء عمّ"/>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">التاريخ</label>
+        <input type="date" id="quickAddDateInput" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">ملاحظة (اختياري)</label>
+        <textarea id="quickAddNoteInput" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical" placeholder="أي ملاحظة إضافية..."></textarea>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">📎 صورة/ملف الشهادة أو الإجازة (اختياري)</label>
+        <input type="file" id="quickAddFileInput" accept="image/*,.pdf,.doc,.docx" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:8px;padding:7px 8px"/>
+        <div style="text-align:center;font-size:11px;color:var(--text-mid);margin:8px 0">— أو —</div>
+        <input type="text" id="quickAddLinkInput" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px" placeholder="الصقي رابط جاهز (Google Drive مثلاً)"/>
+        <div id="quickAddUploadStatus" style="display:none;align-items:center;gap:6px;font-size:11.5px;color:var(--text-mid);margin-top:6px">
+          <i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite"></i>
+          <span>جارٍ رفع الملف...</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-solid" id="quickAddSaveBtn" onclick="saveQuickAdd()"><i class="ti ti-check"></i> حفظ</button>
+        <button class="btn-outline" onclick="document.getElementById('quickAddModal').style.display='none'">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal إضافة شهادة/إجازة جماعية ══ -->
+<div id="bulkCAModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,520px)">
+    <div class="modal-head">
+      <span class="m-title" id="bulkCATitle">🎓 إضافة شهادة جماعية</span>
+      <button class="m-close" onclick="closeBulkCAModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px" id="bulkCANameLabel">اسم الشهادة *</label>
+        <input type="text" id="bulkCATitleInput" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px" placeholder="مثال: شهادة إتمام حفظ جزء عمّ"/>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">التاريخ</label>
+        <input type="date" id="bulkCADateInput" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">ملاحظة (اختياري)</label>
+        <textarea id="bulkCANoteInput" rows="2" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical" placeholder="أي ملاحظة إضافية..."></textarea>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">📎 صورة/ملف الشهادة أو الإجازة (اختياري — نفس الملف لكل المحددين)</label>
+        <input type="file" id="bulkCAFileInput" accept="image/*,.pdf,.doc,.docx" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:8px;padding:7px 8px"/>
+        <div style="text-align:center;font-size:11px;color:var(--text-mid);margin:8px 0">— أو —</div>
+        <input type="text" id="bulkCALinkInput" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px" placeholder="الصقي رابط جاهز (Google Drive مثلاً)"/>
+        <div id="bulkCAUploadStatus" style="display:none;align-items:center;gap:6px;font-size:11.5px;color:var(--text-mid);margin-top:6px">
+          <i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite"></i>
+          <span>جارٍ رفع الملف...</span>
+        </div>
+      </div>
+      <hr class="m-hr">
+      <div class="m-label-row">اختاري الطالبات:</div>
+      <div class="m-select-row">
+        <button onclick="bulkCASelectAll()" class="m-btn-select-all">✔ تحديد الكل</button>
+        <button onclick="bulkCAClearAll()" class="m-btn-deselect-all">✖ إلغاء الكل</button>
+      </div>
+      <div id="bulkCAStudentsList" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin:8px 0 14px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-solid" onclick="saveBulkCertAward()"><i class="ti ti-device-floppy"></i> حفظ للمحددين</button>
+        <button class="btn-outline" onclick="closeBulkCAModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal إدارة الشهادات والإجازات ══ -->
+<div id="manageCAModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,560px);max-height:88vh;display:flex;flex-direction:column">
+    <div class="modal-head">
+      <span class="m-title">🗂️ إدارة الشهادات والإجازات</span>
+      <button class="m-close" onclick="closeManageCAModal()">✕</button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto;flex:1">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="manageCATabCerts" class="admin-tab active" style="flex:1;justify-content:center" onclick="switchManageCATab('certificates')">🎓 الشهادات</button>
+        <button id="manageCATabAwards" class="admin-tab" style="flex:1;justify-content:center" onclick="switchManageCATab('awards')">📜 الإجازات</button>
+      </div>
+      <input id="manageCASearch" type="text" oninput="filterManageCAList()" placeholder="🔍 بحث باسم الطالبة أو العنوان..."
+        style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;margin-bottom:10px"/>
+      <div id="manageCAList" style="border:1px solid var(--border);border-radius:10px;min-height:120px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Modal مسح البيانات ══ -->
+<div id="resetDataModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,550px);max-height:90vh;overflow-y:auto">
+    <div class="modal-head">
+      <span class="m-title">⚠️ مسح البيانات</span>
+      <button class="m-close" onclick="document.getElementById('resetDataModal').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <p style="font-size:13px;color:#e74c3c;font-weight:600">تحذير: هذه العملية لا يمكن التراجع عنها!</p>
+      <!-- نوع البيانات -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;background:rgba(231,76,60,0.06);padding:6px 12px;border-radius:8px;border:1px solid var(--border)">
+          <input type="radio" name="resetType" value="grades" checked> الدرجات فقط
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;background:rgba(231,76,60,0.06);padding:6px 12px;border-radius:8px;border:1px solid var(--border)">
+          <input type="radio" name="resetType" value="sessions"> الحضور والغياب فقط
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;background:rgba(231,76,60,0.06);padding:6px 12px;border-radius:8px;border:1px solid var(--border)">
+          <input type="radio" name="resetType" value="all"> الاتنين معاً
+        </label>
+      </div>
+      <!-- قايمة الطالبات -->
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:600">الطالبات اللي عندهم بيانات:</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="selectAllResetStudents(true)" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer">تحديد الكل</button>
+          <button onclick="selectAllResetStudents(false)" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer">إلغاء الكل</button>
+        </div>
+      </div>
+      <div id="resetStudentsList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px">
+        <div style="text-align:center;color:var(--text-mid);font-size:13px;padding:20px">جارٍ التحميل...</div>
+      </div>
+      <button onclick="confirmResetSelected()" style="background:#e74c3c;color:white;border:none;border-radius:10px;padding:11px;font-family:inherit;font-size:14px;cursor:pointer;font-weight:700">
+        🗑️ مسح البيانات للمحددين
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ مودال استيراد حضور من ملف Excel ══ -->
+<div id="excelAttModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:760px;width:96vw">
+    <div class="modal-head">
+      <span class="m-title m-title-amber">📊 استيراد حضور من ملف Excel</span>
+      <button class="m-close" onclick="closeExcelAttModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-mid);margin-bottom:12px;background:rgba(92,61,46,0.05);border:1px solid var(--border);border-radius:8px;padding:10px">
+        📌 الملف لازم يكون: أول عمود = اسم الطالبة، وباقي الأعمدة = **أيام الأسبوع** (الأحد، الاثنين...). كل خلية ممكن تحتوي أكتر من رمز (لعدة حصص في نفس اليوم): ✅ / ❌ / ⭕، أو ملاحظة نصية، أو تتسيبها فاضية.
+        لو الملف فيه أكتر من شيت، كل شيت هيتعامل معاه كأسبوع تالي (يعني الشيت التاني = الأسبوع اللي بعد التاريخ اللي هتحطيه بأسبوع، والشيت التالت أسبوعين بعده، وهكذا) — بشرط إن ترتيب الشيتات في الملف يكون بنفس ترتيب الأسابيع فعليًا.
+      </p>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">تاريخ يوم الأحد لأول أسبوع في الملف *</label>
+        <input id="eaDate" type="date" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px"/>
+      </div>
+
+      <div id="eaDaySubjectsInfo" style="margin-bottom:8px"></div>
+
+      <div style="margin-bottom:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="eaExtraSubjectSelect" style="flex:1;min-width:140px;border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:inherit;font-size:12px">
+          <option value="">— اختاري مادة تضيفيها يدويًا —</option>
+        </select>
+        <button type="button" onclick="eaAddExtraSubject()" style="font-size:12px;background:var(--beige2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit">+ إضافة</button>
+      </div>
+      <div id="eaExtraSubjectsList" style="margin-bottom:12px"></div>
+
+      <label style="font-size:12px;color:var(--text-mid);display:block;margin-bottom:4px">اختاري الملف *</label>
+      <input id="eaFile" type="file" accept=".xlsx,.xls,.csv" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;cursor:pointer;margin-bottom:10px"/>
+
+      <div style="display:flex;justify-content:flex-end">
+        <button onclick="parseAttendanceExcelUI()" style="background:var(--green-dark);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-family:inherit;font-weight:700;cursor:pointer"><i class="ti ti-wand"></i> تحليل الملف</button>
+      </div>
+
+      <div id="eaStatus" style="display:none;font-size:12px;color:var(--text-mid);margin-top:8px"></div>
+
+      <div id="eaPreviewSection" style="display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <div id="eaSummary" style="font-size:13px;margin-bottom:10px;font-weight:600"></div>
+        <div id="eaNotMentioned" style="display:none;margin-bottom:12px;background:rgba(201,162,39,0.1);border:1px solid rgba(201,162,39,0.3);border-radius:8px;padding:10px;font-size:12px"></div>
+        <div id="eaRowsList" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+          <button onclick="closeExcelAttModal()" style="background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-family:inherit;cursor:pointer">إلغاء</button>
+          <button onclick="confirmExcelAttendance()" style="background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;border:none;border-radius:8px;padding:9px 24px;font-family:inherit;font-weight:700;cursor:pointer"><i class="ti ti-device-floppy"></i> تأكيد وحفظ الحضور</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal محرر الملاحظات الجماعي -->
+<div id="bulkNotesModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" style="width:min(94vw,520px)">
+    <div class="modal-head">
+      <span class="m-title">📝 محرر الملاحظات الجماعي</span>
+      <button class="m-close" onclick="closeBulkNotesModal()">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <div class="m-label-row">ملاحظة مشتركة (اختياري)</div>
+        <textarea id="bnSharedNote" rows="2" placeholder="اكتبي ملاحظة تحبي تضيفيها لكل الطالبات المحددة..."
+          style="width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical"></textarea>
+        <button onclick="bnApplySharedNote()" style="margin-top:6px;background:var(--beige2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-family:inherit;font-size:12px;cursor:pointer">
+          ➕ إضافة الملاحظة دي للمحددين
+        </button>
+      </div>
+      <hr class="m-hr">
+      <div class="m-select-row">
+        <button onclick="bnSelectAll()" class="m-btn-select-all">✔ تحديد الكل</button>
+        <button onclick="bnClearAll()" class="m-btn-deselect-all">✖ إلغاء الكل</button>
+      </div>
+      <div id="bnStudentsList" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:10px"></div>
+    </div>
+    <div class="modal-body" style="border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:flex-end;gap:10px">
+      <button class="m-btn" style="background:var(--beige);color:var(--text-dark);border:1px solid var(--border)"
+        onclick="closeBulkNotesModal()">إلغاء</button>
+      <button class="m-btn" onclick="saveBulkNotes()"><i class="ti ti-device-floppy"></i> حفظ التعديلات</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ══ ADMIN TABS SYSTEM ══
+const ADMIN_TABS = ['students','accounts','teachers','content','news','tools'];
+
+window.switchAdminTab = function(name) {
+  // أخبي كل التابات
+  ADMIN_TABS.forEach(t => {
+    const panel = document.getElementById('admin-tab-' + t);
+    const btn   = document.getElementById('tab-btn-' + t);
+    if (panel) panel.style.display = 'none';
+    if (btn)   btn.classList.remove('active');
+  });
+
+  // أظهر التاب المطلوب
+  const panel = document.getElementById('admin-tab-' + name);
+  const btn   = document.getElementById('tab-btn-' + name);
+  if (panel) panel.style.display = 'block';
+  if (btn)   btn.classList.add('active');
+
+  // احفظ في sessionStorage
+  sessionStorage.setItem('adminActiveTab', name);
+
+  // لو تاب المعلمات — حمّل البيانات
+  if (name === 'teachers' && typeof loadTeachersTab === 'function') {
+    loadTeachersTab();
+  }
+};
+
+// استعادة آخر تاب عند فتح الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('adminActiveTab') || 'students';
+  switchAdminTab(saved);
+});
+
+// badge الحسابات المعلقة — يتحدث تلقائياً
+window._updateAccountsBadge = function(count) {
+  const badge = document.getElementById('tab-badge-accounts');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+};
+</script>
+
+
+<script>
+window.closeActionMenus = function() {
+  document.querySelectorAll('.am-dropdown').forEach(m => m.style.display = 'none');
+};
+
+window.toggleActionMenu = function(id) {
+  const menu = document.getElementById(id);
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  closeActionMenus();
+  if (!isOpen) {
+    menu.style.display = 'block';
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu(e) {
+        if (!e.target.closest('.am-dropdown') && !e.target.closest('.am-menu-btn')) {
+          closeActionMenus();
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 10);
+  }
+};
+</script>
+
+</body>

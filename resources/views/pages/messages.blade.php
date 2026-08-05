@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>الرسائل — برنامج متين العلمي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@@400;500;600;700&family=Amiri:wght@@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/Mateen/libs/tabler-icons/tabler-icons.min.css">
+  <link rel="stylesheet" href="/Mateen/css/shared.css">
+  <link rel="stylesheet" href="/Mateen/css/messages.css">
+  <link rel="stylesheet" href="/Mateen/css/islamic.css">
+  <link rel="stylesheet" href="/Mateen/css/mobile.css">
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<link href="/Mateen/css/notifications.css" rel="stylesheet"/>
+  <link rel="manifest" href="/Mateen/manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="متين">
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+
+<!-- Auth gate -->
+<div id="authGate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div style="font-family:Amiri,serif;font-size:18px;color:var(--green-dark)">جارٍ التحقق...</div>
+</div>
+
+<div id="mainContent" style="display:none">
+
+  <!-- Basmala -->
+  <div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+
+  <!-- Navbar -->
+  <nav>
+
+    <a href="/Mateen/html/home.html" class="nav-logo">
+      <div class="logo-circle">
+        <img src="/Mateen/logo.png" alt="متين" class="nav-logo-img">
+      </div>
+      <div>
+        <div class="nav-brand">برنامج متين العلمي</div>
+        <div class="nav-tagline">نحو بناء علميٍّ متين</div>
+      </div>
+    </a>
+    <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
+      <ul class="nav-links">
+      <li><a href="/Mateen/html/home.html">الرئيسية</a></li>
+      <li><a href="/Mateen/html/messages.html" class="active">الرسائل</a></li>
+    </ul>
+    <div class="nav-btns">
+      <button onclick="doLogout()" class="btn-outline"><i class="ti ti-logout"></i> خروج</button>
+    </div>
+    <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+      <i class="ti ti-menu-2"></i>
+    </button>
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+    <button onclick="startPageTour()" title="جولة تعريفية"
+      style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:6px 8px;display:flex;align-items:center;opacity:0.85;">❓</button>
+</nav>
+
+  <!-- Main layout -->
+  <div id="viewOnlyBanner" style="display:none;align-items:center;justify-content:center;gap:8px;background:#fff3cd;color:#7a5b00;padding:10px 16px;text-align:center;font-size:13px;font-weight:700;border-bottom:1px solid #e8d9a0;">
+    <i class="ti ti-eye"></i> وضع العرض فقط — بتشوفي محادثات: <span id="viewOnlyName">—</span>
+  </div>
+  <div class="msg-layout">
+
+    <!-- ── Sidebar (conversation list) ── -->
+    <aside class="msg-sidebar" id="msgSidebar">
+      <div class="msg-sidebar-head">
+        <div class="msg-sidebar-top">
+          <div class="msg-sidebar-title">
+            <i class="ti ti-message-2"></i> الرسائل
+          </div>
+          <button class="compose-btn" onclick="showNewConv()">
+            <i class="ti ti-edit"></i> جديدة
+          </button>
+          <button class="compose-btn" id="broadcastBtn" style="display:none;background:var(--gold-dark,#b8860b)" onclick="showBroadcastModal()">
+            <i class="ti ti-speakerphone"></i> جماعية
+          </button>
+        </div>
+
+        <!-- Current user info -->
+        <div class="msg-user-info">
+          <div id="myAvatarSmall"></div>
+          <div>
+            <div class="msg-user-name" id="myName">...</div>
+          </div>
+          <span class="msg-role-badge" id="myRoleBadge">...</span>
+        </div>
+
+        <!-- Search -->
+        <div class="msg-search-wrap">
+          <i class="ti ti-search"></i>
+          <input type="text" id="convSearch" class="tp-search"
+                 placeholder="ابحثي في المحادثات..."
+                 oninput="filterConvs()"/>
+        </div>
+      </div>
+
+      <div id="convList">
+        <div class="empty-state">
+          <i class="ti ti-loader-2"></i>
+          <p>جارٍ التحميل...</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main conversation area ── -->
+    <main class="msg-main">
+
+      <!-- Empty state (no conv selected) -->
+      <div id="msgEmpty" class="msg-empty-state">
+        <i class="ti ti-message-dots"></i>
+        <h3>مرحباً بكِ في الرسائل</h3>
+        <p>اختاري محادثة من القائمة أو ابدئي محادثة جديدة</p>
+      </div>
+
+      <!-- Active conversation -->
+      <div id="msgConv" style="display:none;flex-direction:column;height:100%">
+
+        <!-- Header -->
+        <div class="msg-conv-head">
+          <button class="mob-back-btn" onclick="mobBackToList()">
+            <i class="ti ti-arrow-right"></i>
+          </button>
+          <div id="convHeaderAvatar"></div>
+          <div class="msg-conv-info">
+            <div class="msg-conv-name" id="convName">...</div>
+            <div class="msg-conv-role" id="convRole">...</div>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="msg-bubbles" id="msgBubbles"></div>
+
+        <!-- Input -->
+        <div class="msg-input-wrap">
+          <!-- Buttons الصوت  and the Image (للمعWhenت وSupervisors  and the إدارة only) -->
+          <div id="mediaButtons" style="display:none;gap:4px;align-items:center;flex-shrink:0;">
+            <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="sendImage(this)">
+            <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" style="display:none" onchange="sendFile(this)">
+            <button class="msg-media-btn" onclick="document.getElementById('imgFileInput').click()" title="إرسال صورة">
+              <i class="ti ti-photo"></i>
+            </button>
+            <button class="msg-media-btn" onclick="document.getElementById('fileInput').click()" title="إرسال ملف">
+              <i class="ti ti-paperclip"></i>
+            </button>
+            <button class="msg-media-btn" id="recordBtn" onclick="toggleRecording()" title="تسجيل صوتي">
+              <i class="ti ti-microphone"></i>
+            </button>
+            <button class="msg-media-btn" id="viewOnceBtn" onclick="toggleViewOnce()" title="مرة واحدة" style="font-size:11px;opacity:0.5;">
+              <i class="ti ti-eye-off"></i>
+            </button>
+          </div>
+
+          <textarea id="msgInput" class="msg-input"
+                    placeholder="اكتبي رسالتك هنا..."
+                    rows="1"
+                    onkeydown="handleMsgKey(event)"
+                    oninput="autoGrow(this)"></textarea>
+
+          <!-- مؤشر رفع الصورة/الملف/الصوت -->
+          <div id="uploadIndicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text-mid);flex-shrink:0;">
+            <i class="ti ti-loader-2" style="animation:msg-spin 0.8s linear infinite;"></i>
+            <span id="uploadIndicatorText">جارٍ الرفع...</span>
+          </div>
+
+          <!-- مؤشر التسجيل -->
+          <div id="recordingIndicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:#c0392b;flex-shrink:0;">
+            <span style="width:8px;height:8px;background:#c0392b;border-radius:50%;animation:blink 1s infinite;"></span>
+            <span id="recordTimer">0:00</span>
+          </div>
+
+          <button class="msg-send-btn" onclick="sendMsg()" title="إرسال">
+            <i class="ti ti-send"></i>
+          </button>
+        </div>
+
+        <!-- ملاحظة وضع العرض فقط (بدل صندوق الكتابة) -->
+        <div id="viewOnlyInputNote" style="display:none;align-items:center;justify-content:center;gap:8px;padding:14px;color:#8a6a52;font-size:13px;border-top:1px solid var(--border);">
+          <i class="ti ti-lock"></i> وضع العرض فقط — مش ممكن الإرسال أو الحذف من هنا
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ── New Conversation Modal ── -->
+  <div id="newConvModal" class="new-conv-modal" onclick="if(event.target===this)closeNewConv()">
+    <div class="new-conv-box">
+      <div class="new-conv-head">
+        <div class="new-conv-title">
+          <i class="ti ti-user-plus"></i> محادثة جديدة
+        </div>
+        <button class="new-conv-close" onclick="closeNewConv()">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <div class="new-conv-search-wrap">
+        <i class="ti ti-search"></i>
+        <input type="text" id="userSearch" class="tp-search"
+               placeholder="ابحثي باسم المستخدم..."
+               oninput="searchUsers()"
+               style="padding-right:36px"/>
+      </div>
+
+      <div id="userResults"></div>
+    </div>
+  </div>
+
+  <!-- ── رسالة جماعية Modal ── -->
+  <div id="broadcastModal" class="new-conv-modal" onclick="if(event.target===this)closeBroadcastModal()">
+    <div class="new-conv-box" style="max-width:420px">
+      <div class="new-conv-head">
+        <div class="new-conv-title">
+          <i class="ti ti-speakerphone"></i> رسالة جماعية
+        </div>
+        <button class="new-conv-close" onclick="closeBroadcastModal()">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+
+      <div style="padding:14px 16px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:600;color:var(--text-dark)">المستلمون</label>
+          <button onclick="toggleBroadcastSelectAll()" style="background:none;border:none;color:var(--green-dark);font-size:12px;cursor:pointer;font-family:inherit">تحديد الكل</button>
+        </div>
+        <div id="broadcastRecipients" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:12px"></div>
+
+        <textarea id="broadcastText" placeholder="اكتبي رسالتك هنا (اختياري لو هتسجلي صوت)..." rows="3"
+          style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box;resize:vertical;margin-bottom:10px"></textarea>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <button id="broadcastRecordBtn" onclick="toggleBroadcastRecording()" class="msg-media-btn" title="تسجيل صوتي">
+            <i class="ti ti-microphone"></i>
+          </button>
+          <div id="broadcastRecordingIndicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:#c0392b">
+            <span style="width:8px;height:8px;background:#c0392b;border-radius:50%;animation:blink 1s infinite;"></span>
+            <span id="broadcastRecordTimer">0:00</span>
+          </div>
+          <div id="broadcastAudioChip" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--green-dark);background:var(--beige);padding:4px 10px;border-radius:20px">
+            🎙️ تم تسجيل رسالة صوتية
+            <span onclick="clearBroadcastAudio()" style="cursor:pointer;color:#c0392b;font-weight:700;margin-right:4px">✕</span>
+          </div>
+        </div>
+
+        <div id="broadcastErr" style="display:none;color:#c0392b;font-size:12px;margin-bottom:8px"></div>
+        <button id="broadcastSendBtn" onclick="sendBroadcast()"
+          style="width:100%;padding:11px;background:var(--green-dark);color:white;border:none;border-radius:8px;font-family:inherit;font-size:14px;cursor:pointer;margin-bottom:14px">
+          <i class="ti ti-send"></i> إرسال للكل
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /mainContent -->
+
+<script type="module" src="/Mateen/js/messages.js?v=20260723"></script>
+
+<script>
+// ── Mobile switching ──────────────────────────────────
+function isMob() { return window.innerWidth <= 700; }
+
+function mobOpenChat() {
+  if (!isMob()) return;
+  document.getElementById('msgSidebar').classList.add('mob-hidden');
+  document.getElementById('msgConv').parentElement.classList.add('mob-visible');
+}
+
+window.mobBackToList = function() {
+  document.getElementById('msgSidebar').classList.remove('mob-hidden');
+  document.getElementById('msgConv').parentElement.classList.remove('mob-visible');
+};
+
+window.addEventListener('load', () => {
+  if (isMob()) {
+    const main = document.querySelector('.msg-main');
+    if (main) main.classList.remove('mob-visible');
+  }
+  const convListEl = document.getElementById('convList');
+  if (convListEl) convListEl.addEventListener('click', e => {
+    if (e.target.closest('.conv-item')) setTimeout(mobOpenChat, 60);
+  });
+});
+
+window.addEventListener('resize', () => {
+  if (!isMob()) {
+    document.getElementById('msgSidebar').classList.remove('mob-hidden');
+    const main = document.querySelector('.msg-main');
+    if (main) main.classList.remove('mob-visible');
+    const back = document.querySelector('.mob-back-btn');
+    if (back) back.style.display = 'none';
+  }
+});
+</script>
+
+
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+<script src="/Mateen/js/tour.js?v=20260723"></script>
+
+</body>
+</html>
+

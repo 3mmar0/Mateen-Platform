@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+<meta charset="utf-8"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>لوحة المشرفة — متين العلمي</title>
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/supervisor.css" rel="stylesheet"/>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+  <link rel="manifest" href="/Mateen/manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="متين">
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+<nav>
+  <a class="nav-logo" href="/Mateen/html/home.html">
+    <div class="logo-circle"><img alt="متين" src="/Mateen/logo.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/></div>
+    <div><div class="nav-brand">برنامج متين العلمي</div><div class="nav-tagline">نحو بناء علميٍّ متين</div></div>
+  </a>
+  <div class="nav-shuraka"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img"/></div>
+  <div class="nav-btns">
+    <a class="btn-outline d-none d-lg-flex" href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+    <a class="btn-outline d-none d-lg-flex" href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد</a>
+    <div class="nav-user d-none d-lg-flex"><i class="ti ti-shield"></i><span class="nav-user-name" id="navUserName">مشرفة</span></div>
+    <button class="btn-logout d-none d-lg-flex" onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
+  </div>
+  <button onclick="typeof startPageTour==='function'&&startPageTour()" title="جولة تعريفية"
+    style="background:none;border:none;color:rgba(255,255,255,0.85);font-size:18px;cursor:pointer;padding:6px 8px;display:flex;align-items:center;flex-shrink:0;">❓</button>
+  <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع"><i class="ti ti-arrow-right"></i></button>
+  <button class="nav-toggle" aria-label="القائمة" onclick="document.getElementById('supMobNav').classList.toggle('open')">
+    <i class="ti ti-menu-2"></i>
+  </button>
+</nav>
+<div id="supMobNav" style="display:none">
+  <style>
+    #supMobNav.open{display:flex!important;flex-direction:column;position:fixed;top:54px;right:0;left:0;background:var(--green-dark);padding:14px 20px;gap:12px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+    #supMobNav a,#supMobNav button{color:rgba(255,255,255,.88);text-decoration:none;font-size:14px;font-family:inherit;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 0}
+  </style>
+  <a href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+  <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
+  <div style="color:rgba(255,255,255,.6);font-size:12px;display:flex;align-items:center;gap:6px"><i class="ti ti-shield"></i><span id="navUserName">مشرفة</span></div>
+  <button onclick="doLogout()"><i class="ti ti-logout"></i> تسجيل الخروج</button>
+</div>
+<div id="supMobileNav" style="display:none;">
+  <style>
+    #supMobileNav.open {
+      display: flex !important;
+      flex-direction: column;
+      position: absolute;
+      top: 54px;
+      right: 0; left: 0;
+      background: var(--green-dark);
+      padding: 12px 20px;
+      gap: 12px;
+      z-index: 200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    #supMobileNav a, #supMobileNav button {
+      color: rgba(255,255,255,0.85);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 6px 0;
+      border: none;
+      background: none;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+  <a href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+  <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
+  <button onclick="doLogout()"><i class="ti ti-logout"></i> تسجيل الخروج</button>
+</div>
+<div id="authGate"><i class="ti ti-loader spin"></i><p>جارٍ التحقق من الصلاحيات...</p></div>
+<div id="mainContent" style="display:none; flex-direction:column; flex:1;">
+<div class="hero">
+<div class="hero-badge">🛡️ لوحة المشرفة</div>
+<h1>إدارة طالبات متين</h1>
+<p>مراجعة الحسابات الجديدة وإدارة الطالبات</p>
+</div>
+<div class="container">
+<div class="stats-row">
+<div class="stat-card"><div class="stat-num" id="sPending">0</div><div class="stat-label">بانتظار الموافقة</div></div>
+<div class="stat-card"><div class="stat-num" id="sActive">0</div><div class="stat-label">طالبات نشطات</div></div>
+<div class="stat-card"><div class="stat-num" id="sTotal">0</div><div class="stat-label">الإجمالي</div></div>
+</div>
+<div class="section">
+<div class="section-head">
+<div class="section-head-title"><i class="ti ti-user-check"></i> طالبات متين — بانتظار الموافقة</div>
+</div>
+<div id="pendingContainer"><div class="empty-state"><i class="ti ti-loader spin"></i></div></div>
+</div>
+<div class="section">
+<div class="section-head">
+<div class="section-head-title"><i class="ti ti-users"></i> جميع طالبات متين</div>
+</div>
+<div id="allContainer"><div class="empty-state"><i class="ti ti-loader spin"></i></div></div>
+</div>
+
+
+<!-- ══ Section قاعدة بيانات الطالبات ══ -->
+<div class="section" id="studentsSection">
+<div class="section-head">
+<div class="section-head-title"><i class="ti ti-users"></i> قاعدة بيانات الطالبات والمقابلات</div>
+
+</div>
+<!-- Stats bar -->
+<div class="stu-stats-row">
+<div class="stu-stat"><span id="stuTotal">0</span><small>الإجمالي</small></div>
+<div class="stu-stat done"><span id="stuDone">0</span><small>تمت المقابلة</small></div>
+<div class="stu-stat pending"><span id="stuPending">0</span><small>لم تتم</small></div>
+<div class="stu-stat accepted"><span id="stuAccepted">0</span><small>مقبولة</small></div>
+<div class="stu-stat rejected"><span id="stuRejected">0</span><small>غير مقبولة</small></div>
+</div>
+<!-- Bulk add -->
+<div class="stu-bulk-area">
+<textarea id="bulkNames" placeholder="أضيفي عدة أسماء دفعة واحدة — كل اسم في سطر"></textarea>
+<button class="btn-bulk-add" onclick="addBulkNames()"><i class="ti ti-list-check"></i> إضافة الكل</button>
+</div>
+<!-- Filters -->
+<div class="stu-filter-bar">
+<input id="stuSearch" oninput="applyStudentFilters()" placeholder="🔎 ابحثي عن طالبة..." type="text"/>
+<select id="stuFilterInterview" onchange="applyStudentFilters()">
+<option value="all">🎙️ كل المقابلات</option>
+<option value="done">✅ تمت</option>
+<option value="pending">⏳ لم تتم</option>
+</select>
+<select id="stuFilterResult" onchange="applyStudentFilters()">
+<option value="all">📊 كل النتائج</option>
+<option value="accepted">✔️ المقبولات</option>
+<option value="rejected">✖️ غير المقبولات</option>
+<option value="na">⏳ لم يحدد</option>
+</select>
+<select id="stuFilterStatus" onchange="applyStudentFilters()">
+<option value="all">📖 كل الطالبات</option>
+<option value="mateen">📖 بنات متين</option>
+<option value="new">✨ المستجدات</option>
+</select>
+<button id="sortAlphaBtn" class="sort-alpha-btn active" onclick="toggleAlphaSort()">🔤 أبجدي</button>
+</div>
+<!-- Bulk apply bar -->
+<div class="stu-bulk-bar">
+<div class="stu-bulk-info">
+<input id="selectAll" onchange="toggleSelectAll(this.checked)" type="checkbox"/>
+<label for="selectAll">تحديد الكل</label>
+<span class="selected-badge" id="selectedCount">0 محددة</span>
+</div>
+<div class="stu-bulk-fields">
+<select class="bulk-sel" id="bulkDay">
+<option value="">-اليوم-</option>
+<option>الأحد</option><option>الاثنين</option><option>الثلاثاء</option>
+<option>الأربعاء</option><option>الخميس</option><option>الجمعة</option><option>السبت</option>
+</select>
+<input class="bulk-num" id="bulkDD" max="30" min="1" placeholder="يوم" type="number"/>
+<select class="bulk-sel" id="bulkMM">
+<option value="">-الشهر-</option>
+<option value="01">محرم</option><option value="02">صفر</option>
+<option value="03">ربيع الأول</option><option value="04">ربيع الثاني</option>
+<option value="05">جمادى الأولى</option><option value="06">جمادى الثانية</option>
+<option value="07">رجب</option><option value="08">شعبان</option>
+<option value="09">رمضان</option><option value="10">شوال</option>
+<option value="11">ذو القعدة</option><option value="12">ذو الحجة</option>
+</select>
+<input class="bulk-num bulk-num-narrow" id="bulkYY" placeholder="سنة" type="number"/>
+<span class="bulk-divider">|</span>
+<select class="bulk-sel bulk-sel-hour" id="bulkHour">
+<option value="">-الساعة-</option>
+<option>1</option><option>2</option><option>3</option><option>4</option>
+<option>5</option><option>6</option><option>7</option><option>8</option>
+<option>9</option><option>10</option><option>11</option><option>12</option>
+</select>
+<select class="bulk-sel bulk-sel-ampm" id="bulkAmpm">
+<option value="">-ص/م-</option>
+<option value="ص">صباحاً</option>
+<option value="م">مساءً</option>
+</select>
+<button class="bulk-apply-btn" onclick="applyBulkDateTime()">✅ تطبيق</button>
+</div>
+</div>
+<!-- Mobile cards -->
+<div id="stu-cards-wrap" class="stu-cards-wrap-base"></div>
+<!-- Table desktop -->
+<div class="stu-table-wrap">
+<table class="stu-table">
+<thead>
+<tr>
+<th class="col-narrow"></th>
+<th>#</th>
+<th>اسم الطالبة</th>
+<th>اليوم والتاريخ</th>
+<th>الوقت</th>
+<th>المقابلة</th>
+<th>القبول</th>
+<th>درجة الاختبار</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="stuTableBody">
+<tr><td colspan="9" class="table-loader-cell-lg"><i class="ti ti-loader spin loader-spin-lg"></i></td></tr>
+</tbody>
+</table>
+</div>
+<div class="foot-actions-row">
+
+
+
+</div>
+</div>
+
+<!-- Modal التصthisر -->
+<div id="exportModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head"><span class="m-title m-title-amber">📥 تصدير بيانات الطالبات</span><button class="m-close" onclick="closeExportModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-mid);font-size:13px;margin-bottom:16px">سيتم تصدير الطالبات المعروضات حالياً حسب الفلتر المختار</p>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="m-btn" onclick="doExport('word')"><i class="ti ti-file-type-doc"></i> Word</button>
+        <button class="m-btn" onclick="doExport('pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal تصthisر Attendance -->
+<div id="attModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head"><span class="m-title m-title-amber">📋 تصدير الحضور والغياب</span><button class="m-close" onclick="closeAttModal()">✕</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-mid);font-size:13px;margin-bottom:12px">اختاري نوع التصدير</p>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="m-btn" onclick="doAttExport('word')"><i class="ti ti-file-type-doc"></i> Word</button>
+        <button class="m-btn" onclick="doAttExport('pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- Modal النوتس -->
+<div id="notesModal" class="notes-modal-overlay" style="display:none" onclick="closeNotesModal(event)">
+  <div class="notes-modal-box">
+    <div class="notes-modal-head">
+      <span id="notesModalTitle">ملاحظات الطالبة</span>
+      <button class="notes-modal-close" onclick="document.getElementById('notesModal').style.display='none'"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="notes-modal-body">
+      <div id="existingNotes" class="existing-notes"></div>
+      <div class="new-note-area">
+        <textarea id="newNoteText" placeholder="اكتبي ملاحظتك هنا..." rows="3"></textarea>
+        <button class="btn-add-note" onclick="saveNote()"><i class="ti ti-plus"></i> إضافة ملاحظة</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script type="module" src="/Mateen/js/export.js?v=20260723"></script>
+<script src="/Mateen/js/supervisor-1.js?v=20260723" type="module"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+
+<!-- Modal ربط الطالبة عند القبول -->
+<div id="linkStudentModal" class="modal-overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box" style="width:min(92vw,480px)">
+    <div class="modal-head">
+      <span class="m-title">🔗 ربط الحساب بملف طالبة</span>
+      <button class="m-close" onclick="document.getElementById('linkStudentModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px;line-height:1.7">
+        اختاري ملف الطالبة من قاعدة البيانات لربطه بهذا الحساب،
+        أو اضغطي <b>قبول بدون ربط</b> لتفعيل الحساب فقط.
+      </p>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;color:var(--text-mid);font-weight:600;display:block;margin-bottom:6px">اسم الطالبة في قاعدة البيانات</label>
+        <select id="linkStudentSelect" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--beige);color:var(--text-dark)">
+          <option value="">— بدون ربط —</option>
+        </select>
+      </div>
+      <div id="linkStudentPreview" style="display:none;background:var(--beige);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;margin-bottom:14px"></div>
+    </div>
+    <div class="modal-body" style="border-top:1px solid var(--border);padding-top:14px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="m-btn" style="background:var(--beige);color:var(--text-dark);border:1px solid var(--border)"
+        onclick="confirmApprove(false)">قبول بدون ربط</button>
+      <button class="m-btn" onclick="confirmApprove(true)">
+        <i class="ti ti-link"></i> قبول وربط
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+

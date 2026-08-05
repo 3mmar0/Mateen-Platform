@@ -9,6 +9,7 @@ Automation and config are updated for root Laravel + `public/` docroot. Remote c
 
 - [x] Laravel at repository root (`artisan`, `app/`, no `backend/` app)
 - [x] Live UI at `public/Mateen/`
+- [x] Blade pages at `resources/views/` with `/Mateen/html/*.html` aliases
 - [x] `API_BASE_URL = '/api/v1'` in `public/Mateen/js/config.js`
 - [x] `_obsolete/frontend/DO_NOT_EDIT.md` present
 - [x] `.github/workflows/ci-backend.yml` and `deploy-vps.yml` updated for root app

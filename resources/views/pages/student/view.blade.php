@@ -1,0 +1,148 @@
+
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>صفحتي — برنامج متين العلمي</title>
+  <link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/Mateen/css/student-view.css"/>
+  <link rel="stylesheet" href="/Mateen/css/islamic.css">
+  <link rel="stylesheet" href="/Mateen/css/mobile.css">
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<!-- BASMALA -->
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+
+<!-- Auth Gate -->
+<div id="authGate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px;background:var(--beige);">
+  <img src="/Mateen/logo.png" alt="متين" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);">
+  <div style="font-family:Amiri,serif;font-size:16px;color:var(--green-dark)">جارٍ التحميل...</div>
+</div>
+<div id="mainContent" style="display:none">
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="sv-header">
+    <div class="sv-logo" style="display:flex;align-items:center;gap:10px"><img src="/Mateen/logo.png" alt="متين" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;"> برنامج متين العلمي</div>
+    <div class="sv-name-wrap">
+      <div class="sv-name" id="studentName" style="display:none">...</div>
+      <div class="sv-status" id="studentStatus" style="display:none"></div>
+    </div>
+    <!-- أفاتار بنت محجبة -->
+    <div class="sv-logo-circle">
+      <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <!-- وجه -->
+        <circle cx="24" cy="20" r="9" fill="#f5c5a3"/>
+        <!-- حجاب -->
+        <path d="M10 28 Q10 16 24 14 Q38 16 38 28 Q38 20 24 18 Q10 20 10 28Z" fill="#2c1a0e"/>
+        <path d="M8 30 Q8 22 24 18 Q40 22 40 30 L40 48 Q32 44 24 44 Q16 44 8 48Z" fill="#2c1a0e"/>
+        <!-- ملاbut/only -->
+        <path d="M10 34 Q10 28 24 26 Q38 28 38 34 L38 48 L10 48Z" fill="#5c3d2e"/>
+        <!-- خط gold -->
+        <path d="M10 34 Q24 32 38 34" stroke="#c9a227" stroke-width="1" fill="none" opacity="0.5"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num" id="statPresent">0</div>
+      <div class="stat-label">حاضرة</div>
+    </div>
+    <div class="stat-card absent">
+      <div class="stat-num" id="statAbsent">0</div>
+      <div class="stat-label">غائبة</div>
+    </div>
+    <div class="stat-card pct">
+      <div class="stat-num" id="statPct">—</div>
+      <div class="stat-label">نسبة الحضور</div>
+    </div>
+    <div class="stat-card late">
+      <div class="stat-num" id="statLate">0</div>
+      <div class="stat-label">دقيقة تأخير (إجمالي)</div>
+      <div id="statLateHours" style="font-size:11px;color:var(--text-mid)"></div>
+    </div>
+
+  </div>
+
+  <div class="main-grid">
+
+    <!-- Attendance -->
+    <div class="card">
+      <div class="card-head">📅 سجل الحضور</div>
+      <div id="attendanceList" class="attendance-list">
+        <div class="empty-msg">لا توجد جلسات مسجلة بعد</div>
+      </div>
+    </div>
+
+    <div class="side-col">
+
+      <!-- Grades -->
+      <div class="card" id="gradesCard" style="display:none">
+        <div class="card-head">📝 الدرجات</div>
+        <div id="participationWrap" style="padding:12px 16px;border-bottom:1px solid var(--border,#eee);display:flex;flex-direction:column;gap:8px"></div>
+        <div id="gradesList" class="card-body"></div>
+      </div>
+
+      <!-- Notes -->
+      <div class="card" id="notesCard" style="display:none">
+        <div class="card-head">🗒️ ملاحظات</div>
+        <div id="notesContent" class="notes-content"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">برنامج متين العلمي المستوى الثاني</div>
+
+</div>
+
+</div><!-- end mainContent -->
+
+<script type="module" src="/Mateen/js/student-view.js?v=20260723"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+</body>
+</html>
+

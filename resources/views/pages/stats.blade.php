@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>إحصائيات — برنامج متين العلمي</title>
+  <link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/Mateen/css/stats.css"/>
+  <link rel="stylesheet" href="/Mateen/css/islamic.css">
+  <link rel="stylesheet" href="/Mateen/css/mobile.css">
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<!-- BASMALA -->
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+
+  <!-- Top Nav -->
+  <nav class="s-topnav">
+
+    <div class="logo" style="display:flex;align-items:center;gap:10px"><img src="/Mateen/logo.png" alt="متين" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;"> برنامج متين العلمي</div>
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- Header -->
+  <div class="s-header">
+    <div class="header-right">
+      <div class="header-title">📊 الإحصائيات العامة</div>
+    </div>
+    <div style="position:relative;z-index:1">
+      <button id="statsExportBtn" onclick="toggleStatsExportMenu()" style="background:var(--green-dark,#5c3d2e);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-download"></i> تصدير
+      </button>
+      <div id="statsExportMenu" style="display:none;position:fixed;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);z-index:500;min-width:190px;overflow:visible">
+        <div onclick="toggleStatsExportSub('attendance', event)" style="position:relative;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap;display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <span>📋 الحضور التفصيلي</span><span style="font-size:10px;color:var(--text-mid,#8a6a52)">◀</span>
+          <div id="sub_attendance" class="stats-export-sub" style="display:none;position:absolute;top:0;right:100%;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);min-width:160px;overflow:hidden">
+            <div onclick="statsExport('excel')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap">📊 Excel</div>
+            <div onclick="statsExport('word')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">📄 Word</div>
+            <div onclick="statsExport('pdf')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">🖨️ PDF</div>
+          </div>
+        </div>
+        <div onclick="toggleStatsExportSub('grades', event)" style="position:relative;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <span>📝 الدرجات</span><span style="font-size:10px;color:var(--text-mid,#8a6a52)">◀</span>
+          <div id="sub_grades" class="stats-export-sub" style="display:none;position:absolute;top:0;right:100%;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);min-width:160px;overflow:hidden">
+            <div onclick="statsExportGrades('excel')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap">📊 Excel</div>
+            <div onclick="statsExportGrades('word')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">📄 Word</div>
+            <div onclick="statsExportGrades('pdf')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">🖨️ PDF</div>
+          </div>
+        </div>
+        <div onclick="toggleStatsExportSub('top', event)" style="position:relative;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <span>🏆 الأعلى حضورًا</span><span style="font-size:10px;color:var(--text-mid,#8a6a52)">◀</span>
+          <div id="sub_top" class="stats-export-sub" style="display:none;position:absolute;top:0;right:100%;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);min-width:160px;overflow:hidden">
+            <div onclick="statsExportTopAttendance('excel')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap">📊 Excel</div>
+            <div onclick="statsExportTopAttendance('word')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">📄 Word</div>
+            <div onclick="statsExportTopAttendance('pdf')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">🖨️ PDF</div>
+          </div>
+        </div>
+        <div onclick="toggleStatsExportSub('absent', event)" style="position:relative;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <span>⚠️ الأكثر غيابًا</span><span style="font-size:10px;color:var(--text-mid,#8a6a52)">◀</span>
+          <div id="sub_absent" class="stats-export-sub" style="display:none;position:absolute;top:0;right:100%;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);min-width:160px;overflow:hidden">
+            <div onclick="statsExportMostAbsent('excel')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap">📊 Excel</div>
+            <div onclick="statsExportMostAbsent('word')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">📄 Word</div>
+            <div onclick="statsExportMostAbsent('pdf')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">🖨️ PDF</div>
+          </div>
+        </div>
+        <div onclick="toggleStatsExportSub('subjects', event)" style="position:relative;padding:10px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <span>📚 إحصائيات المواد</span><span style="font-size:10px;color:var(--text-mid,#8a6a52)">◀</span>
+          <div id="sub_subjects" class="stats-export-sub" style="display:none;position:absolute;top:0;right:100%;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.18);min-width:160px;overflow:hidden">
+            <div onclick="statsExportSubjects('excel')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap">📊 Excel</div>
+            <div onclick="statsExportSubjects('word')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">📄 Word</div>
+            <div onclick="statsExportSubjects('pdf')" style="padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap;border-top:1px solid var(--border)">🖨️ PDF</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingMsg" class="loading-msg">جارٍ التحقق من الصلاحيات...</div>
+
+  <div id="mainContent" style="display:none">
+
+    <!-- Summary Cards -->
+    <div class="summary-bar">
+      <div class="sum-card">
+        <div class="sum-num" id="sumStudents">0</div>
+        <div class="sum-label">إجمالي الطالبات</div>
+      </div>
+      <div class="sum-card blue">
+        <div class="sum-num" id="sumSessions">0</div>
+        <div class="sum-label">إجمالي الجلسات</div>
+      </div>
+      <div class="sum-card green">
+        <div class="sum-num" id="sumAvgAtt">—</div>
+        <div class="sum-label">متوسط الحضور</div>
+      </div>
+      <div class="sum-card orange">
+        <div class="sum-num" id="sumAvgGrade">—</div>
+        <div class="sum-label">متوسط الدرجات</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('attendance')">🗓 الحضور</button>
+      <button class="tab" onclick="switchTab('grades')">📝 الدرجات</button>
+      <button class="tab" onclick="switchTab('subjects')">📚 المواد</button>
+      <button class="tab" onclick="switchTab('ranking')">🏆 الترتيب</button>
+    </div>
+
+    <!-- Tab: Attendance -->
+    <div class="tab-panel active" id="tab_attendance">
+      <div class="card">
+        <div class="card-title">نسبة حضور الطالبات</div>
+        <div class="filter-row">
+          <label>المادة:</label>
+          <select id="attSubjectFilter" onchange="renderAttTab()">
+            <option value="">كل المواد</option>
+            <option>تفسير</option>
+            <option>فقه</option>
+            <option>عقيدة</option>
+            <option>حديث</option>
+            <option>قرآن</option>
+          </select>
+        </div>
+        <div id="attList" class="bar-list"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Grades -->
+    <div class="tab-panel" id="tab_grades">
+      <div class="card">
+        <div class="card-title">مقارنة درجات الطالبات</div>
+        <div class="filter-row">
+          <label>المادة:</label>
+          <select id="gradeSubjectFilter" onchange="renderGradesTab();renderSummary()">
+            <option value="">كل المواد</option>
+            <option>تفسير</option>
+            <option>فقه</option>
+            <option>عقيدة</option>
+            <option>حديث</option>
+            <option>قرآن</option>
+          </select>
+        </div>
+        <div id="gradesList" class="bar-list"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Subjects -->
+    <div class="tab-panel" id="tab_subjects">
+      <div class="card">
+        <div class="card-title">إجمالي الغياب لكل مادة</div>
+        <div id="subjectsList" class="subjects-grid"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Ranking -->
+    <div class="tab-panel" id="tab_ranking">
+      <div class="ranks-grid">
+        <div class="card">
+          <div class="card-title">🏆 الأعلى حضوراً</div>
+          <div id="rankAttList" class="rank-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🥇 الأعلى درجات</div>
+          <div id="rankGradeList" class="rank-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ أكثر غياباً</div>
+          <div id="rankAbsentList" class="rank-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="/Mateen/js/stats.js?v=20260722"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+</body>
+</html>

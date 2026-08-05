@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+<meta charset="utf-8"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>جدولي الدراسي — متين</title>
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="/Mateen/css/student.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+<style>
+  :root {
+    --gold: #c9a227;
+    --gold-light: #f0d080;
+    --green-dark: #1b4332;
+    --green-mid: #2d6a4f;
+    --beige: #faf7f2;
+    --white: #fff;
+    --border: #e8dcc8;
+    --text-dark: #1a1a1a;
+    --text-mid: #6b7280;
+  }
+
+  body { background: var(--beige); margin: 0; font-family: 'Noto Naskh Arabic', serif; }
+
+  /* ── Auth Gate ── */
+  .auth-gate {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 100vh; gap: 16px;
+    background: var(--beige);
+  }
+  .gate-logo { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; }
+  .gate-text { font-family: Amiri, serif; font-size: 16px; color: var(--green-dark); }
+
+  /* ── Page ── */
+  .sched-page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+
+  /* ── Header ── */
+  .sched-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .sched-header .logo {
+    width: 64px; height: 64px;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--gold);
+    margin-bottom: 10px;
+  }
+  .sched-title {
+    font-family: Amiri, serif;
+    font-size: 28px;
+    color: var(--green-dark);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .sched-subtitle {
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .sched-level {
+    display: inline-block;
+    background: var(--green-dark);
+    color: var(--gold-light);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 18px;
+    border-radius: 20px;
+    margin-top: 10px;
+    font-family: Amiri, serif;
+  }
+
+  /* ── Table ── */
+  .sched-table-wrap {
+    background: var(--white);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+    border: 2px solid var(--gold);
+    overflow-x: auto;
+  }
+
+  .sched-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px;
+  }
+
+  .sched-table th {
+    background: var(--green-dark);
+    color: var(--gold-light);
+    font-family: Amiri, serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 14px 12px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .sched-table td {
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--text-dark);
+  }
+
+  .sched-table tr:nth-child(even) td { background: #f9f6f0; }
+  .sched-table tr:hover td { background: #f0ebe0; transition: background 0.15s; }
+
+  /* يوم */
+  .day-cell {
+    background: #faf3e0 !important;
+    color: var(--gold) !important;
+    font-family: Amiri, serif;
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+    border-left: 3px solid var(--gold) !important;
+  }
+
+  /* فسحة */
+  .break-cell {
+    color: var(--text-mid) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    font-style: italic;
+  }
+
+  /* مواد */
+  .subject-fiqh    { color: #7a5c3a; }
+  .subject-tafseer { color: #8b6914; }
+  .subject-hadeeth { color: #6b5040; }
+  .subject-aqeedah { color: #7d5a2e; }
+  .subject-quran   { color: #5c4a1e; }
+  .subject-empty   { color: #ccc; }
+
+  /* ── Footer note ── */
+  .sched-note {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .sched-note i { color: var(--gold); font-size: 15px; }
+
+  /* ── Back button ── */
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--green-dark);
+    cursor: pointer;
+    margin-bottom: 20px;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .back-btn:hover { background: var(--beige); }
+</style>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- Auth Gate -->
+<div id="authGate" class="auth-gate">
+  <img src="/Mateen/logo.png" alt="متين" class="gate-logo"/>
+  <div class="gate-text">جارٍ التحقق من الصلاحيات...</div>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent" style="display:none">
+
+  <nav class="stu-nav">
+
+    <a href="/Mateen/html/home.html" class="stu-nav-logo">
+      <img src="/Mateen/logo.png" alt="متين"/>
+      <span>برنامج متين العلمي</span>
+    </a>
+    <div class="stu-nav-btns">
+      <a href="/Mateen/html/home.html" style="color:var(--gold-light);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:5px">
+        <i class="ti ti-home"></i> الرئيسية
+      </a>
+    </div>
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+</nav>
+
+  <div class="sched-page">
+
+    <a href="/Mateen/html/home.html" class="back-btn">
+      <i class="ti ti-arrow-right"></i> رجوع
+    </a>
+
+    <!-- Schedule/Table image الرسمي -->
+    <div style="text-align:center;padding:16px 0 8px;">
+      <img src="/Mateen/schedule.jpg" alt="جدول متين" style="max-width:100%;width:min(480px,95vw);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.12);"/>
+    </div>
+
+    <!-- Schedule/Table اIfرد  and the مراجعة -->
+    <div style="text-align:center;padding:8px 0 16px;">
+      <img src="/Mateen/schedule-wird.jpg" alt="جدول الورد والمراجعة" style="max-width:100%;width:min(480px,95vw);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.12);"/>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { FIREBASE_CONFIG } from "/Mateen/js/config.js";
+
+const app  = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = '/Mateen/html/login.html'; return; }
+
+  const snap = await getDoc(doc(db, 'users', user.uid));
+  if (!snap.exists()) { window.location.href = '/Mateen/html/login.html'; return; }
+
+  const role   = snap.data().role   || '';
+  const status = snap.data().status || '';
+
+  // but/only بنات متين
+  if (role !== 'mateen' || status === 'pending' || status === 'suspended') {
+    window.location.href = '/Mateen/html/home.html'; return;
+  }
+
+  document.getElementById('authGate').style.display    = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+});
+</script>
+
+<script>
+// FOUC Prevention
+(function() {
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  if (document.fonts && document.fonts.ready) {
+    var t = setTimeout(revealPage, 1500);
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+    setTimeout(revealPage, 1000);
+  }
+})();
+</script>
+
+
+<!-- Khayr Partners Footer -->
+<footer class="shuraka-footer" style="background:#2c1a0e;padding:18px 12px;text-align:center;">
+  <img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" style="height:72px;width:auto;mix-blend-mode:screen;opacity:0.92;display:inline-block;"/>
+</footer>
+<script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+</body>
+</html>
+

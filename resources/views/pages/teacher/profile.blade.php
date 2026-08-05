@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ملفي الشخصي — برنامج متين العلمي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@@400;500;600;700&family=Amiri:wght@@400;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="font" type="font/woff2" href="/Mateen/libs/tabler-icons/fonts/tabler-icons.woff2?v3.42.0" crossorigin/>
+  <link rel="stylesheet" href="/Mateen/libs/tabler-icons/tabler-icons.min.css">
+  <link rel="stylesheet" href="/Mateen/css/shared.css">
+  <link rel="stylesheet" href="/Mateen/css/teacher.css">
+  <link rel="stylesheet" href="/Mateen/css/teacher-profile.css">
+  <link rel="stylesheet" href="/Mateen/css/islamic.css">
+  <link rel="stylesheet" href="/Mateen/css/mobile.css">
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+  <link rel="manifest" href="/Mateen/manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="متين">
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<div id="authGate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div style="font-family:Amiri,serif;font-size:18px;color:var(--green-dark)">جارٍ التحقق...</div>
+</div>
+
+<div id="mainContent" style="display:none">
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+
+<nav>
+
+  <a href="/Mateen/html/home.html" class="nav-logo">
+    <div class="logo-circle"><img src="/Mateen/logo.png" alt="متين" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"></div>
+    <div>
+      <div class="nav-brand">برنامج متين العلمي</div>
+      <div class="nav-tagline">نحو بناء علميٍّ متين</div>
+    </div>
+  </a>
+    <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
+  <ul class="nav-links">
+    <li><a href="/Mateen/html/home.html">الرئيسية</a></li>
+    <li><a href="/Mateen/html/teacher-schedule.html">جدولي</a></li>
+    <li><a href="/Mateen/html/teacher-library.html">مكتبتي</a></li>
+    <li><a href="/Mateen/html/messages.html">الرسائل</a></li>
+  </ul>
+  <div class="nav-btns">
+    <button onclick="doLogout()" class="btn-outline"><i class="ti ti-logout"></i> خروج</button>
+  </div>
+  <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+    <i class="ti ti-menu-2"></i>
+  </button>
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+</nav>
+
+<div class="teacher-hero">
+  <div class="teacher-avatar">🧕‍🏫</div>
+  <div class="teacher-hero-info">
+    <div class="teacher-name" id="teacherName">...</div>
+    <div class="teacher-subj" id="teacherSubj">...</div>
+    <span class="teacher-badge">✦ برنامج متين العلمي</span>
+  </div>
+</div>
+
+<div class="breadcrumb">
+  <a href="/Mateen/html/home.html">الرئيسية</a>
+  <i class="ti ti-chevron-left" style="font-size:12px"></i>
+  <span>ملفي الشخصي</span>
+</div>
+
+<div class="teacher-wrap">
+
+  <!-- معIfمات Teacher (f) -->
+  <div class="t-section">
+    <div class="t-section-head"><i class="ti ti-user"></i> معلوماتي</div>
+    <div class="t-section-body">
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">الاسم</span><span class="info-val" id="infoName">...</span></div>
+        <div class="info-item"><span class="info-label">البريد</span><span class="info-val" id="infoEmail">...</span></div>
+        <div class="info-item"><span class="info-label">الجوال</span><span class="info-val" id="infoPhone">...</span></div>
+        <div class="info-item"><span class="info-label">المادة</span><span class="info-val" id="infoSubject">...</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- طالبات متين -->
+  <div class="t-section">
+    <div class="t-section-head"><i class="ti ti-users"></i> طالبات متين المسجلات <span class="tp-badge" id="mateenCount">0</span></div>
+    <div class="t-section-body">
+      <div class="tp-search-wrap">
+        <input type="text" id="mateenSearch" placeholder="ابحثي باسم الطالبة..." oninput="filterMateenStudents()" class="tp-search"/>
+      </div>
+      <div id="mateenList"><div class="empty-state"><i class="ti ti-loader"></i> جارٍ التحميل...</div></div>
+    </div>
+  </div>
+
+  <!-- روابط سريعة -->
+  <div class="tp-quick-links">
+    <a href="/Mateen/html/teacher-schedule.html" class="tp-quick-card">
+      <i class="ti ti-calendar"></i>
+      <span>جدولي الدراسي</span>
+    </a>
+    <a href="/Mateen/html/teacher-library.html" class="tp-quick-card">
+      <i class="ti ti-library"></i>
+      <span>مكتبتي العلمية</span>
+    </a>
+    <a href="/Mateen/html/messages.html" class="tp-quick-card">
+      <i class="ti ti-message"></i>
+      <span>الرسائل</span>
+    </a>
+    <a id="myPageLink" href="/Mateen/html/home.html" class="tp-quick-card">
+      <i class="ti ti-layout"></i>
+      <span>صفحة مادتي</span>
+    </a>
+  </div>
+
+</div>
+
+<footer>
+  <div style="display:flex;align-items:center;gap:8px">
+    <img src="/Mateen/logo.png" alt="متين" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--gold);">
+    <span style="color:rgba(255,255,255,0.7);font-family:Amiri,serif">متين العلمي</span>
+  </div>
+  <div class="footer-social">
+    <a href="#"><i class="ti ti-brand-telegram"></i></a>
+    <a href="https://x.com/programMateen?t=HENBpRB5qS0lFAyW4d10mg&s=35" target="_blank" rel="noopener"><i class="ti ti-brand-twitter"></i></a>
+    <a href="https://www.instagram.com/programmateen?igsh=cXZtNGd1c2Voa3p3" target="_blank" rel="noopener"><i class="ti ti-brand-instagram"></i></a>
+  </div>
+</footer>
+</div>
+
+<script type="module" src="/Mateen/js/teacher-profile.js?v=20260723"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+</body>
+</html>

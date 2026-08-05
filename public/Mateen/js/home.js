@@ -692,10 +692,23 @@ window.submitContactNew = async () => {
   try {
     if (useApi()) {
       const session = await resolveLaravelSession({ refresh: false });
-      if (!session) throw new Error('يجب تسجيل الدخول أولاً');
-      const created = await api.conversations.create({ participant_id: Number(recipientEl.value) || recipientEl.value });
-      const convId = created?.data?.id ?? created?.id;
-      await api.conversations.send(convId, { body: bodyText });
+      if (session) {
+        const created = await api.conversations.create({ participant_id: Number(recipientEl.value) || recipientEl.value });
+        const convId = created?.data?.id ?? created?.id;
+        await api.conversations.send(convId, { body: bodyText });
+      } else {
+        const res = await fetch('/api/v1/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            name: nameEl?.value.trim() || null,
+            recipient: recipientEl.value,
+            topic: topicEl.value,
+            body: bodyEl.value.trim(),
+          }),
+        });
+        if (!res.ok) throw new Error('تعذر إرسال الرسالة');
+      }
     } else {
       await window._submitContactFirebaseHome(bodyText, recipientEl.value, nameEl);
     }
@@ -769,15 +782,37 @@ function submitContact(btn) {
 /* ═══════════════════════════════════════════════════════════════
    [من home-3.js] — submitReg (Modal طلب التسجيل — مستخدمة فعلياً)
    ═══════════════════════════════════════════════════════════════ */
-function submitReg(btn) {
+async function submitReg(btn) {
   const modal = document.getElementById('reg-modal');
-  const inputs = modal.querySelectorAll('input, select');
+  const name = document.getElementById('regName') || modal?.querySelector('input[type="text"]');
+  const phone = document.getElementById('regPhone') || modal?.querySelectorAll('input')[1];
+  const email = document.getElementById('regEmail') || modal?.querySelector('input[type="email"]');
+  const age = document.getElementById('regAge');
+  const level = document.getElementById('regLevel') || modal?.querySelectorAll('select')[0];
+  const source = document.getElementById('regSource') || modal?.querySelectorAll('select')[1];
+  const required = [name, phone, email, level].filter(Boolean);
   let valid = true;
-  inputs.forEach(el => { if (!el.value.trim()) { el.style.borderColor = '#c0392b'; valid = false; } else el.style.borderColor = ''; });
+  required.forEach(el => {
+    if (!el.value.trim()) { el.style.borderColor = '#c0392b'; valid = false; }
+    else el.style.borderColor = '';
+  });
   if (!valid) return;
   btn.disabled = true;
   btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> جارٍ الإرسال...';
-  setTimeout(() => {
+  try {
+    const res = await fetch('/api/v1/registration-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        name: name?.value.trim(),
+        phone: phone?.value.trim(),
+        email: email?.value.trim(),
+        age: age?.value ? Number(age.value) : null,
+        level: level?.value || null,
+        source: source?.value || null,
+      }),
+    });
+    if (!res.ok) throw new Error('تعذر إرسال الطلب');
     btn.innerHTML = '<i class="ti ti-check"></i> تم التسجيل بنجاح!';
     btn.style.background = 'var(--green-mid)';
     setTimeout(() => {
@@ -785,9 +820,13 @@ function submitReg(btn) {
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-send"></i> إرسال طلب التسجيل';
       btn.style.background = '';
-      inputs.forEach(el => el.value = '');
+      modal.querySelectorAll('input, select').forEach(el => { el.value = ''; });
     }, 2500);
-  }, 1500);
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-send"></i> إرسال طلب التسجيل';
+    alert(e.message || 'حدث خطأ أثناء الإرسال');
+  }
 }
 
 // هذه الد and the  متاحة عالمياً Because HTML بينthis عليها بـ onclick="..."
