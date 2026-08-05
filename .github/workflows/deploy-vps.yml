@@ -164,8 +164,10 @@ jobs:
             apache2ctl configtest
             systemctl restart apache2
             curl -sI "https://mateen.academy/" | head -20
-            curl -fsSL --max-redirs 5 "https://mateen.academy/" | grep -q 'data-blade-home'
-            curl -fsSL --max-redirs 5 "https://mateen.academy/Mateen/html/home.html" | grep -q 'data-blade-home'
+            curl -fsS "https://mateen.academy/" -o /tmp/mateen-home.html
+            grep -q 'data-blade-home' /tmp/mateen-home.html
+            curl -fsS "https://mateen.academy/Mateen/html/home.html" -o /tmp/mateen-home-legacy.html
+            grep -q 'data-blade-home' /tmp/mateen-home-legacy.html
             curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
             curl -fsS -o /dev/null "https://mateen.academy/api/v1/subjects"
             echo "Production deploy OK — https://mateen.academy"
