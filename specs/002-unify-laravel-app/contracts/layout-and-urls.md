@@ -14,7 +14,7 @@ Normative packaging and URL contracts for the unified application. Domain API sh
 | Application root | Repository root |
 | Laravel markers | `artisan`, `composer.json`, `app/`, `public/index.php` at root |
 | Nested `backend/` app | **Must not** be the real application root after this feature |
-| Authoritative UI | `public/Mateen/**` |
+| Authoritative UI | Blade in `resources/views/` + static assets `public/Mateen/{css,js,libs,…}` |
 | Obsolete front | `_obsolete/frontend/**` + `_obsolete/frontend/DO_NOT_EDIT.md` |
 | Spec / tooling | `specs/`, `.specify/`, `.github/` may remain at root |
 
@@ -22,16 +22,18 @@ Normative packaging and URL contracts for the unified application. Domain API sh
 
 ## Public URL contract (UI)
 
-| Pre-unification (reference) | Post-unification (required) |
-|-----------------------------|-----------------------------|
-| `/Mateen/html/<page>.html` | Same path → `public/Mateen/html/<page>.html` |
+| Pre-unification (reference) | Post-Blade (required) |
+|-----------------------------|------------------------|
+| `/Mateen/html/<page>.html` | Same path → `routes/web.php` Blade action (no static file in `public/Mateen/html/`) |
+| `/` | Blade home (`mateen.home`) |
 | `/Mateen/js/...` | Same → `public/Mateen/js/...` |
 | `/Mateen/css/...` | Same → `public/Mateen/css/...` |
 | Other live `/Mateen/...` assets | Same path under `public/Mateen/...` |
 
 **Rules**:
 - Live bookmarked paths MUST NOT require a new path or redirect for normal use.
-- Backup / unused pages (`*_backup*`, etc.) are not required under `public/Mateen/`.
+- Backup / unused pages (`*_backup*`, etc.) are not required as Blade routes.
+- CSS/JS are **not** Vite-bundled for normal use (existing `/Mateen/css` + `/Mateen/js`).
 
 ---
 
@@ -76,5 +78,5 @@ Firebase web config may remain **only** for FCM push (per `001`); it is not the 
 | Item | Contract |
 |------|----------|
 | Document root | `{app}/public` |
-| Serves | `/Mateen/**` static + `/api/v1/**` via `public/index.php` |
+| Serves | Blade via `index.php` for `/` and `/Mateen/html/**`; static `/Mateen/{css,js,libs,images}`; `/api/v1/**` |
 | Former front-only host | Not live UI after production cutover |

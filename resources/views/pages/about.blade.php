@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+<meta charset="utf-8"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title>عن البرنامج — متين العلمي</title>
+    <meta name="description" content="تعرفي على برنامج متين العلمي — رسالتنا وأهدافنا في تقديم تعليم إسلامي أصيل ومتين">
+    <meta name="keywords" content="عن برنامج متين, رسالة متين, تعليم إسلامي أصيل">
+    <meta property="og:title" content="عن برنامج متين العلمي">
+    <meta property="og:description" content="رسالتنا في تقديم تعليم إسلامي أصيل من القرآن والسنة">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mateenweb.github.io/Mateen/html/about.html">
+    <meta property="og:image" content="https://mateenweb.github.io/Mateen/logo.png">
+    <link rel="canonical" href="https://mateenweb.github.io/Mateen/html/about.html">
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/about.css" rel="stylesheet"/>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<!-- BASMALA -->
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+<div id="nav-placeholder"></div>
+<button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع" style="position:fixed;top:16px;left:16px;z-index:1000;background:rgba(44,26,14,0.85);border:none;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#e8c96a;font-size:18px;box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+  <i class="ti ti-arrow-right"></i>
+</button>
+<div class="main-wrap" style="max-width:800px;margin:48px auto;padding:0 20px;">
+
+  <div style="text-align:center;margin-bottom:40px;">
+    <div style="font-family:Amiri,serif;font-size:15px;color:var(--gold-dark);margin-bottom:10px;">✦ التعريف بالبرنامج ✦</div>
+    <h1 style="font-family:Amiri,serif;font-size:clamp(26px,4vw,42px);color:var(--green-dark);margin-bottom:12px;">برنامج متين العلمي</h1>
+    <p style="font-size:16px;color:var(--text-mid);line-height:1.8;">برنامج علمي يهدف لتحصين المسلمة في زمن الفتن، من خلال جملة من الأمور:</p>
+    <div style="width:60px;height:3px;background:var(--gold);margin:16px auto 0;border-radius:2px;"></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <div style="background:white;border-radius:16px;padding:28px 32px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--beige);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📖</div>
+      <div>
+        <div style="font-family:Amiri,serif;font-size:20px;color:var(--green-dark);font-weight:700;margin-bottom:6px;">أولاً</div>
+        <div style="font-size:17px;color:var(--text-dark);line-height:1.8;">الربط بكتاب الله حفظاً وتدبراً.</div>
+      </div>
+    </div>
+
+    <div style="background:white;border-radius:16px;padding:28px 32px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--beige);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🌙</div>
+      <div>
+        <div style="font-family:Amiri,serif;font-size:20px;color:var(--green-dark);font-weight:700;margin-bottom:6px;">ثانياً</div>
+        <div style="font-size:17px;color:var(--text-dark);line-height:1.8;">الربط بسُنَّة النبي ﷺ فهماً وتدبراً وإسقاطاً على الواقع.</div>
+      </div>
+    </div>
+
+    <div style="background:white;border-radius:16px;padding:28px 32px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--beige);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⭐</div>
+      <div>
+        <div style="font-family:Amiri,serif;font-size:20px;color:var(--green-dark);font-weight:700;margin-bottom:6px;">ثالثاً</div>
+        <div style="font-size:17px;color:var(--text-dark);line-height:1.8;">معرفة العقيدة الصحيحة وما ينقضها.</div>
+      </div>
+    </div>
+
+    <div style="background:white;border-radius:16px;padding:28px 32px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--beige);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">⚖️</div>
+      <div>
+        <div style="font-family:Amiri,serif;font-size:20px;color:var(--green-dark);font-weight:700;margin-bottom:6px;">رابعاً</div>
+        <div style="font-size:17px;color:var(--text-dark);line-height:1.8;">دراسة الأحكام الفقهية لمختلف العبادات مع إبراز النواحي الإيمانية فيها.</div>
+      </div>
+    </div>
+
+    <div style="background:white;border-radius:16px;padding:28px 32px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:20px;box-shadow:0 2px 12px rgba(0,0,0,0.05);">
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--beige);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">💎</div>
+      <div>
+        <div style="font-family:Amiri,serif;font-size:20px;color:var(--green-dark);font-weight:700;margin-bottom:6px;">خامساً</div>
+        <div style="font-size:17px;color:var(--text-dark);line-height:1.8;">تزويد الطالبة بجملة من الإثرائيات التي تَبني لها المكوّن الإيماني والمعرفي والسلوكي.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<footer>
+<div class="footer-logo">
+<img alt="متين" src="/Mateen/logo.png" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;" width="40" height="40"/>
+<span style="color:rgba(255,255,255,0.8);font-family:Amiri,serif;font-size:14px">متين العلمي</span>
+</div>
+<div class="footer-dua">اللهم علمنا ما ينفعنا وانفعنا بما علمتنا</div>
+<div class="footer-social">
+<a href="#"><i class="ti ti-brand-telegram"></i></a>
+<a href="https://x.com/programMateen?t=HENBpRB5qS0lFAyW4d10mg&s=35" target="_blank" rel="noopener"><i class="ti ti-brand-twitter"></i></a>
+<a href="https://www.instagram.com/programmateen?igsh=cXZtNGd1c2Voa3p3" target="_blank" rel="noopener"><i class="ti ti-brand-instagram"></i></a>
+</div>
+</footer>
+<script src="/Mateen/js/nav.js?v=20260723"></script>
+<script src="/Mateen/js/about-2.js?v=20260723"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+</body>
+</html>
+

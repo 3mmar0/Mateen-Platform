@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title>الأخبار — متين العلمي</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/news.css" rel="stylesheet"/>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+<link href="/Mateen/css/notifications.css" rel="stylesheet"/>
+<link rel="manifest" href="/Mateen/manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="متين">
+<link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<link href="/Mateen/css/modals.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+  <i class="ti ti-arrow-right"></i>
+</button>
+
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+<div id="nav-placeholder"></div>
+
+<div class="page-hero">
+  <div class="hero-badge">📢 آخر الأخبار</div>
+  <h1>الأخبار والإعلانات</h1>
+  <p>تابعي آخر أخبار وإعلانات برنامج متين العلمي</p>
+</div>
+
+<div class="breadcrumb">
+  <a href="/Mateen/html/home.html">الرئيسية</a>
+  <i class="ti ti-chevron-left"></i>
+  <span>الأخبار</span>
+</div>
+
+<div class="main-wrap">
+  <div class="news-layout">
+    <div class="news-main">
+      <div class="news-header-row">
+        <div class="section-title news-section-title">آخر الإعلانات</div>
+        <button id="addNewsBtn" class="btn-add-news"
+          onclick="document.getElementById('addNewsModal').classList.add('show');typeof toggleNewsRolesBox==='function'&&toggleNewsRolesBox('news')">
+          <i class="ti ti-plus"></i> إضافة خبر
+        </button>
+      </div>
+      <div class="section-sub">كل جديد من البرنامج</div>
+
+      <div id="newsLoading" class="news-state-box">
+        <i class="ti ti-loader-2 news-state-icon-loading"></i>
+        <div class="news-state-text-sm">جارٍ تحميل الأخبار...</div>
+      </div>
+
+      <div id="newsList"></div>
+
+      <div id="newsEmpty" class="news-state-box hidden">
+        <i class="ti ti-news-off news-state-icon-empty"></i>
+        <div class="news-state-text">لا توجد أخبار حالياً</div>
+      </div>
+    </div>
+
+    <div class="news-sidebar">
+      <div class="card">
+        <div class="sidebar-sec-title">📅 المواعيد المهمة</div>
+        <div class="timeline" id="eventsList">
+          <div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa;font-size:13px">جارٍ التحميل...</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo"><img alt="متين" src="/Mateen/logo.png" class="footer-logo-img"/><span class="footer-logo-text">متين العلمي</span></div>
+  <div class="footer-dua">اللهم علمنا ما ينفعنا وانفعنا بما علمتنا</div>
+  <div class="footer-social"><a href="#"><i class="ti ti-brand-telegram"></i></a><a href="https://x.com/programMateen?t=HENBpRB5qS0lFAyW4d10mg&s=35" target="_blank" rel="noopener"><i class="ti ti-brand-twitter"></i></a></div>
+</footer>
+
+<!-- Add News Modal -->
+<div id="addNewsModal" class="m-overlay z-high">
+  <div class="m-box-news">
+    <div class="m-head-news">
+      <div class="m-title-news">إضافة خبر جديد</div>
+      <button onclick="document.getElementById('addNewsModal').classList.remove('show')"
+        class="m-close-news">✕</button>
+    </div>
+
+    <div class="m-form-stack">
+      <div>
+        <label class="m-field-label">العنوان *</label>
+        <input id="newsTitle" type="text" placeholder="عنوان الخبر أو الإعلان"
+          class="m-text-input"/>
+      </div>
+
+      <div>
+        <label class="m-field-label">التفاصيل</label>
+        <textarea id="newsBody" rows="4" placeholder="تفاصيل الخبر..."
+          class="m-textarea"></textarea>
+      </div>
+
+      <div class="m-row-gap10">
+        <div class="m-col-flex1">
+          <label class="m-field-label">التصنيف</label>
+          <select id="newsTag"
+            class="m-select-news">
+            <option value="📝 خبر">📝 خبر</option>
+            <option value="📢 إعلان">📢 إعلان</option>
+            <option value="⚠️ تنبيه">⚠️ تنبيه</option>
+            <option value="🎉 مناسبة">🎉 مناسبة</option>
+            <option value="📅 موعد">📅 موعد</option>
+          </select>
+        </div>
+        <div class="m-pin-wrap">
+          <label class="m-pin-label">
+            <input type="checkbox" id="newsPinned" class="m-pin-checkbox"/>
+            📌 تثبيت
+          </label>
+        </div>
+      </div>
+      <div>
+        <label class="m-field-label">الظهور</label>
+        <select id="newsVisibility" class="m-select-news" onchange="typeof toggleNewsRolesBox==='function'&&toggleNewsRolesBox('news')">
+          <option value="members">🧕‍💻 للمسجلات فقط</option>
+          <option value="public">🌐 للجميع</option>
+        </select>
+      </div>
+      <div id="newsRolesBox" style="display:none;flex-direction:column;gap:6px;background:var(--beige2,#f0e8d8);border:1px solid var(--border,#c9a22744);border-radius:8px;padding:10px">
+        <span style="font-size:12px;color:var(--text-mid,#8a6a52)">أنواع المستخدمين اللي يوصلهم الخبر (اتركي الكل بدون تحديد ليوصل للجميع):</span>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="news-role-check" value="student"/> 🎓 طالبات</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="news-role-check" value="mateen"/> 🌙 طالبات متين</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="news-role-check" value="teacher"/> 👩‍🏫 معلمات</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="news-role-check" value="supervisor"/> 🧑‍💼 مشرفات</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="news-role-check" value="admin"/> 🛡️ أدمن</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="news-role-check" value="support"/> 🎧 دعم فني</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-foot-news">
+      <button onclick="document.getElementById('addNewsModal').classList.remove('show')"
+        class="m-btn-cancel-news">
+        إلغاء
+      </button>
+      <button onclick="typeof submitNews==='function'&&submitNews()"
+        id="newsSubmitBtn"
+        class="m-btn-publish">
+        <i class="ti ti-send"></i> نشر
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div id="editNewsModal" class="m-overlay z-high">
+  <div class="m-box-news">
+    <div class="m-head-news">
+      <div class="m-title-news">تعديل الخبر</div>
+      <button onclick="document.getElementById('editNewsModal').classList.remove('show')"
+        class="m-close-news">✕</button>
+    </div>
+    <div class="m-body-news">
+      <input id="editTitle" type="text" placeholder="عنوان الخبر أو الإعلان"
+        class="m-input-news"/>
+      <textarea id="editBody" rows="4" placeholder="تفاصيل الخبر..."
+        class="m-textarea-news"></textarea>
+      <div class="m-row-news">
+        <select id="editTag" class="m-select-news">
+          <option value="📢 إعلان">📢 إعلان</option>
+          <option value="📝 خبر">📝 خبر</option>
+          <option value="🎉 مناسبة">🎉 مناسبة</option>
+          <option value="⚠️ تنبيه">⚠️ تنبيه</option>
+          <option value="📅 موعد">📅 موعد</option>
+        </select>
+        <label class="m-pin-label">
+          <input type="checkbox" id="editPinned" class="m-pin-checkbox"/> تثبيت
+        </label>
+      </div>
+      <select id="editVisibility" class="m-select-news" onchange="typeof toggleNewsRolesBox==='function'&&toggleNewsRolesBox('edit')">
+        <option value="members">للمسجلات فقط</option>
+        <option value="public">للجميع</option>
+      </select>
+      <div id="editRolesBox" style="display:none;flex-direction:column;gap:6px;background:var(--beige2,#f0e8d8);border:1px solid var(--border,#c9a22744);border-radius:8px;padding:10px;margin-top:10px">
+        <span style="font-size:12px;color:var(--text-mid,#8a6a52)">أنواع المستخدمين اللي يوصلهم الخبر (اتركي الكل بدون تحديد ليوصل للجميع):</span>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="edit-role-check" value="student"/> 🎓 طالبات</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="edit-role-check" value="mateen"/> 🌙 طالبات متين</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="edit-role-check" value="teacher"/> 👩‍🏫 معلمات</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="edit-role-check" value="supervisor"/> 🧑‍💼 مشرفات</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="edit-role-check" value="admin"/> 🛡️ أدمن</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" class="edit-role-check" value="support"/> 🎧 دعم فني</label>
+        </div>
+      </div>
+    </div>
+    <div class="m-foot-news">
+      <button onclick="document.getElementById('editNewsModal').classList.remove('show')"
+        class="m-cancel-news">إلغاء</button>
+      <button onclick="typeof submitEditNews==='function'&&submitEditNews()" class="m-submit-news">💾 حفظ التعديلات</button>
+    </div>
+  </div>
+</div>
+
+<!-- Immediate API load (does not depend on ES modules) -->
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fmt(v) {
+    if (!v) return '';
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return '';
+    try { return d.toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { return ''; }
+  }
+  function hideLoading() {
+    var el = document.getElementById('newsLoading');
+    if (el) { el.classList.add('hidden'); el.style.display = 'none'; }
+  }
+  function showEmpty() {
+    var el = document.getElementById('newsEmpty');
+    if (el) { el.classList.remove('hidden'); el.style.display = ''; }
+  }
+
+  fetch('/api/v1/news', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+    .then(function (r) { if (!r.ok) throw new Error('news ' + r.status); return r.json(); })
+    .then(function (j) {
+      hideLoading();
+      var items = (j && j.data) ? j.data : [];
+      var list = document.getElementById('newsList');
+      if (!list) return;
+      if (!items.length) { showEmpty(); return; }
+      window.__mateenNewsItems = items;
+      list.innerHTML = items.map(function (n) {
+        return '<div class="news-card">' +
+          '<div class="news-card-head"><div>' +
+          '<div class="news-tag">📝 خبر</div>' +
+          '<div class="news-date"><i class="ti ti-calendar"></i> ' + esc(fmt(n.published_at || n.created_at)) + '</div>' +
+          '</div></div>' +
+          '<h3>' + esc(n.title) + '</h3>' +
+          '<p>' + esc(n.body) + '</p>' +
+          '</div>';
+      }).join('');
+    })
+    .catch(function (e) {
+      console.warn('[news] inline load failed', e);
+      hideLoading();
+      showEmpty();
+    });
+
+  fetch('/api/v1/schedules', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+    .then(function (r) { if (!r.ok) throw new Error('schedules ' + r.status); return r.json(); })
+    .then(function (j) {
+      var el = document.getElementById('eventsList');
+      if (!el) return;
+      var items = (j && j.data) ? j.data : [];
+      if (!items.length) {
+        el.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
+        return;
+      }
+      el.innerHTML = items.map(function (s) {
+        return '<div class="tl-item"><div class="tl-dot"></div><div>' +
+          '<div class="tl-label">' + esc(s.title) + '</div>' +
+          '<div class="tl-date">' + esc(fmt(s.starts_at)) + '</div>' +
+          '</div></div>';
+      }).join('');
+    })
+    .catch(function () {
+      var el = document.getElementById('eventsList');
+      if (el) {
+        el.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
+      }
+    });
+})();
+</script>
+
+<script src="/Mateen/js/nav.js?v=20260731b"></script>
+<script type="module" src="/Mateen/js/news-page.js?v=20260731b"></script>
+<script type="module" src="/Mateen/js/notifications.js?v=20260731b"></script>
+<script src="/Mateen/js/sw-register.js?v=20260731b"></script>
+<script src="/Mateen/js/cloud.js?v=20260723"></script>
+
+</body>
+</html>

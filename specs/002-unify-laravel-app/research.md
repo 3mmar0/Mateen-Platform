@@ -26,22 +26,23 @@ All Technical Context unknowns resolved below.
 
 ## R2 — Where authoritative UI assets live
 
-**Decision**: Place live Mateen static assets under Laravel `public/Mateen/` mirroring today’s public URL tree:
+**Decision (updated 2026-08-05)**: Pages are **Blade** under `resources/views/`, served by `routes/web.php`. Static CSS/JS/libs/images stay under `public/Mateen/`. Preserved URLs `/Mateen/html/<page>.html` are Blade aliases (static HTML must not remain in `public/Mateen/html/` or it will shadow routes).
 
 ```text
-public/Mateen/html/…
+resources/views/pages/…     # Authoritative pages
 public/Mateen/js/…
 public/Mateen/css/…
-public/Mateen/…   # other live static roots as needed (libs, images, sw.js if served under /Mateen/)
+public/Mateen/libs/…
+resources/html-source/      # Conversion archive only
 ```
 
-Root entry files that are live today (e.g. top-level `index.html`, `sw.js` if used at site root) map to `public/` paths that preserve their **current public URLs**.
+**Rationale**: Stakeholder follow-up required Laravel Blade as the page system while keeping live look/paths (GitHub Pages parity).
 
-**Rationale**: Production and staging already use paths like `/Mateen/html/login.html` (see `001` environments). Serving from `public/Mateen/…` preserves FR-009 with zero rewrite layer for the common case. Laravel’s `public/` is the documented web root.
+**Supersedes**: earlier “static HTML only / Blade out of scope” note.
 
 **Alternatives considered**:
-- `resources/views` + Blade conversion — out of scope (no UI redesign; keep HTML/CSS/JS).
-- `public/html` without `/Mateen` prefix — breaks bookmarks unless Nginx adds a prefix; higher cutover risk.
+- Keep static `public/Mateen/html` forever — rejected by Blade conversion request.
+- `public/html` without `/Mateen` prefix — breaks bookmarks.
 - Vite-bundled SPA — rejected; large rewrite, not requested.
 
 ---
@@ -74,11 +75,11 @@ Root entry files that are live today (e.g. top-level `index.html`, `sw.js` if us
 
 ## R5 — Web routes vs pure static public files
 
-**Decision**: Prefer **static files in `public/Mateen/`** for page delivery (no Blade rewrite). Optionally add a minimal `routes/web.php` redirect from `/` → `/Mateen/html/…` (or existing public home) for convenience only; live bookmarked paths must already work as static URLs under `public/`.
+**Decision (updated 2026-08-05)**: Deliver pages through Laravel web controllers + Blade. `/` is the Blade home. `/Mateen/html/<page>.html` remains an alias to the same action (FR-009). Static CSS/JS stay in `public/Mateen/`.
 
-**Rationale**: Lowest risk for path/asset parity; matches “keep existing HTML/CSS/JS.”
+**Rationale**: Blade conversion request + same-origin app; bookmarks preserved without a static-file shadow.
 
-**Alternatives considered**: Catch-all Laravel controllers serving HTML — unnecessary complexity for static pages.
+**Alternatives considered**: Pure static public HTML — superseded.
 
 ---
 

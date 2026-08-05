@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+<meta charset="utf-8"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>صفحتي — متين العلمي</title>
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/student-general.css" rel="stylesheet"/>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+</head>
+<body>
+<div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
+<nav>
+
+<a class="nav-logo" href="#">
+<div class="logo-circle"><img alt="متين" src="/Mateen/logo.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/></div>
+<div><div class="nav-brand">برنامج متين العلمي</div><div class="nav-tagline">نحو بناء علميٍّ متين</div></div>
+</a>
+    <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
+<div class="nav-btns">
+<div class="nav-user"><i class="ti ti-user"></i><span class="nav-user-name" id="navUserName">طالبة</span></div>
+<button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
+</div>
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+</nav>
+<div id="authGate"><i class="ti ti-loader spin" style="font-size:40px;color:var(--border)"></i><p>جارٍ التحميل...</p></div>
+<div id="mainContent" style="display:none; flex-direction:column; flex:1;">
+<div class="hero">
+<div class="hero-avatar">🎓</div>
+<h1 id="heroName">أهلاً بكِ</h1>
+<p>صفحة الطالبة العادية</p>
+</div>
+<div class="container">
+<div class="welcome-card">
+<h2>مرحباً بكِ في برنامج متين العلمي 🌸</h2>
+<p>
+        هذه صفحتك الخاصة كطالبة متابِعة للبرنامج.<br/>
+        سيتم إضافة المحتوى والمواد قريباً بإذن الله.
+      </p>
+</div>
+</div>
+</div>
+<script src="/Mateen/js/student-general-1.js?v=20260723" type="module"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+</body>
+</html>

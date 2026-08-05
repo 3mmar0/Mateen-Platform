@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>مرحباً بك — متين</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@@400;600;700&family=Amiri:wght@@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/Mateen/css/common.css"/>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  }
+</script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Naskh Arabic',serif; background:linear-gradient(160deg,#fdf8f0 0%,#ede0cc 50%,#d4b896 100%); min-height:100vh; overflow:hidden; direction:rtl; }
+.ob-wrap { width:100vw; height:100vh; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+.ob-dots { position:absolute; top:18px; left:50%; transform:translateX(-50%); display:flex; gap:7px; z-index:10; flex-wrap:wrap; justify-content:center; max-width:80vw; }
+.ob-dot { width:8px; height:8px; border-radius:20px; background:rgba(92,61,46,0.2); transition:all 0.35s; flex-shrink:0; }
+.ob-dot.active { width:24px; background:#c9a227; }
+.ob-skip { position:absolute; top:14px; left:18px; z-index:10; background:none; border:none; color:#8a6a52; font-family:inherit; font-size:13px; cursor:pointer; padding:6px 10px; }
+.ob-slides { flex:1; display:flex; transition:transform 0.45s cubic-bezier(0.4,0,0.2,1); }
+.ob-slide { min-width:100vw; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 28px 100px; text-align:center; overflow-y:auto; }
+.ob-illus { width:140px; height:140px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:18px; background:linear-gradient(135deg,#2c1a0e,#5c3d2e); position:relative; flex-shrink:0; border:3px solid #c9a227; box-shadow:0 8px 30px rgba(44,26,14,0.35); }
+.ob-illus::before { content:''; position:absolute; inset:-10px; border-radius:50%; border:2px dashed rgba(201,162,39,0.3); animation:spin 12s linear infinite; }
+@@keyframes spin { to { transform:rotate(360deg); } }
+.ob-icon { font-size:58px; line-height:1; }
+.ob-title { font-family:Amiri,serif; font-size:24px; font-weight:700; color:#2c1a0e; margin-bottom:8px; line-height:1.4; }
+.ob-desc { font-size:14px; color:#6b4c2a; line-height:2; max-width:340px; margin-bottom:16px; }
+.ob-steps { display:flex; flex-direction:column; gap:8px; width:100%; max-width:340px; margin-bottom:16px; }
+.ob-step { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.6); border:1px solid rgba(201,162,39,0.25); border-radius:12px; padding:10px 14px; text-align:right; }
+.ob-step-num { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#5c3d2e,#8a5e3c); color:#e8c96a; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ob-step-text { font-size:13px; color:#2c1a0e; line-height:1.5; }
+.ob-bottom { position:absolute; bottom:0; left:0; right:0; padding:16px 24px 30px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(to top,rgba(237,224,204,0.97) 60%,transparent); }
+.ob-btn-next { background:linear-gradient(135deg,#2c1a0e,#5c3d2e); color:#e8c96a; border:none; border-radius:14px; padding:12px 28px; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(44,26,14,0.3); }
+.ob-btn-prev { background:rgba(92,61,46,0.1); color:#5c3d2e; border:1px solid rgba(92,61,46,0.2); border-radius:12px; padding:10px 18px; font-family:inherit; font-size:14px; cursor:pointer; }
+.ob-btn-prev.hidden { visibility:hidden; }
+.role-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(201,162,39,0.15); border:1px solid rgba(201,162,39,0.35); color:#7a5c2e; border-radius:20px; padding:5px 16px; font-size:13px; margin-bottom:12px; }
+.notif-btn { background:linear-gradient(135deg,#c9a227,#e8c96a); color:#2c1a0e; border:none; border-radius:12px; padding:12px 28px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; box-shadow:0 4px 14px rgba(201,162,39,0.3); margin-bottom:8px; width:100%; max-width:280px; }
+.install-btn { background:linear-gradient(135deg,#2c1a0e,#5c3d2e); color:#e8c96a; border:none; border-radius:12px; padding:12px 28px; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; width:100%; max-width:280px; }
+.notif-skip { font-size:12px; color:#9b8470; cursor:pointer; background:none; border:none; font-family:inherit; padding:4px; }
+.ob-progress { font-size:12px; color:#9b8470; }
+</style>
+</head>
+<body>
+<div class="ob-wrap">
+  <div class="ob-dots" id="obDots"></div>
+  <button class="ob-skip" onclick="finish()">تخطي الكل</button>
+  <div class="ob-slides" id="obSlides"></div>
+  <div class="ob-bottom">
+    <button class="ob-btn-prev hidden" id="btnPrev" onclick="prevSlide()">&#8594; السابق</button>
+    <span class="ob-progress" id="obProgress"></span>
+    <button class="ob-btn-next" id="btnNext" onclick="nextSlide()">التالي &#8592;</button>
+  </div>
+</div>
+
+<script>
+const ROLE_SLIDES = {
+  mateen: [
+    { icon:'📖', title:'مواد علمية أصيلة', desc:'اطّلعي على جميع المواد العلمية المتاحة\nمن تفسير وفقه وعقيدة وحديث ومقرأة\nكل مادة لها محتوى متكامل' },
+    { icon:'📅', title:'جدولك الدراسي', desc:'في صفحة الجدول ستجدين مواعيد دروسك\nالأسبوعية بشكل منظم\nلا تفوتي أي درس!' },
+    { icon:'💬', title:'الرسائل', desc:'تواصلي مع معلماتك مباشرة\nعبر نظام الرسائل الداخلي' },
+    { icon:'📣', title:'الأخبار', desc:'تابعي آخر أخبار البرنامج\nوالإعلانات المهمة\nمن قسم الأخبار في القائمة' },
+    { icon:'👤', title:'ملفك الشخصي', desc:'اضغطي على أيقونة الشخص\nللاطلاع على ملفك الشخصي\nوتعديل بياناتك' },
+  ],
+  teacher: [
+    { icon:'🧕‍🏫', title:'صفحتك كمعلمة', desc:'صفحتك الشخصية تحتوي على ملفك\nومحتوى مادتك الذي يراه الطالبات\nيمكنك تعديل المحاور والمواد' },
+    { icon:'🧕‍🎓', title:'طالباتك', desc:'من قسم "طالباتي" تابعي\nجميع الطالبات المسجلات في مادتك\nوتواصلي معهن' },
+    { icon:'💬', title:'الرسائل', desc:'تواصلي مع الطالبات والإدارة\nعبر نظام الرسائل\nيمكنك إرسال رسائل صوتية وصور\nومحادثات خاصة' },
+    { icon:'📚', title:'صفحة المواد', desc:'من صفحة المواد يمكنك\nإضافة محتوى جديد لمادتك\nوتعديل المحاور الرئيسية' },
+    { icon:'📣', title:'الأخبار', desc:'تابعي أخبار البرنامج\nويمكنك نشر أخبار جديدة\nوالتحكم في من يراها' },
+  ],
+  supervisor: [
+    { icon:'🛡️', title:'لوحة المشرفة', desc:'لوحتك تتيح لك الإشراف\nعلى الطالبات والمعلمات\nومتابعة سير البرنامج' },
+    { icon:'📊', title:'الإحصائيات', desc:'اطّلعي على إحصائيات البرنامج\nعدد الطالبات والمعلمات\nومستوى النشاط' },
+    { icon:'💬', title:'الرسائل', desc:'تواصلي مع الجميع\nطالبات ومعلمات\nعبر نظام الرسائل' },
+    { icon:'📣', title:'الأخبار', desc:'انشري الأخبار والإعلانات\nللطالبات والمعلمات\nتحكمي في من يرى كل خبر' },
+  ],
+  admin: [
+    { icon:'👑', title:'لوحة الإدارة', desc:'من لوحة الإدارة تتحكمين\nفي جميع الحسابات والمحتوى\nوإعدادات المنصة كاملة' },
+    { icon:'👥', title:'إدارة المستخدمين', desc:'أضيفي وعدّلي وراجعي\nحسابات الطالبات والمعلمات\nوالمشرفات' },
+    { icon:'📚', title:'المواد العلمية', desc:'أضيفي مواد رئيسية جديدة\nوتحكمي في محتوى كل مادة\nوأذونات التعديل' },
+    { icon:'📣', title:'الأخبار والإعلانات', desc:'انشري الأخبار للجميع\nأو للمسجلات فقط\nوثبّتي المهم منها' },
+    { icon:'💬', title:'الرسائل', desc:'تواصلي مع أي شخص\nفي المنصة مباشرة' },
+  ],
+};
+
+const ROLE_LABELS = { mateen:'بنات متين', teacher:'معلمة', supervisor:'مشرفة', admin:'إدارية' };
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+let slides = [];
+let current = 0;
+
+function buildAllSlides(role) {
+  const base = [
+    { icon:'<img src="/Mateen/logo.png" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #c9a227;">', title:'أهلاً بكِ في متين 🌿', desc:'منصة تعليمية إسلامية أصيلة\nتقدم لكِ علماً من القرآن والسنة\nدعينا نريكِ كيف تستخدمينها' },
+    ...(isIOS ? [{
+      icon:'📲', title:'أضيفي التطبيق لهاتفك',
+      desc:'للوصول السريع في أي وقت\nبدون الحاجة لفتح المتصفح',
+      steps:['اضغطي زر المشاركة ⬆️ في الأسفل','اختاري "أضف إلى الشاشة الرئيسية"','اضغطي "إضافة" ✅'],
+    }] : [{ icon:'📲', title:'ثبّتي التطبيق', desc:'أضيفي متين لشاشتك الرئيسية\nللوصول السريع في أي وقت\nبدون فتح المتصفح', install:true }]),
+    { icon:'🔔', title:'فعّلي الإشعارات', desc:'لتصلك الأخبار والرسائل فوراً\nحتى لو كنتِ خارج الموقع', notif:true },
+    ...(ROLE_SLIDES[role] || ROLE_SLIDES.mateen),
+    { icon:'✨', title:'أنتِ جاهزة!', desc:'استمتعي بتجربة تعلم إسلامية أصيلة\nنسأل الله أن ينفعكِ بما تتعلمين\nوأن يجعله في ميزان حسناتك 🤍' },
+  ];
+  slides = base;
+  renderSlides(role);
+  renderDots();
+  updateNav();
+}
+
+function renderSlides(role) {
+  const label = ROLE_LABELS[role] || '';
+  document.getElementById('obSlides').innerHTML = slides.map((s,i) => `
+    <div class="ob-slide">
+      <div class="ob-illus"><span class="ob-icon" style="display:flex;align-items:center;justify-content:center;">${s.icon}</span></div>
+      ${i===0 && label ? `<div class="role-badge">✦ ${label} ✦</div>` : ''}
+      <div class="ob-title">${s.title}</div>
+      <div class="ob-desc">${(s.desc||'').replace(/\n/g,'<br>')}</div>
+      ${s.steps ? `<div class="ob-steps">${s.steps.map((t,n)=>`
+        <div class="ob-step"><div class="ob-step-num">${n+1}</div><div class="ob-step-text">${t}</div></div>
+      `).join('')}</div>` : ''}
+      ${s.notif ? `
+        <button class="notif-btn" id="notifBtn" onclick="askNotif()">🔔 تفعيل الإشعارات</button>
+        <button class="notif-skip" onclick="nextSlide()">تخطي</button>
+      ` : ''}
+      ${s.install ? `
+        <button class="install-btn" id="installBtn" onclick="askInstall()">📲 إضافة لشاشتك الرئيسية</button>
+        <button class="notif-skip" onclick="nextSlide()">تخطي</button>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+function renderDots() {
+  document.getElementById('obDots').innerHTML = slides.map((_,i)=>
+    `<div class="ob-dot ${i===0?'active':''}" id="dot${i}"></div>`
+  ).join('');
+}
+
+function nextSlide() {
+  if (current < slides.length-1) { current++; updateSlider(); }
+  else finish();
+}
+
+function prevSlide() {
+  if (current > 0) { current--; updateSlider(); }
+}
+
+function updateSlider() {
+  document.getElementById('obSlides').style.transform = `translateX(${current*100}vw)`;
+  document.querySelectorAll('.ob-dot').forEach((d,i)=>d.classList.toggle('active',i===current));
+  updateNav();
+}
+
+function updateNav() {
+  document.getElementById('btnPrev').classList.toggle('hidden', current===0);
+  const isLast = current === slides.length-1;
+  document.getElementById('btnNext').textContent = isLast ? 'ابدأي 🚀' : `التالي ←`;
+  document.getElementById('obProgress').textContent = `${current+1} / ${slides.length}`;
+}
+
+function finish() {
+  localStorage.setItem('mateen_onboarding_done', '1');
+  const redirect = localStorage.getItem('ob_redirect') || 'home.html';
+  window.location.href = redirect;
+}
+
+function askNotif() {
+  if ('Notification' in window) {
+    Notification.requestPermission().then(p => {
+      const btn = document.getElementById('notifBtn');
+      if (btn) { btn.textContent = p==='granted' ? '✅ تم تفعيل الإشعارات' : '❌ لم يتم السماح'; btn.disabled=true; }
+      setTimeout(nextSlide, 1000);
+    });
+  } else {
+    nextSlide();
+  }
+}
+
+function askInstall() {
+  const btn = document.getElementById('installBtn');
+  if (window.deferredInstallPrompt) {
+    window.deferredInstallPrompt.prompt();
+    window.deferredInstallPrompt.userChoice.then(r => {
+      if (btn) { btn.textContent = r.outcome==='accepted' ? '✅ تم التثبيت' : '❌ تم الإلغاء'; btn.disabled=true; }
+      window.deferredInstallPrompt = null;
+      setTimeout(nextSlide, 1000);
+    });
+  } else {
+    if (btn) { btn.textContent = '💡 أضيفيه من قائمة المشاركة ⬆️'; btn.disabled=true; }
+    setTimeout(nextSlide, 1500);
+  }
+}
+
+// تحthisد Role
+(async () => {
+  const role = localStorage.getItem('userRole') || 'mateen';
+  buildAllSlides(role);
+})();
+</script>
+</body>
+</html>

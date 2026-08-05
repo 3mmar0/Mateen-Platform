@@ -14,6 +14,7 @@ on:
       - 'composer.lock'
       - 'phpunit.xml'
       - 'public/Mateen/**'
+      - 'resources/views/**'
       - '.github/workflows/ci-backend.yml'
   pull_request:
     branches: [main]
@@ -28,6 +29,7 @@ on:
       - 'composer.lock'
       - 'phpunit.xml'
       - 'public/Mateen/**'
+      - 'resources/views/**'
       - '.github/workflows/ci-backend.yml'
 
 jobs:

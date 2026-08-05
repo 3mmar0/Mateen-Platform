@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+
+<meta charset="utf-8"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0" name="viewport"/>
+<title>ملفي الشخصي — متين</title>
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link href="/Mateen/libs/tabler-icons/tabler-icons.min.css" rel="stylesheet"/>
+<link href="/Mateen/css/student.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+  <link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+  <link rel="manifest" href="/Mateen/manifest.json">
+<meta name="theme-color" content="#1a4a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="متين">
+<script>
+  function revealPage() { document.documentElement.classList.add('ready'); }
+  var t = setTimeout(revealPage, 100);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { clearTimeout(t); revealPage(); });
+  } else {
+    window.addEventListener('load', revealPage);
+  }
+</script>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- Auth Gate -->
+<div id="authGate" class="auth-gate">
+  <img src="/Mateen/logo.png" alt="متين" class="gate-logo"/>
+  <div class="gate-text">جارٍ التحقق من الصلاحيات...</div>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent" style="display:none">
+
+  <!-- Navbar -->
+  <nav class="stu-nav">
+
+    <a href="/Mateen/html/home.html" class="stu-nav-logo">
+      <img src="/Mateen/logo.png" alt="متين"/>
+      <span>برنامج متين العلمي</span>
+    </a>
+    <div class="stu-nav-btns">
+      <a href="/Mateen/html/home.html" class="stu-btn-home"><i class="ti ti-home"></i> الرئيسية</a>
+      <button class="stu-btn-logout" id="logoutBtn"><i class="ti ti-logout"></i> خروج</button>
+    </div>
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <i class="ti ti-arrow-right"></i>
+    </button>
+    <button onclick="startPageTour()" title="جولة تعريفية"
+      style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:6px 8px;display:flex;align-items:center;opacity:0.85;">❓</button>
+</nav>
+
+  <!-- Profile Header -->
+  <div class="stu-profile-header">
+    <div class="stu-avatar-wrap">
+      <div class="stu-avatar" id="stuAvatar">🧕</div>
+    </div>
+    <div class="stu-profile-info">
+      <div class="stu-name" id="studentName">...</div>
+      <div class="stu-meta">
+        <span class="stu-badge" id="studentStatus"></span>
+        <span class="stu-email" id="studentEmail"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stu-stats-bar" id="statsBar">
+    <div class="stu-stat">
+      <i class="ti ti-checks"></i>
+      <div class="stu-stat-num" id="statPresent">0</div>
+      <div class="stu-stat-label">جلسات حاضرة</div>
+    </div>
+    <div class="stu-stat absent">
+      <i class="ti ti-x"></i>
+      <div class="stu-stat-num" id="statAbsent">0</div>
+      <div class="stu-stat-label">جلسات غائبة</div>
+    </div>
+    <div class="stu-stat pct">
+      <i class="ti ti-chart-pie"></i>
+      <div class="stu-stat-num" id="statPct">—</div>
+      <div class="stu-stat-label">نسبة الحضور</div>
+    </div>
+    <div class="stu-stat late">
+      <i class="ti ti-clock-exclamation"></i>
+      <div class="stu-stat-num" id="statLate">0</div>
+      <div class="stu-stat-label">دقيقة تأخير (إجمالي)</div>
+      <div class="stu-stat-sub" id="statLateHours" style="font-size:11px;color:var(--text-mid)"></div>
+    </div>
+    <div class="stu-stat grade">
+      <i class="ti ti-star"></i>
+      <div class="stu-stat-num" id="statGrade">—</div>
+      <div class="stu-stat-label">متوسط الدرجات</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="stu-tabs-wrap">
+    <div class="stu-tabs">
+      <button class="stu-tab active" id="tabBtn-info" onclick="switchTab('info')"><i class="ti ti-user"></i> بياناتي</button>
+      <button class="stu-tab" id="tabBtn-attend" onclick="switchTab('attend')"><i class="ti ti-calendar"></i> حضوري</button>
+      <button class="stu-tab" id="tabBtn-grades" onclick="switchTab('grades')"><i class="ti ti-school"></i> درجاتي</button>
+      <button class="stu-tab" id="tabBtn-certs" onclick="switchTab('certs')"><i class="ti ti-certificate"></i> شهاداتي</button>
+      <button class="stu-tab" id="tabBtn-awards" onclick="switchTab('awards')"><i class="ti ti-award"></i> إجازاتي</button>
+      <button class="stu-tab" id="tabBtn-notes" onclick="switchTab('notes')"><i class="ti ti-notes"></i> ملاحظات</button>
+    </div>
+
+    <!-- Tab: بياناتي -->
+    <div class="stu-panel active" id="tab-info">
+      <div class="info-grid">
+        <div class="info-row"><span class="info-label"><i class="ti ti-user"></i> الاسم</span><span class="info-val" id="infoName">—</span></div>
+        <div class="info-row"><span class="info-label"><i class="ti ti-id-badge"></i> الحالة</span><span class="info-val" id="infoStatus">—</span></div>
+        <div class="info-row"><span class="info-label"><i class="ti ti-check-circle"></i> القبول</span><span class="info-val" id="infoAccepted">—</span></div>
+        <div class="info-row"><span class="info-label"><i class="ti ti-calendar-event"></i> يوم المقابلة</span><span class="info-val" id="infoDay">—</span></div>
+        <div class="info-row"><span class="info-label"><i class="ti ti-clock"></i> وقت المقابلة</span><span class="info-val" id="infoTime">—</span></div>
+        <div class="info-row"><span class="info-label"><i class="ti ti-microphone"></i> المقابلة</span><span class="info-val" id="infoInterview">—</span></div>
+      </div>
+
+      <!-- Delete الحساب -->
+      <div class="delete-acc-section">
+        <button class="delete-acc-btn" id="deleteAccBtn"><i class="ti ti-trash"></i> حذف حسابي</button>
+      </div>
+    </div>
+
+    <!-- Tab: حضوري -->
+    <div class="stu-panel" id="tab-attend">
+      <!-- Form تسجيل حضور جthisد — يظهر للnot/don'tرفة only -->
+      <div id="newSessionWrap" style="display:none; margin-bottom:16px;">
+        <button class="btn-solid" id="newSessionBtn" type="button" style="margin-bottom:10px">
+          <i class="ti ti-plus"></i> تسجيل حضور جلسة جديدة
+        </button>
+        <div id="newSessionForm" style="display:none; border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--white);">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">التاريخ</label><br/>
+              <input type="date" id="sessDate" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">اليوم</label><br/>
+              <input type="text" id="sessDay" placeholder="مثال: الثلاثاء" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">دقائق التأخير</label><br/>
+              <input type="number" min="0" id="sessLateMinutes" value="0" style="width:90px; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+          </div>
+          <div id="sessSubjects" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-solid" id="saveSessionBtn" type="button"><i class="ti ti-check"></i> حفظ الحضور</button>
+            <button class="btn-outline" id="cancelSessionBtn" type="button">إلغاء</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="attendanceList" class="stu-list">
+        <div class="stu-empty"><i class="ti ti-calendar-off"></i><span>لا توجد جلسات مسجلة بعد</span></div>
+      </div>
+    </div>
+
+    <!-- Tab: Gradesي -->
+    <div class="stu-panel" id="tab-grades">
+      <!-- Form Add درجة جthisدة — يظهر للإدارة only -->
+      <div id="newGradeWrap" style="display:none; margin-bottom:16px;">
+        <button class="btn-solid" id="newGradeBtn" type="button" style="margin-bottom:10px">
+          <i class="ti ti-plus"></i> إضافة درجة جديدة
+        </button>
+        <div id="newGradeForm" style="display:none; border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--white);">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+            <div style="flex:1; min-width:140px;">
+              <label style="font-size:12px; color:var(--text-mid)">اسم الاختبار</label><br/>
+              <input type="text" id="gradeLabel" placeholder="مثال: اختبار شهري" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+            <div style="min-width:140px;">
+              <label style="font-size:12px; color:var(--text-mid)">المادة</label><br/>
+              <select id="gradeSubject" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:8px;">
+                <option value="تفسير">تفسير</option>
+                <option value="إثرائيات">إثرائيات</option>
+                
+                <option value="فقه">فقه</option>
+                <option value="عقيدة">عقيدة</option>
+                <option value="حديث">حديث</option>
+                <option value="قرآن">قرآن</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">الدرجة</label><br/>
+              <input type="number" id="gradeScore" placeholder="0" style="width:90px; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">من</label><br/>
+              <input type="number" id="gradeTotal" placeholder="100" style="width:90px; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-solid" id="saveGradeBtn" type="button"><i class="ti ti-check"></i> حفظ الدرجة</button>
+            <button class="btn-outline" id="cancelGradeBtn" type="button">إلغاء</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gradesList" class="stu-list">
+        <div class="stu-empty"><i class="ti ti-school-off"></i><span>لا توجد درجات مسجلة</span></div>
+      </div>
+    </div>
+
+    <!-- Tab: شهاداتي -->
+    <div class="stu-panel" id="tab-certs">
+      <!-- Form إضافة شهادة جديدة — يظهر للإدارة only -->
+      <div id="newCertWrap" style="display:none; margin-bottom:16px;">
+        <button class="btn-solid" id="newCertBtn" type="button" style="margin-bottom:10px">
+          <i class="ti ti-plus"></i> إضافة شهادة جديدة
+        </button>
+        <div id="newCertForm" style="display:none; border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--white);">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+            <div style="flex:1; min-width:180px;">
+              <label style="font-size:12px; color:var(--text-mid)">اسم الشهادة</label><br/>
+              <input type="text" id="certTitle" placeholder="مثال: شهادة إتمام حفظ جزء عمّ" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">التاريخ</label><br/>
+              <input type="date" id="certDate" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px; color:var(--text-mid)">ملاحظة / رابط الشهادة (اختياري)</label><br/>
+            <input type="text" id="certNote" placeholder="رابط الملف أو أي ملاحظة إضافية" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-solid" id="saveCertBtn" type="button"><i class="ti ti-check"></i> حفظ الشهادة</button>
+            <button class="btn-outline" id="cancelCertBtn" type="button">إلغاء</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="certsList" class="stu-list">
+        <div class="stu-empty"><i class="ti ti-certificate-off"></i><span>لا توجد شهادات مسجلة بعد</span></div>
+      </div>
+    </div>
+
+    <!-- Tab: إجازاتي -->
+    <div class="stu-panel" id="tab-awards">
+      <!-- Form إضافة إجازة علمية جديدة — يظهر للإدارة only -->
+      <div id="newAwardWrap" style="display:none; margin-bottom:16px;">
+        <button class="btn-solid" id="newAwardBtn" type="button" style="margin-bottom:10px">
+          <i class="ti ti-plus"></i> إضافة إجازة جديدة
+        </button>
+        <div id="newAwardForm" style="display:none; border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--white);">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+            <div style="flex:1; min-width:180px;">
+              <label style="font-size:12px; color:var(--text-mid)">اسم الإجازة</label><br/>
+              <input type="text" id="awardTitle" placeholder="مثال: إجازة في حفظ سورة البقرة" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+            <div>
+              <label style="font-size:12px; color:var(--text-mid)">التاريخ</label><br/>
+              <input type="date" id="awardDate" style="padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:12px; color:var(--text-mid)">ملاحظة / رابط الإجازة (اختياري)</label><br/>
+            <input type="text" id="awardNote" placeholder="رابط الملف أو أي ملاحظة إضافية" style="width:100%; padding:6px 10px; border:1px solid var(--border); border-radius:8px;"/>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-solid" id="saveAwardBtn" type="button"><i class="ti ti-check"></i> حفظ الإجازة</button>
+            <button class="btn-outline" id="cancelAwardBtn" type="button">إلغاء</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="awardsList" class="stu-list">
+        <div class="stu-empty"><i class="ti ti-award-off"></i><span>لا توجد إجازات مسجلة بعد</span></div>
+      </div>
+    </div>
+
+    <!-- Tab: Notes -->
+    <div class="stu-panel" id="tab-notes">
+      <div class="notes-wrap">
+        <div class="notes-label"><i class="ti ti-notes"></i> الملاحظات</div>
+        <div class="notes-content" id="notesContent">لا توجد ملاحظات بعد.</div>
+
+        <!-- Edit الNotes — يظهر للnot/don'tرفة only -->
+        <div id="notesEditWrap" style="display:none; margin-top:12px;">
+          <textarea id="notesTextarea" rows="5"
+            style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; font-family:inherit; resize:vertical;"
+            placeholder="اكتبي ملاحظاتك عن الطالبة هنا..."></textarea>
+          <button class="btn-solid" id="saveNotesBtn" type="button" style="margin-top:10px">
+            <i class="ti ti-check"></i> حفظ الملاحظات
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end mainContent -->
+
+<!-- Modal تأكيد Delete الحساب -->
+<div class="del-modal-overlay" id="delModal">
+  <div class="del-modal">
+    <div class="del-modal-icon"><i class="ti ti-alert-triangle"></i></div>
+    <h3>حذف الحساب نهائياً</h3>
+    <p>هذا الإجراء لا يمكن التراجع عنه.<br/>ستُحذف جميع بيانات حسابك من النظام.<br/>أدخلي كلمة المرور للتأكيد.</p>
+    <div class="del-pass-wrap">
+      <input dir="ltr" id="delPassInput" placeholder="كلمة المرور" type="password"/>
+    </div>
+    <div class="del-error" id="delError"></div>
+    <div class="del-modal-btns">
+      <button class="del-confirm-btn" id="delConfirmBtn">تأكيد الحذف</button>
+      <button class="del-cancel-btn" id="delCancelBtn">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script src="/Mateen/js/student-1.js?v=3" type="module"></script>
+  <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+  <script src="/Mateen/js/sw-register.js?v=20260723"></script>
+
+<!-- Khayr Partners Footer -->
+<footer class="shuraka-footer" style="background:#2c1a0e;padding:18px 12px;text-align:center;">
+  <img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" style="height:72px;width:auto;mix-blend-mode:screen;opacity:0.92;display:inline-block;"/>
+</footer>
+<script src="/Mateen/js/tour.js?v=20260723"></script>
+
+</body>
+</html>

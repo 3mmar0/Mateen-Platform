@@ -67,5 +67,10 @@ scripts/_check_*.py
 *.apk
 *.mp4
 
+# Migration dumps / live-site snapshots (may contain PII)
+/storage/app/migration-fixtures/*
+!/storage/app/migration-fixtures/.gitignore
+/storage/app/live-site-reference/
+
 # Misc
 vendor

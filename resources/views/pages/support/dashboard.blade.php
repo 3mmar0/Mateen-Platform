@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<script>
+(function(){
+  try{
+    var t=JSON.parse(localStorage.getItem('mateenCustomTheme')||'null');
+    if(!t)return;
+    var r=document.documentElement.style;
+    if(t.greenDark)r.setProperty('--green-dark',t.greenDark);
+    if(t.gold)r.setProperty('--gold',t.gold);
+    if(t.beige)r.setProperty('--beige',t.beige);
+    var patterns={
+      stars:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000' fill-opacity='0.045'%3E%3Cpath d='M20 15l1.5 4.5H26l-3.6 2.8 1.4 4.5-3.8-2.8-3.8 2.8 1.4-4.5L14 19.5h4.5z'/%3E%3C/g%3E%3C/svg%3E\")",
+      geometric:"url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23000' stroke-opacity='0.05'%3E%3Cpath d='M22 2l20 20-20 20L2 22z'/%3E%3C/g%3E%3C/svg%3E\")",
+      circles:"url(\"data:image/svg+xml,%3Csvg width='36' height='36' viewBox='0 0 36 36' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='18' cy='18' r='6' fill='none' stroke='%23000' stroke-opacity='0.05'/%3E%3C/svg%3E\")"
+    };
+    var bg=patterns[t.pattern]||'';
+    if(bg){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.style.backgroundImage=bg;
+        document.body.style.backgroundRepeat='repeat';
+      });
+    }
+  }catch(e){}
+})();
+</script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link rel="icon" type="image/x-icon" href="/favicon.ico"/>
+<title>برنامج متين العلمي — لوحة الدعم الفني</title>
+
+<link href="/Mateen/libs/fonts/arabic-fonts.css" rel="stylesheet"/>
+<link rel="stylesheet" href="/Mateen/css/common.css"/>
+<link href="/Mateen/css/admin.css" rel="stylesheet"/>
+<link href="/Mateen/css/shared.css" rel="stylesheet"/>
+<link href="/Mateen/css/mobile.css" rel="stylesheet"/>
+<link href="/Mateen/css/responsive-fix.css" rel="stylesheet"/>
+<link href="/Mateen/css/modals.css" rel="stylesheet"/>
+<link href="/Mateen/css/islamic.css" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@@2/dist/tabler-icons.min.css"/>
+
+<style>
+  body { background: var(--beige); color: var(--text-dark); }
+  #authGate { display:flex; align-items:center; justify-content:center; min-height:100vh; font-size:14px; color:var(--text-mid); }
+  .main-content-hidden { display:none; }
+
+  .support-topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--green-dark); color:#fff; padding:14px 20px;
+  }
+  .support-topbar h1 { font-size:16px; margin:0; }
+  .support-topbar button {
+    background:transparent; border:1px solid rgba(255,255,255,0.4); color:#fff;
+    border-radius:8px; padding:6px 14px; font-size:13px; cursor:pointer;
+  }
+
+  .support-stats { display:flex; gap:12px; padding:16px 20px; flex-wrap:wrap; }
+  .stat-card {
+    flex:1; min-width:110px; background:#fff; border:1px solid var(--border);
+    border-radius:12px; padding:14px; text-align:center;
+  }
+  .stat-card .num { font-size:22px; font-weight:800; color: var(--green-dark); }
+  .stat-card .lbl { font-size:12px; color: var(--text-mid); margin-top:4px; }
+
+  .support-controls { padding: 0 20px 12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  #searchInput {
+    flex:1; min-width:200px; padding:10px 14px; border-radius:10px; border:1px solid var(--border);
+    font-family:inherit; font-size:13px;
+  }
+  .pill {
+    padding:7px 14px; border-radius:20px; border:1px solid var(--border); background:#fff;
+    font-size:12px; cursor:pointer; color:var(--text-mid);
+  }
+  .pill.active { background: var(--green-dark); color:#fff; border-color:var(--green-dark); }
+
+  #usersGrid { padding: 0 20px 30px; display:flex; flex-direction:column; gap:8px; }
+  .user-card {
+    display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--border);
+    border-radius:12px; padding:12px 14px; cursor:pointer;
+  }
+  .user-avatar { font-size:26px; }
+  .user-info { flex:1; min-width:0; }
+  .user-name { font-size:14px; font-weight:700; color:var(--text-dark); }
+  .user-email { font-size:12px; color:var(--text-mid); }
+  .user-meta { display:flex; gap:6px; margin-top:6px; }
+  .badge-role {
+    font-size:11px; background: var(--beige2,#ede0cc); color:var(--text-mid);
+    border-radius:6px; padding:2px 8px;
+  }
+  .badge-status-active    { background:#d8f3dc; color:#1e7b34; }
+  .badge-status-pending   { background:#fff3cd; color:#8a6d00; }
+  .badge-status-suspended { background:#fde8e8; color:#c0392b; }
+
+  #userModal {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999;
+    align-items:center; justify-content:center;
+  }
+  #userModal.show { display:flex; }
+  .modal-inner { background:#fff; border-radius:16px; padding:22px; width:min(420px,92vw); max-height:88vh; overflow-y:auto; }
+  #modalName { font-size:16px; font-weight:800; margin-bottom:12px; }
+  .detail-row { display:flex; justify-content:space-between; font-size:13px; padding:6px 0; border-bottom:1px solid var(--border); }
+  .detail-label { color:var(--text-mid); }
+  .detail-value { font-weight:600; }
+  #msgText {
+    width:100%; margin-top:14px; padding:10px; border-radius:10px; border:1px solid var(--border);
+    font-family:inherit; font-size:13px; min-height:70px; resize:vertical;
+  }
+  .modal-actions { display:flex; gap:8px; margin-top:12px; justify-content:flex-end; }
+  .modal-actions button {
+    padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; border:1px solid var(--border); background:#f5f5f5;
+  }
+  #sendBtn { background: var(--green-dark); color:#fff; border:none; }
+  #themeBtnInModal { background:#f5f0ff; color:#6c3fc5; border:1px solid #ddd0f5; }
+</style>
+</head>
+<body>
+
+<div id="authGate"><i class="ti ti-loader ti-spin"></i>&nbsp; جارٍ التحقق من الحساب...</div>
+
+<div id="mainContent" class="main-content-hidden">
+  <div class="support-topbar">
+    <h1><i class="ti ti-headset"></i> لوحة الدعم الفني — <span id="navUserName"></span></h1>
+    <button onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
+  </div>
+
+  <div class="support-stats">
+    <div class="stat-card"><div class="num" id="sTotal">0</div><div class="lbl">إجمالي الحسابات</div></div>
+    <div class="stat-card"><div class="num" id="sActive">0</div><div class="lbl">نشطة</div></div>
+    <div class="stat-card"><div class="num" id="sPending">0</div><div class="lbl">معلّقة</div></div>
+    <div class="stat-card"><div class="num" id="sSuspended">0</div><div class="lbl">موقوفة</div></div>
+  </div>
+
+  <div class="support-controls">
+    <input id="searchInput" type="text" placeholder="ابحثي بالاسم أو البريد الإلكتروني..." oninput="renderUsers()">
+    <button class="pill active" onclick="setFilter('all', this)">الكل</button>
+    <button class="pill" onclick="setFilter('active', this)">نشطة</button>
+    <button class="pill" onclick="setFilter('pending', this)">معلّقة</button>
+    <button class="pill" onclick="setFilter('mateen', this)">بنات متين</button>
+    <button class="pill" onclick="setFilter('teacher', this)">معلمات</button>
+    <button class="pill" onclick="setFilter('supervisor', this)">مشرفات</button>
+  </div>
+
+  <div id="usersGrid"></div>
+</div>
+
+<div class="section" id="siteTesterSection">
+  <div class="section-head">
+    <div class="section-head-title"><i class="ti ti-radar"></i> فحص الموقع الشامل</div>
+  </div>
+  <div class="section-body" style="padding:20px">
+    <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px">فحص شامل لجميع صفحات الموقع — أداء، SEO، صور، روابط، إمكانية الوصول، وأفضل الممارسات.</p>
+    <button id="runSiteTestBtn" onclick="runSiteTest()" style="background:linear-gradient(135deg,#2c1a0e,#5c3d2e);color:#e8c96a;border:none;border-radius:10px;padding:10px 24px;font-family:inherit;font-size:14px;cursor:pointer;font-weight:600;">
+      <i class="ti ti-player-play"></i> بدء الفحص الشامل
+    </button>
+    <div id="siteTestResults" style="margin-top:20px;"></div>
+  </div>
+</div>
+
+<script>
+const SITE_PAGES = [
+  'home.html','courses.html','library.html','messages.html','news.html',
+  'schedule.html','student.html','admin.html','supervisor.html','about.html',
+  'stats.html','student-general.html','student-view.html',
+  'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',
+  'teacher-fiqh.html','teacher-hadeeth.html','teacher-tafseer.html',
+  'teacher-profile.html','teacher-schedule.html','teacher-students.html',
+  'teacher-library.html','my-students.html','onboarding.html'
+];
+
+async function runSiteTest() {
+  const btn = document.getElementById('runSiteTestBtn');
+  const results = document.getElementById('siteTestResults');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> جارٍ الفحص...';
+
+  const base = window.location.origin + '/Mateen/html/';
+  let rows = '';
+  let summary = { ok:0, slow:0, err:0 };
+
+  for (const page of SITE_PAGES) {
+    const url = base + page;
+    const result = await checkPage(url, page);
+    if (result.httpOk === false) summary.err++;
+    else if (result.loadTime > 2000) summary.slow++;
+    else summary.ok++;
+
+    const perfScore = result.perfScore;
+    const perfColor = perfScore >= 90 ? '#27ae60' : perfScore >= 50 ? '#e67e22' : '#e74c3c';
+
+    rows += `<tr style="border-bottom:1px solid rgba(0,0,0,0.06)">
+      <td style="padding:8px 10px;font-size:12px;font-weight:600">${page}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.httpOk?'#27ae60':'#e74c3c'}">${result.httpOk ? '✅ '+result.httpStatus : '❌ '+result.httpStatus}</td>
+      <td style="padding:8px 10px;font-size:12px">${result.loadTime} ms</td>
+      <td style="padding:8px 10px;font-size:12px">${result.size}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${perfColor};font-weight:700">${perfScore}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.seo.color}">${result.seo.text}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.a11y.color}">${result.a11y.text}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.bp.color}">${result.bp.text}</td>
+      <td style="padding:8px 10px;font-size:12px;color:${result.images.color}">${result.images.text}</td>
+      <td style="padding:8px 10px"><a href="${url}" style="font-size:12px;color:var(--gold-mid)">فتح ↗</a></td>
+    </tr>`;
+
+    results.innerHTML = `
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <span style="background:#e8f5e9;color:#27ae60;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">✅ سليمة: ${summary.ok}</span>
+        <span style="background:#fff3e0;color:#e67e22;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">⚠️ بطيئة: ${summary.slow}</span>
+        <span style="background:#ffebee;color:#e74c3c;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600">❌ أخطاء: ${summary.err}</span>
+        <span style="background:#f3f3f3;color:#666;padding:6px 14px;border-radius:20px;font-size:12px">تم فحص ${summary.ok+summary.slow+summary.err} / ${SITE_PAGES.length}</span>
+      </div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:900px">
+        <thead><tr style="background:rgba(92,61,46,0.08)">
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الصفحة</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">HTTP</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">وقت التحميل</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الحجم</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الأداء 🏎️</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">SEO 🔍</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">إمكانية الوصول ♿</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">أفضل الممارسات ✨</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">الصور 🖼️</th>
+          <th style="padding:8px 10px;text-align:right;font-size:11px">رابط</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-refresh"></i> إعادة الفحص';
+}
+
+async function checkPage(url, page) {
+  const start = performance.now();
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    const loadTime = Math.round(performance.now() - start);
+    const html = await res.text();
+    const size = formatSize(new Blob([html]).size);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // ── Performance Score ──
+    let perfDeductions = 0;
+    if (loadTime > 3000) perfDeductions += 40;
+    else if (loadTime > 2000) perfDeductions += 25;
+    else if (loadTime > 1000) perfDeductions += 10;
+    const scripts = doc.querySelectorAll('script[src]').length;
+    const styles = doc.querySelectorAll('link[rel="stylesheet"]').length;
+    if (scripts > 10) perfDeductions += 10;
+    if (styles > 5) perfDeductions += 5;
+    const imgs = doc.querySelectorAll('img');
+    const largeImgs = [...imgs].filter(i => {
+      const w = parseInt(i.getAttribute('width')||'0');
+      return w > 800;
+    }).length;
+    if (largeImgs > 0) perfDeductions += largeImgs * 5;
+    const hasViewport = !!doc.querySelector('meta[name="viewport"]');
+    if (!hasViewport) perfDeductions += 10;
+    const perfScore = Math.max(0, 100 - perfDeductions);
+
+    // ── SEO ──
+    const metaDesc = doc.querySelector('meta[name="description"]');
+    const h1 = doc.querySelector('h1');
+    const title = doc.querySelector('title')?.textContent?.trim() || '';
+    const canonical = doc.querySelector('link[rel="canonical"]');
+    const robots = doc.querySelector('meta[name="robots"]');
+    const ogTitle = doc.querySelector('meta[property="og:title"]');
+    let seoIssues = [];
+    if (!metaDesc) seoIssues.push('لا يوجد meta description');
+    if (!h1) seoIssues.push('لا يوجد H1');
+    if (title.length < 10) seoIssues.push('العنوان قصير');
+    if (!canonical) seoIssues.push('لا يوجد canonical');
+    if (!ogTitle) seoIssues.push('لا يوجد Open Graph');
+    const seoScore = Math.round((1 - seoIssues.length/5) * 100);
+    const seo = { 
+      text: seoIssues.length === 0 ? '✅ '+seoScore : '⚠️ '+seoScore+' — '+seoIssues[0],
+      color: seoScore >= 80 ? '#27ae60' : seoScore >= 50 ? '#e67e22' : '#e74c3c'
+    };
+
+    // ── Accessibility ──
+    const lang = doc.documentElement.getAttribute('lang');
+    const btnsNoText = [...doc.querySelectorAll('button')].filter(b => !b.textContent.trim() && !b.getAttribute('aria-label')).length;
+    const inputsNoLabel = [...doc.querySelectorAll('input,textarea,select')].filter(el => {
+      const id = el.getAttribute('id');
+      return !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby') && !(id && doc.querySelector(`label[for="${id}"]`));
+    }).length;
+    const linksNoText = [...doc.querySelectorAll('a')].filter(a => !a.textContent.trim() && !a.getAttribute('aria-label')).length;
+    let a11yIssues = [];
+    if (!lang) a11yIssues.push('لا يوجد lang');
+    if (btnsNoText > 0) a11yIssues.push(`${btnsNoText} زرار بدون نص`);
+    if (inputsNoLabel > 0) a11yIssues.push(`${inputsNoLabel} حقل بدون label`);
+    if (linksNoText > 0) a11yIssues.push(`${linksNoText} رابط بدون نص`);
+    const a11yScore = Math.round((1 - a11yIssues.length/4) * 100);
+    const a11y = {
+      text: a11yIssues.length === 0 ? '✅ '+a11yScore : '⚠️ '+a11yScore+' — '+a11yIssues[0],
+      color: a11yScore >= 80 ? '#27ae60' : a11yScore >= 50 ? '#e67e22' : '#e74c3c'
+    };
+
+    // ── Best Practices ──
+    const isHttps = url.startsWith('https://');
+    const viewportMeta = doc.querySelector('meta[name="viewport"]');
+    const charsetMeta = doc.querySelector('meta[charset]');
+    const faviconLink = doc.querySelector('link[rel*="icon"]');
+    let bpIssues = [];
+    if (!isHttps) bpIssues.push('ليس HTTPS');
+    if (!viewportMeta) bpIssues.push('لا يوجد viewport');
+    if (!charsetMeta) bpIssues.push('لا يوجد charset');
+    if (!faviconLink) bpIssues.push('لا يوجد favicon');
+    const bpScore = Math.round((1 - bpIssues.length/4) * 100);
+    const bp = {
+      text: bpIssues.length === 0 ? '✅ '+bpScore : '⚠️ '+bpScore+' — '+bpIssues[0],
+      color: bpScore >= 80 ? '#27ae60' : bpScore >= 50 ? '#e67e22' : '#e74c3c'
+    };
+
+    // ── Images ──
+    const missingAlt = [...imgs].filter(i => !i.getAttribute('alt')).length;
+    const images = {
+      text: missingAlt === 0 ? (imgs.length > 0 ? `✅ ${imgs.length} صورة` : '—') : `⚠️ ${missingAlt} بدون alt`,
+      color: missingAlt === 0 ? '#27ae60' : '#e67e22'
+    };
+
+    return { httpOk: res.ok, httpStatus: res.status, loadTime, size, perfScore, seo, a11y, bp, images };
+
+  } catch(e) {
+    const loadTime = Math.round(performance.now() - start);
+    return {
+      httpOk: false, httpStatus: 'خطأ', loadTime, size: '—', perfScore: 0,
+      seo: { text: '—', color: '#aaa' },
+      a11y: { text: '—', color: '#aaa' },
+      bp: { text: '—', color: '#aaa' },
+      images: { text: '—', color: '#aaa' }
+    };
+  }
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+</script>
+
+
+<div id="userModal">
+  <div class="modal-inner">
+    <div id="modalName"></div>
+    <div id="modalDetails"></div>
+    <textarea id="msgText" placeholder="اكتبي رسالة للمستخدمة..."></textarea>
+    <div class="modal-actions">
+      <button onclick="closeModal()">إغلاق</button>
+      <button id="themeBtnInModal" onclick="openThemeModalForSelected()" style="display:none">🎨 تغيير الثيم</button>
+      <button id="sendBtn" onclick="sendMessage()"><i class="ti ti-send"></i> إرسال</button>
+    </div>
+  </div>
+</div>
+
+<script src="/Mateen/js/support-1.js?v=20260723" type="module"></script>
+<script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
+<script src="/Mateen/js/sw-register.js?v=20260723"></script>
+</body>
+</html>

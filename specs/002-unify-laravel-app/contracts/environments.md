@@ -32,6 +32,7 @@
 
 | Check | Staging example |
 |-------|-----------------|
+| Home (Blade) | `http://187.127.71.130/` and `http://187.127.71.130/Mateen/html/home.html` |
 | Login page | `http://187.127.71.130/Mateen/html/login.html` |
 | API | `http://187.127.71.130/api/v1` |
 | Seed login | `admin@mateen.test` / local-seed password (server only) |
@@ -106,7 +107,8 @@ Deploy scripts MUST:
 Health check minimum:
 
 1. `GET /up` or API base success  
-2. `GET /Mateen/html/login.html` returns 200  
+2. `GET /` and `GET /Mateen/html/home.html` return Blade 200  
+3. `GET /Mateen/html/login.html` returns 200  
 3. `POST /api/v1/auth/login` with seed user succeeds  
 
 ---

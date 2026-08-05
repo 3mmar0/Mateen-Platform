@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\{AssignmentController,AuthController,ConversationController,DeviceController,EnrollmentController,LibraryController,MaterialController,MediaController,NewsController,ScheduleController,StatsController,StudentController,SubjectController,SupportController,UserController};
+use App\Http\Controllers\Web\ContactController;
+use App\Http\Controllers\Web\RegistrationRequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -18,6 +20,9 @@ Route::prefix('v1')->group(function () {
     Route::get('library', [LibraryController::class, 'index']);
     Route::get('news', [NewsController::class, 'index']);
     Route::get('schedules', [ScheduleController::class, 'index']);
+    Route::get('contact/recipients', [ContactController::class, 'recipients']);
+    Route::post('contact', [ContactController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('registration-requests', [RegistrationRequestController::class, 'store'])->middleware('throttle:5,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']); Route::get('auth/me', [AuthController::class, 'me']);

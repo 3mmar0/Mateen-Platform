@@ -33,9 +33,10 @@ php artisan serve
 Confirm layout markers:
 
 - `artisan` and `composer.json` at repo root
-- Live UI under `public/Mateen/html/`
-- `_obsolete/frontend/DO_NOT_EDIT.md` present
+- Live UI under `resources/views/` + assets in `public/Mateen/{css,js,libs}`
+- `_obsolete/frontend/DO_NOT_EDIT.md` and `resources/html-source/DO_NOT_EDIT.md` present
 - No nested `backend/` as the real app root
+- No static files in `public/Mateen/html/` (Blade aliases only)
 
 ---
 
@@ -60,9 +61,10 @@ Open `public/Mateen/js/config.js`:
 
 With `php artisan serve` running:
 
-1. Open `http://127.0.0.1:8000/Mateen/html/login.html`  
-2. Open at least one staff and one student workspace HTML under `/Mateen/html/…`  
-**Expect**: 200 responses; pages render.
+1. Open `http://127.0.0.1:8000/` and `http://127.0.0.1:8000/Mateen/html/home.html`  
+2. Open `http://127.0.0.1:8000/Mateen/html/login.html`  
+3. Open at least one staff and one student workspace under `/Mateen/html/…`  
+**Expect**: 200 Blade responses; pages render.
 
 ### V3 — Same-origin API (FR-012)
 
@@ -84,10 +86,10 @@ Spot-check ≥10 live pages (mix of public + role pages):
 
 ### V6 — Cross-cutting edit (SC-003)
 
-1. Change visible copy on one `public/Mateen/html` page.  
+1. Change visible copy on `resources/views/pages/home.blade.php`.  
 2. Change a trivial server-facing string or validation message in `app/`.  
 3. Reload the running app.  
-**Expect**: Both changes visible without editing `_obsolete` or a second product tree.
+**Expect**: Both changes visible without editing `_obsolete` or `resources/html-source`.
 
 ### V7 — Staging smoke (FR-008, FR-011)
 
@@ -120,8 +122,19 @@ After production promote:
 
 ---
 
+### V9 — Live home parity
+
+Compare local `/` to https://mateenweb.github.io/Mateen/html/home.html (nav, hero, subjects, contact, register).
+
+### V10 — Data migration audit
+
+```bash
+php artisan mateen:audit-migration tests/fixtures/migration-sample.json
+php artisan mateen:migrate-firebase tests/fixtures/migration-sample.json --dry-run
+```
+
 ## Out of scope for this quickstart
 
 - Full domain parity suite (use `001` quickstart for API domain scenarios)
 - Permanent deletion of `_obsolete/frontend`
-- UI redesign / Blade conversion
+- Operator SSH staging/production (see cutover.md)

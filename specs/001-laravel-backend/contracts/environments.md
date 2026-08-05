@@ -3,7 +3,7 @@
 **Feature**: `001-laravel-backend` | **Date**: 2026-07-30  
 **Related**: [openapi.yaml](./openapi.yaml) · [quickstart.md](../quickstart.md) · [research.md](../research.md)
 
-> **Packaging superseded (2026-07-30)**: Repository layout, same-origin UI+API serving, and deploy paths are now defined by [`specs/002-unify-laravel-app/contracts/environments.md`](../../002-unify-laravel-app/contracts/environments.md). This file remains for historical context and OpenAPI linkage; prefer `002` for where the app lives and how it is deployed. Domain API shapes still live in this feature’s OpenAPI.
+> **Packaging superseded (2026-07-30 / Blade 2026-08-05)**: Repository layout, Blade UI URLs, same-origin UI+API serving, and deploy paths are now defined by [`specs/002-unify-laravel-app/contracts/environments.md`](../../002-unify-laravel-app/contracts/environments.md) and [`layout-and-urls.md`](../../002-unify-laravel-app/contracts/layout-and-urls.md). This file remains for historical context and OpenAPI linkage. Domain API shapes still live in this feature’s OpenAPI.
 
 This contract describes **where** the monorepo runs. API request/response shapes remain in OpenAPI. **No passwords, SSH keys, or API tokens belong in this file.**
 

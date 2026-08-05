@@ -3,32 +3,32 @@
 
 function renderNav(activePage) {
   const links = [
-    { href: 'home.html',    label: 'الرئيسية' },
-    { href: 'about.html',   label: 'عن البرنامج' },
-    { href: 'courses.html', label: 'المسارات العلمية' },
-    { href: 'library.html', label: 'المكتبة' },
-    { href: 'news.html',    label: 'الأخبار' },
-    { href: 'home.html#contact', label: 'تواصل معنا' },
+    { href: '/Mateen/html/home.html',    label: 'الرئيسية' },
+    { href: '/Mateen/html/about.html',   label: 'عن البرنامج' },
+    { href: '/Mateen/html/courses.html', label: 'المسارات العلمية' },
+    { href: '/Mateen/html/library.html', label: 'المكتبة' },
+    { href: '/Mateen/html/news.html',    label: 'الأخبار' },
+    { href: '/Mateen/html/home.html#contact', label: 'تواصل معنا' },
   ];
 
   const isLoggedIn = _navIsLoggedIn();
 
   const navHTML = `
 <nav>
-  <a href="home.html" class="nav-logo" style="text-decoration:none">
-    <img src="../logo.png" alt="متين" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;">
+  <a href="/Mateen/html/home.html" class="nav-logo" style="text-decoration:none">
+    <img src="/Mateen/logo.png" alt="متين" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;">
     <div>
       <div class="nav-brand">برنامج متين العلمي</div>
       <div class="nav-tagline">نحو بناء علميٍّ متين</div>
     </div>
   </a>
-  <div class="nav-shuraka"><img src="../shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img"/></div>
+  <div class="nav-shuraka"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img"/></div>
   <ul class="nav-links">
     ${links.map(l => `<li><a href="${l.href}"${activePage === l.href ? ' class="active"' : ''}>${l.label}</a></li>`).join('\n    ')}
   </ul>
   <div class="nav-btns"${isLoggedIn ? ' style="display:none"' : ''} id="navBtnsRendered">
-    <a href="login.html" class="btn-admin"><i class="ti ti-dashboard"></i> لوحة الإدارة</a>
-    <a href="login.html" class="btn-outline"><i class="ti ti-user"></i> تسجيل الدخول</a>
+    <a href="/Mateen/html/login.html" class="btn-admin"><i class="ti ti-dashboard"></i> لوحة الإدارة</a>
+    <a href="/Mateen/html/login.html" class="btn-outline"><i class="ti ti-user"></i> تسجيل الدخول</a>
     <button class="btn-solid" onclick="document.getElementById('reg-modal')?.classList.add('open')">التسجيل في البرنامج</button>
   </div>
   <button onclick="typeof startPageTour==='function'&&startPageTour()" title="جولة تعريفية"

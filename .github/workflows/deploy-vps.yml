@@ -73,6 +73,8 @@ jobs:
             chmod -R ug+rwx storage bootstrap/cache
             nginx -t && systemctl reload nginx || true
             systemctl reload php8.4-fpm || systemctl reload php8.3-fpm || true
+            curl -fsS -o /dev/null "http://127.0.0.1/"
+            curl -fsS -o /dev/null "http://127.0.0.1/Mateen/html/home.html"
             curl -fsS -o /dev/null "http://127.0.0.1/Mateen/html/login.html"
             curl -fsS -o /dev/null "http://127.0.0.1/api/v1/subjects"
             echo "Staging deploy OK"
@@ -147,6 +149,8 @@ jobs:
             a2enmod rewrite php8.4 headers || true
             apache2ctl configtest
             systemctl restart apache2
+            curl -fsS -o /dev/null "https://mateen.academy/"
+            curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/home.html"
             curl -fsS -o /dev/null "https://mateen.academy/Mateen/html/login.html"
             curl -fsS -o /dev/null "https://mateen.academy/api/v1/subjects"
             echo "Production deploy OK — https://mateen.academy"
