@@ -1,8 +1,8 @@
 // ── Mateen PWA Service Worker ──────────────────────────────────
-const CACHE_NAME = 'mateen-v6'; // Blade UI on unified Laravel origin
+const CACHE_NAME = 'mateen-v7'; // Clean URLs (/login /about) instead of /Mateen/html/*.html
 const ASSETS = [
   '/',
-  '/Mateen/html/login.html',
+  '/login',
   '/Mateen/css/home.css',
   '/Mateen/js/home.js',
   '/Mateen/logo.png',

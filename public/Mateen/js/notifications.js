@@ -88,7 +88,7 @@ function showNotifToast(title, body, url) {
     transition:opacity .3s ease;`;
   t.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-      <div onclick="window.location.href='${url || BASE + '/html/messages.html'}'" style="flex:1">
+      <div onclick="window.location.href='${url || '/messages'}'" style="flex:1">
         <div style="font-weight:700;font-size:14px;margin-bottom:3px">${title}</div>
         <div style="font-size:12.5px;opacity:.85">${body}</div>
       </div>
@@ -215,7 +215,7 @@ async function startListening(userId) {
       const isReadEvent = (Number(data[`unread.${userId}`] || 0) === 0 && Number(data.unread?.[userId] || 0) === 0) && !isNewMsg;
       if (isNewMsg && notFromMe && hasContent && !isReadEvent) {
         lastSeen[convId] = lastAt;
-        const onMsgsPage = window.location.pathname.includes('messages.html');
+        const onMsgsPage = window.location.pathname.includes('/messages');
         playSound();
         let senderName = 'رسالة جديدة';
         try {
@@ -223,9 +223,9 @@ async function startListening(userId) {
           if (senderSnap.exists()) senderName = senderSnap.data().name || senderName;
         } catch (_) {}
         const notifTitle = `💬 ${senderName}`;
-        pushToSW(userId, notifTitle, lastMsg, window.location.origin + BASE + '/html/messages.html', convId);
+        pushToSW(userId, notifTitle, lastMsg, window.location.origin + '/messages', convId);
         if (!onMsgsPage) {
-          showNotifToast(notifTitle, lastMsg, BASE + '/html/messages.html');
+          showNotifToast(notifTitle, lastMsg, '/messages');
           showBrowserNotif(notifTitle, lastMsg);
         }
       }
@@ -241,11 +241,11 @@ async function startListening(userId) {
       snap.docChanges().forEach(change => {
         if (change.type !== 'added') return;
         const n = change.doc.data();
-        const onNewsPage = window.location.pathname.includes('news.html');
+        const onNewsPage = window.location.pathname.includes('/news');
         playSound();
-        pushToSW(userId, '📢 ' + (n.title || 'خبر جديد'), n.body?.slice(0, 80) || '', 'https://mateenweb.github.io/Mateen/html/news.html');
+        pushToSW(userId, '📢 ' + (n.title || 'خبر جديد'), n.body?.slice(0, 80) || '', 'https://mateen.academy/news');
         if (!onNewsPage) {
-          showNotifToast('📢 ' + (n.title || 'خبر جديد'), n.body ? n.body.slice(0, 80) : '', '/Mateen/html/news.html');
+          showNotifToast('📢 ' + (n.title || 'خبر جديد'), n.body ? n.body.slice(0, 80) : '', '/news');
           showBrowserNotif('📢 ' + (n.title || 'خبر جديد — متين'), n.body?.slice(0, 80) || '');
         }
       });
@@ -402,7 +402,7 @@ export { showNotifToast as showToast };
 export async function deletePendingNotificationsForConv(convId) {
   if (!convId) return;
   if (useApi()) {
-    dismissToastForConv('messages.html');
+    dismissToastForConv('/messages');
     return 0;
   }
   try {

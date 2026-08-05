@@ -52,13 +52,13 @@ function mapApiUser(u) {
 }
 
 async function initSupportApi() {
-  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
   let userData;
   try {
     const me = await api.me();
     userData = (me?.data ?? me ?? getStoredUser()) || {};
   } catch {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '/login'; return;
   }
   const role = effectiveRole(userData, userData.email || '');
   currentViewerEmail = (userData.email || '').toLowerCase();
@@ -81,7 +81,7 @@ if (useApi()) {
   (async () => {
     await ensureFirebase();
     onAuthStateChanged(auth, async user => {
-      if (!user) { window.location.href = '../html/login.html'; return; }
+      if (!user) { window.location.href = '/login'; return; }
 
       const snap = await getDoc(doc(db, 'users', user.uid));
     const userData = snap.exists() ? snap.data() : {};
@@ -340,7 +340,7 @@ window.sendMessage = async function() {
       type:      'message',
       title:     '📩 رسالة من الدعم الفني',
       body:      text.length > 60 ? text.slice(0, 60) + '...' : text,
-      url:       'messages.html',
+      url:       '/messages',
       read:      false,
       createdAt: serverTimestamp(),
     });
@@ -361,11 +361,11 @@ window.doLogout = () => {
   if (useApi()) {
     api.logout().catch(() => {}).finally(() => {
       clearSession();
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
     });
     return;
   }
-  signOut(auth).then(() => window.location.href = '../html/login.html');
+  signOut(auth).then(() => window.location.href = '/login');
 };
 
 // Close modal on overlay click

@@ -46,7 +46,11 @@ async function showProfile(session) {
 
   const subj = data.subject || session.subject;
   if (subj) {
-    document.getElementById('myPageLink').href = `teacher-${subj}.html`;
+    document.getElementById('myPageLink').href = ({
+      tafsir: '/teacher/tafseer', tafseer: '/teacher/tafseer', fiqh: '/teacher/fiqh',
+      aqeedah: '/teacher/aqeedah', hadeeth: '/teacher/hadeeth', quran1: '/teacher/quran1',
+      quran2: '/teacher/quran2', maqraah: '/teacher/quran1', ithraiyat: '/teacher/students',
+    }[subj] || '/teacher/profile');
   }
 
   document.getElementById('authGate').style.display = 'none';
@@ -56,9 +60,9 @@ async function showProfile(session) {
 
 async function bootLaravel() {
   const session = await resolveLaravelSession();
-  if (!session) { window.location.href = '../html/login.html'; return; }
+  if (!session) { window.location.href = '/login'; return; }
   await showProfile(session);
-  window.doLogout = () => logoutApp('../html/login.html');
+  window.doLogout = () => logoutApp('/login');
 }
 
 async function bootFirebase() {
@@ -72,9 +76,9 @@ async function bootFirebase() {
   auth = getAuth(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    if (!snap.exists()) { window.location.href = '/login'; return; }
     const data = snap.data();
     const role = data.role || '';
     const status = data.status || '';
@@ -94,13 +98,17 @@ async function bootFirebase() {
     document.getElementById('infoPhone').textContent = data.phone || '—';
     document.getElementById('infoSubject').textContent = subjectAr;
     if (data.subject) {
-      document.getElementById('myPageLink').href = `teacher-${data.subject}.html`;
+      document.getElementById('myPageLink').href = ({
+        tafsir: '/teacher/tafseer', tafseer: '/teacher/tafseer', fiqh: '/teacher/fiqh',
+        aqeedah: '/teacher/aqeedah', hadeeth: '/teacher/hadeeth', quran1: '/teacher/quran1',
+        quran2: '/teacher/quran2', maqraah: '/teacher/quran1', ithraiyat: '/teacher/students',
+      }[data.subject] || '/teacher/profile');
     }
     document.getElementById('authGate').style.display = 'none';
     document.getElementById('mainContent').style.display = 'block';
     loadMateenStudents();
   });
-  window.doLogout = () => signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+  window.doLogout = () => signOut(auth).then(() => { window.location.href = '/login'; });
 }
 
 if (useApi()) bootLaravel();

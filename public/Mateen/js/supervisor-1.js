@@ -104,17 +104,17 @@ async function patchStudent(id, fields) {
 }
 
 async function initSupervisorApi() {
-  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
   let userData;
   try {
     const me = await api.me();
     userData = (me?.data ?? me ?? getStoredUser()) || {};
   } catch {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '/login'; return;
   }
   const role = effectiveRole(userData, userData.email || '');
   window._userRole = role;
-  if (role !== 'supervisor' && role !== 'admin') { window.location.href = '../html/login.html'; return; }
+  if (role !== 'supervisor' && role !== 'admin') { window.location.href = '/login'; return; }
   mountTestModeSwitcher(userData, userData.email || '');
   applyCustomTheme(userData);
   document.getElementById('navUserName').textContent = userData.name || (userData.email || '').split('@')[0];
@@ -126,12 +126,12 @@ async function initSupervisorApi() {
 async function bootSupervisorFirebase() {
   await ensureFirebase();
   onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '../html/login.html'; return; }
+  if (!user) { window.location.href = '/login'; return; }
   const snap = await getDoc(doc(db, 'users', user.uid));
   const userData = snap.exists() ? snap.data() : {};
   const role = effectiveRole(userData, user.email);
   window._userRole = role;
-  if (role !== 'supervisor' && role !== 'admin') { window.location.href = '../html/login.html'; return; }
+  if (role !== 'supervisor' && role !== 'admin') { window.location.href = '/login'; return; }
   mountTestModeSwitcher(userData, user.email);
   applyCustomTheme(userData);
   document.getElementById('navUserName').textContent   = snap.data().name || user.email.split('@')[0];
@@ -152,9 +152,9 @@ if (useApi()) {
 window.doLogout = () => {
   if (useApi()) {
     clearSession();
-    window.location.href = '../html/login.html';
+    window.location.href = '/login';
   } else {
-    signOut(auth).then(() => window.location.href = '../html/login.html');
+    signOut(auth).then(() => window.location.href = '/login');
   }
 };
 
@@ -708,7 +708,7 @@ function renderStudents(list) {
         return `<div class="stu-mob-card">
           <div class="stu-mob-top">
             <div class="stu-mob-name">
-              <a class="btn-stu-link" href="student.html?id=${s.id}">👤</a>
+              <a class="btn-stu-link" href="/student?id=${s.id}">👤</a>
               ${window._userRole==='admin'
                 ? `<input type="text" value="${esc(s.name||'')}" oninput="stuAutoName('${s.id}',this.value)" class="stu-mob-name-input"/>`
                 : `<span class="stu-mob-name-input" style="padding:4px 0">${esc(s.name||'—')}</span>`}
@@ -812,7 +812,7 @@ function renderStudents(list) {
       <td><input type="checkbox" class="row-check" data-id="${s.id}" onchange="onRowCheck()"></td>
       <td style="color:var(--text-mid);font-size:12px">${i+1}</td>
       <td><div class="stu-name-cell">
-        <a class="btn-stu-link" href="student.html?id=${s.id}" title="صفحة الطالبة">👤</a>
+        <a class="btn-stu-link" href="/student?id=${s.id}" title="صفحة الطالبة">👤</a>
         ${window._userRole==='admin'
           ? `<input type="text" value="${esc(s.name||'')}" oninput="stuAutoName('${s.id}',this.value)" style="min-width:100px">`
           : `<span class="stu-name-text">${esc(s.name||'—')}</span>`}

@@ -62,12 +62,12 @@
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
 <ul class="nav-links">
 <li><a href="/">الرئيسية</a></li>
-<li><a href="/Mateen/html/about.html">عن البرنامج</a></li>
-<li><a href="/Mateen/html/courses.html">المسارات العلمية</a></li>
+<li><a href="/about">عن البرنامج</a></li>
+<li><a href="/courses">المسارات العلمية</a></li>
 <li><a href="/#contact">تواصل معنا</a></li>
 </ul>
 <div class="nav-btns">
-<a class="btn-outline" href="/Mateen/html/login.html"><i class="ti ti-user"></i> تسجيل الدخول</a>
+<a class="btn-outline" href="/login"><i class="ti ti-user"></i> تسجيل الدخول</a>
 </div>
 <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
 <i class="ti ti-menu-2"></i>

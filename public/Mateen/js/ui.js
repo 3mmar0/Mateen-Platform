@@ -64,7 +64,7 @@ function buildRow(s, index) {
 
       <td>
         <div class="name-cell">
-          <a class="student-link" href="student.html?id=${s.id}" title="صفحة المتابعة">👤</a>
+          <a class="student-link" href="/student?id=${s.id}" title="صفحة المتابعة">👤</a>
           <button class="copy-link-btn" onclick="copyStudentLink('${s.id}')" title="نسخ رابط الطالبة">🔗</button>
           <input type="text" value="${escapeHtml(s.name)}"
             oninput="autoSaveName('${s.id}', this.value)">

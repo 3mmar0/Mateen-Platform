@@ -14,9 +14,9 @@ const TEST_MODE_EMAILS = [
 const TEST_MODE_ROLES = ['admin', 'teacher', 'supervisor', 'mateen'];
 
 const ROLE_HOME = {
-  admin:      '../html/admin.html',
-  teacher:    '../html/teacher-tafseer.html',
-  supervisor: '../html/supervisor.html',
+  admin:      '/admin',
+  teacher:    '/teacher/tafseer',
+  supervisor: '/supervisor',
   mateen:     '/'
 };
 

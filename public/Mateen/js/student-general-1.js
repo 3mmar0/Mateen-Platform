@@ -9,7 +9,7 @@ const useApi = () => USE_LARAVEL_API === true || isLaravelApi();
 async function showStudentHome(session) {
   const role = effectiveRole(session.raw || session, session.email);
   if (role !== 'student') {
-    window.location.href = '../html/login.html';
+    window.location.href = '/login';
     return;
   }
   mountTestModeSwitcher(session.raw || session, session.email);
@@ -24,7 +24,7 @@ async function showStudentHome(session) {
 async function bootLaravel() {
   const session = await resolveLaravelSession();
   if (!session) {
-    window.location.href = '../html/login.html';
+    window.location.href = '/login';
     return;
   }
   await showStudentHome(session);
@@ -41,11 +41,11 @@ async function bootFirebase() {
   const db = getFirestore(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
     const data = snap.exists() ? snap.data() : {};
     const role = effectiveRole(data, user.email);
-    if (role !== 'student') { window.location.href = '../html/login.html'; return; }
+    if (role !== 'student') { window.location.href = '/login'; return; }
     mountTestModeSwitcher(data, user.email);
     applyCustomTheme(data);
     const name = data.name || user.email.split('@')[0];
@@ -55,12 +55,12 @@ async function bootFirebase() {
     document.getElementById('mainContent').style.display = 'flex';
   });
 
-  window.doLogout = () => signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+  window.doLogout = () => signOut(auth).then(() => { window.location.href = '/login'; });
 }
 
 if (useApi()) {
   bootLaravel();
-  window.doLogout = () => logoutApp('../html/login.html');
+  window.doLogout = () => logoutApp('/login');
 } else {
   bootFirebase();
 }

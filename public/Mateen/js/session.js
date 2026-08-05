@@ -86,7 +86,7 @@ export async function onAppSession(callback) {
   return () => {};
 }
 
-export async function logoutApp(redirectTo = '../html/login.html') {
+export async function logoutApp(redirectTo = '/login') {
   if (useLaravelBackend()) {
     try { await api.logout(); } catch (_) {}
     clearSession();

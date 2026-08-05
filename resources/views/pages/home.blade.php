@@ -43,7 +43,7 @@
 
         <!-- Buttons الدخول  and the تسجيل -->
         <div class="d-flex flex-column gap-2 px-3 pb-2">
-          <a class="sidebar-login-btn" href="/Mateen/html/login.html">
+          <a class="sidebar-login-btn" href="/login">
             <i class="ti ti-login"></i> تسجيل الدخول
           </a>
           <button class="sidebar-reg-btn" onclick="document.getElementById('reg-modal').classList.add('open')">
@@ -56,10 +56,10 @@
         <!-- روابط الNavigation -->
         <nav class="sidebar-nav flex-grow-1">
           <a class="active" href="/"><i class="ti ti-home"></i> الرئيسية</a>
-          <a href="/Mateen/html/about.html"><i class="ti ti-info-circle"></i> عن البرنامج</a>
-          <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
-          <a href="/Mateen/html/library.html"><i class="ti ti-library"></i> المكتبة</a>
-          <a href="/Mateen/html/news.html"><i class="ti ti-speakerphone"></i> الأخبار</a>
+          <a href="/about"><i class="ti ti-info-circle"></i> عن البرنامج</a>
+          <a href="/courses"><i class="ti ti-books"></i> المواد العلمية</a>
+          <a href="/library"><i class="ti ti-library"></i> المكتبة</a>
+          <a href="/news"><i class="ti ti-speakerphone"></i> الأخبار</a>
           <a href="#contact"><i class="ti ti-headset"></i> تواصل معنا</a>
         </nav>
       </div>
@@ -81,19 +81,19 @@
         <!-- روابط الNavigation -->
         <nav class="sidebar-nav" id="sidebarNav">
           <a class="active" href="/"><i class="ti ti-home"></i> الرئيسية</a>
-          <a href="/Mateen/html/messages.html" id="sidebarMsgLink">
+          <a href="/messages" id="sidebarMsgLink">
             <i class="ti ti-message-2"></i> رسائلي
             <span class="nav-msg-badge d-none ms-auto" id="sidebarMsgBadge">0</span>
           </a>
-          <a href="/Mateen/html/student.html" id="profileLink" class="d-none"><i class="ti ti-user"></i> ملفي الشخصي</a>
+          <a href="/student" id="profileLink" class="d-none"><i class="ti ti-user"></i> ملفي الشخصي</a>
           <a href="#" id="linkCerts" class="d-none"><i class="ti ti-certificate"></i> شهاداتي</a>
           <a href="#" id="linkAwards" class="d-none"><i class="ti ti-award"></i> إجازاتي</a>
           <a href="#" id="linkGrades" class="d-none"><i class="ti ti-chart-bar"></i> درجاتي</a>
-          <a href="/Mateen/html/schedule.html" id="linkSchedule" class="d-none"><i class="ti ti-calendar"></i> جدولي الدراسي</a>
-          <a href="/Mateen/html/admin.html" id="linkAdmin" class="d-none"><i class="ti ti-shield"></i> لوحة الإدارة</a>
-          <a href="/Mateen/html/news.html" id="linkNews" class="d-none"><i class="ti ti-speakerphone"></i> الأخبار</a>
-          <a href="/Mateen/html/my-students.html" id="linkTeacher" class="d-none"><i class="ti ti-users"></i> طالباتي</a>
-          <a href="/Mateen/html/onboarding.html" style="margin-top:8px;border:1px solid var(--gold);border-radius:10px;justify-content:center;color:var(--green-dark) !important;"><i class="ti ti-sparkles"></i> دليل البرنامج</a>
+          <a href="/schedule" id="linkSchedule" class="d-none"><i class="ti ti-calendar"></i> جدولي الدراسي</a>
+          <a href="/admin" id="linkAdmin" class="d-none"><i class="ti ti-shield"></i> لوحة الإدارة</a>
+          <a href="/news" id="linkNews" class="d-none"><i class="ti ti-speakerphone"></i> الأخبار</a>
+          <a href="/my-students" id="linkTeacher" class="d-none"><i class="ti ti-users"></i> طالباتي</a>
+          <a href="/onboarding" style="margin-top:8px;border:1px solid var(--gold);border-radius:10px;justify-content:center;color:var(--green-dark) !important;"><i class="ti ti-sparkles"></i> دليل البرنامج</a>
 
           <div id="notifBtnWrap" class="d-none" style="padding:8px 8px 0"></div>
 
@@ -148,9 +148,9 @@
         <h1 class="hero-anim-h1">علمٌ يُبنى عليه<br>إيمانٌ يُثمر حياة</h1>
         <p class="hero-anim-p"> منصة متين تقدم لك تعلماً أصيلاً من القرآن والسنة </p>
         <div class="hero-btns d-none hero-anim-btns" id="heroBtns">
-          <a class="hero-btn-primary" href="/Mateen/html/courses.html"><i class="ti ti-compass"></i> استكشفي الدورات</a>
-          <a class="hero-btn-secondary" href="/Mateen/html/about.html"><i class="ti ti-info-circle"></i> تعرفي على متين</a>
-          <a class="hero-btn-secondary" href="/Mateen/html/login.html"><i class="ti ti-login"></i> تسجيل الدخول</a>
+          <a class="hero-btn-primary" href="/courses"><i class="ti ti-compass"></i> استكشفي الدورات</a>
+          <a class="hero-btn-secondary" href="/about"><i class="ti ti-info-circle"></i> تعرفي على متين</a>
+          <a class="hero-btn-secondary" href="/login"><i class="ti ti-login"></i> تسجيل الدخول</a>
           <button class="hero-btn-secondary" onclick="document.getElementById('reg-modal').classList.add('open')"><i class="ti ti-user-plus"></i> التسجيل في البرنامج</button>
         </div>
       </div>
@@ -162,7 +162,7 @@
       <div class="row g-3">
         @forelse ($subjects as $subject)
         <div class="col-6 col-sm-4 col-md-3 col-xl-2dot4">
-          <div class="path-card" onclick="window.location.href='{{ url('/Mateen/html/courses.html') }}'">
+          <div class="path-card" onclick="window.location.href='{{ url('/courses') }}'">
             <div class="path-icon">{{ $subject->icon ?? '📚' }}</div>
             <div class="path-name">{{ $subject->title }}</div>
             <button class="path-btn">عرض التفاصيل</button>

@@ -60,7 +60,7 @@ function renderStudentRows(activeStudents, subjLabel, withGrades = true) {
 async function showTeacherPage(session) {
   const data = session.raw || session;
   const role = effectiveRole(data, session.email);
-  if (role !== 'teacher') { window.location.href = '../html/login.html'; return; }
+  if (role !== 'teacher') { window.location.href = '/login'; return; }
   mountTestModeSwitcher(data, session.email);
   applyCustomTheme(data);
   const name = session.name || session.email?.split('@')[0];
@@ -81,9 +81,9 @@ async function showTeacherPage(session) {
 
 async function bootLaravel() {
   const session = await resolveLaravelSession();
-  if (!session) { window.location.href = '../html/login.html'; return; }
+  if (!session) { window.location.href = '/login'; return; }
   await showTeacherPage(session);
-  window.doLogout = () => logoutApp('../html/login.html');
+  window.doLogout = () => logoutApp('/login');
 }
 
 async function bootFirebase() {
@@ -97,11 +97,11 @@ async function bootFirebase() {
   db = firestore.getFirestore(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
     const data = snap.exists() ? snap.data() : {};
     const role = effectiveRole(data, user.email);
-    if (role !== 'teacher') { window.location.href = '../html/login.html'; return; }
+    if (role !== 'teacher') { window.location.href = '/login'; return; }
     mountTestModeSwitcher(data, user.email);
     applyCustomTheme(data);
     const name = data.name || user.email.split('@')[0];
@@ -119,7 +119,7 @@ async function bootFirebase() {
     }
     await loadStudents(subjLabel);
   });
-  window.doLogout = () => signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+  window.doLogout = () => signOut(auth).then(() => { window.location.href = '/login'; });
 }
 
 if (useApi()) bootLaravel();

@@ -35,9 +35,9 @@ async function showLibrary(session) {
 
 async function bootLaravel() {
   const session = await resolveLaravelSession();
-  if (!session) { window.location.href = '../html/login.html'; return; }
+  if (!session) { window.location.href = '/login'; return; }
   await showLibrary(session);
-  window.doLogout = () => logoutApp('../html/login.html');
+  window.doLogout = () => logoutApp('/login');
 }
 
 async function bootFirebase() {
@@ -51,9 +51,9 @@ async function bootFirebase() {
   auth = getAuth(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    if (!snap.exists()) { window.location.href = '/login'; return; }
     const data = snap.data();
     const role = data.role || '';
     const status = data.status || '';
@@ -71,7 +71,7 @@ async function bootFirebase() {
     document.getElementById('mainContent').style.display = 'block';
     loadResources();
   });
-  window.doLogout = () => signOut(auth).then(() => { window.location.href = '../html/login.html'; });
+  window.doLogout = () => signOut(auth).then(() => { window.location.href = '/login'; });
 }
 
 if (useApi()) bootLaravel();

@@ -53,7 +53,7 @@ async function runAuthGuard(userData, effRole) {
 
 async function bootLaravelAuth() {
   const session = await resolveLaravelSession();
-  if (!session) { window.location.href = '../html/login.html'; return; }
+  if (!session) { window.location.href = '/login'; return; }
   const userData = session.raw || session;
   const role = effectiveRole(userData, session.email);
   const status = session.status || userData.status || '';
@@ -76,9 +76,9 @@ async function bootFirebaseAuth() {
   const auth = getAuth(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    if (!snap.exists()) { window.location.href = '/login'; return; }
     const userData = snap.data();
     const role = effectiveRole(userData, user.email);
     const status = userData.status || '';

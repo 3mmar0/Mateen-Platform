@@ -813,7 +813,7 @@ function updateEnrollButtons() {
     if (!loggedIn) {
       btn.textContent = 'سجّلي / اشتركي للالتحاق بالمادة';
       btn.disabled = false;
-      btn.onclick = () => location.href = 'login.html';
+      btn.onclick = () => location.href = '/login';
     } else if (currentUserRole === 'mateen') {
       btn.textContent = joined ? '✓ ملتحقة بالفعل' : 'بانتظار قبول حسابك';
       btn.disabled = true;
@@ -831,7 +831,7 @@ function updateEnrollButtons() {
 window.joinSubject = async (subj) => {
   if (useApi()) {
     const stored = getStoredUser();
-    if (!stored || !getToken()) { location.href = 'login.html'; return; }
+    if (!stored || !getToken()) { location.href = '/login'; return; }
     try {
       const subjectId = await findSubjectIdByCourseName(subj);
       if (!subjectId) throw new Error('المادة غير موجودة');
@@ -845,7 +845,7 @@ window.joinSubject = async (subj) => {
     }
     return;
   }
-  if (!auth?.currentUser) { location.href = 'login.html'; return; }
+  if (!auth?.currentUser) { location.href = '/login'; return; }
   await updateDoc(doc(db, 'users', auth.currentUser.uid), {
     enrolledSubjects: arrayUnion(subj)
   });

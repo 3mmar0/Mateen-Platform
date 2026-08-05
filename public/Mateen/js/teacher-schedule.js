@@ -56,13 +56,13 @@ let currentUser = null;
 let teacherSubject = '';
 
 async function initTeacherScheduleApi() {
-  if (!getToken()) { window.location.href = '../html/login.html'; return; }
+  if (!getToken()) { window.location.href = '/login'; return; }
   let data;
   try {
     const me = await api.me();
     data = (me?.data ?? me ?? getStoredUser()) || {};
   } catch {
-    window.location.href = '../html/login.html'; return;
+    window.location.href = '/login'; return;
   }
   const role = data.role || '';
   if (role !== 'teacher' && role !== 'admin' && role !== 'supervisor') {
@@ -82,10 +82,10 @@ async function initTeacherScheduleApi() {
 async function bootTeacherScheduleFirebase() {
   await ensureFirebase();
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
 
     const snap = await getDoc(doc(db, 'users', user.uid));
-    if (!snap.exists()) { window.location.href = '../html/login.html'; return; }
+    if (!snap.exists()) { window.location.href = '/login'; return; }
 
     const data   = snap.data();
     const role   = data.role   || '';
@@ -119,9 +119,9 @@ if (useApi()) {
 window.doLogout = () => {
   if (useApi()) {
     clearSession();
-    window.location.href = '../html/login.html';
+    window.location.href = '/login';
   } else {
-    signOut(auth).then(() => window.location.href = '../html/login.html');
+    signOut(auth).then(() => window.location.href = '/login');
   }
 };
 

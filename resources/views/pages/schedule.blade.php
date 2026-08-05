@@ -258,10 +258,10 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 
 onAuthStateChanged(auth, async user => {
-  if (!user) { window.location.href = '/Mateen/html/login.html'; return; }
+  if (!user) { window.location.href = '/login'; return; }
 
   const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists()) { window.location.href = '/Mateen/html/login.html'; return; }
+  if (!snap.exists()) { window.location.href = '/login'; return; }
 
   const role   = snap.data().role   || '';
   const status = snap.data().status || '';

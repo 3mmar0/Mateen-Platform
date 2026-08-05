@@ -3,7 +3,7 @@
   "name": "برنامج متين العلمي",
   "short_name": "متين",
   "description": "منصة تعليمية إسلامية أصيلة من القرآن والسنة",
-  "start_url": "/Mateen/html/home.html",
+  "start_url": "/",
   "scope": "/Mateen/",
   "display": "standalone",
   "orientation": "portrait-primary",

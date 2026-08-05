@@ -15,11 +15,11 @@ export async function bootTeacherPageAuth(allowedRoles = ['teacher', 'admin', 's
     if (!session) return;
     const role = effectiveRole(session.raw || session, session.email);
     if (!allowedRoles.includes(role)) {
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
       return;
     }
     if (session.status === 'pending' || session.status === 'suspended') {
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
       return;
     }
     mountTestModeSwitcher(session.raw || session, session.email);
@@ -37,19 +37,19 @@ export async function bootTeacherPageAuth(allowedRoles = ['teacher', 'admin', 's
   const auth = getAuth(app);
 
   onAuthStateChanged(auth, async user => {
-    if (!user) { window.location.href = '../html/login.html'; return; }
+    if (!user) { window.location.href = '/login'; return; }
     const snap = await getDoc(doc(db, 'users', user.uid));
     const userData = snap.exists() ? snap.data() : {};
     const role = effectiveRole(userData, user.email);
     const status = userData.status || '';
     if (!allowedRoles.includes(role)) {
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
       return;
     }
     mountTestModeSwitcher(userData, user.email);
     applyCustomTheme(userData);
     if (status === 'pending' || status === 'suspended') {
-      window.location.href = '../html/login.html';
+      window.location.href = '/login';
     }
   });
 }

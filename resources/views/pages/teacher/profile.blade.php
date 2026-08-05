@@ -73,9 +73,9 @@
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
   <ul class="nav-links">
     <li><a href="/">الرئيسية</a></li>
-    <li><a href="/Mateen/html/teacher-schedule.html">جدولي</a></li>
-    <li><a href="/Mateen/html/teacher-library.html">مكتبتي</a></li>
-    <li><a href="/Mateen/html/messages.html">الرسائل</a></li>
+    <li><a href="/teacher/schedule">جدولي</a></li>
+    <li><a href="/teacher/library">مكتبتي</a></li>
+    <li><a href="/messages">الرسائل</a></li>
   </ul>
   <div class="nav-btns">
     <button onclick="doLogout()" class="btn-outline"><i class="ti ti-logout"></i> خروج</button>
@@ -131,15 +131,15 @@
 
   <!-- روابط سريعة -->
   <div class="tp-quick-links">
-    <a href="/Mateen/html/teacher-schedule.html" class="tp-quick-card">
+    <a href="/teacher/schedule" class="tp-quick-card">
       <i class="ti ti-calendar"></i>
       <span>جدولي الدراسي</span>
     </a>
-    <a href="/Mateen/html/teacher-library.html" class="tp-quick-card">
+    <a href="/teacher/library" class="tp-quick-card">
       <i class="ti ti-library"></i>
       <span>مكتبتي العلمية</span>
     </a>
-    <a href="/Mateen/html/messages.html" class="tp-quick-card">
+    <a href="/messages" class="tp-quick-card">
       <i class="ti ti-message"></i>
       <span>الرسائل</span>
     </a>

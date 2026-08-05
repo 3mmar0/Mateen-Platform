@@ -225,7 +225,7 @@ async function sendNewsNotification(title, body) {
       type:      'news',
       title:     `📢 ${title}`,
       body:      body.slice(0, 80),
-      url:       '/Mateen/html/news.html',
+      url:       '/news',
       createdAt: serverTimestamp(),
       readBy:    [],
     });
