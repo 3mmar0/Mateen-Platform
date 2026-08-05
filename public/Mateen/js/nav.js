@@ -3,19 +3,19 @@
 
 function renderNav(activePage) {
   const links = [
-    { href: '/Mateen/html/home.html',    label: 'الرئيسية' },
+    { href: '/',    label: 'الرئيسية' },
     { href: '/Mateen/html/about.html',   label: 'عن البرنامج' },
     { href: '/Mateen/html/courses.html', label: 'المسارات العلمية' },
     { href: '/Mateen/html/library.html', label: 'المكتبة' },
     { href: '/Mateen/html/news.html',    label: 'الأخبار' },
-    { href: '/Mateen/html/home.html#contact', label: 'تواصل معنا' },
+    { href: '/#contact', label: 'تواصل معنا' },
   ];
 
   const isLoggedIn = _navIsLoggedIn();
 
   const navHTML = `
 <nav>
-  <a href="/Mateen/html/home.html" class="nav-logo" style="text-decoration:none">
+  <a href="/" class="nav-logo" style="text-decoration:none">
     <img src="/Mateen/logo.png" alt="متين" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;">
     <div>
       <div class="nav-brand">برنامج متين العلمي</div>
@@ -68,8 +68,8 @@ function _navIsLoggedIn() {
 }
 
 async function _addAdminBtn() {
-  const page = location.pathname.split('/').pop() || 'home.html';
-  if (page !== 'home.html' && page !== '') return;
+  const page = location.pathname.split('/').pop() || '/';
+  if (page !== '/' && page !== '') return;
   try {
     const { USE_LARAVEL_API } = await import('./config.js');
     if (USE_LARAVEL_API === true) {
@@ -109,7 +109,7 @@ async function _addAdminBtn() {
 
 addEventListener('DOMContentLoaded', function() {
   if (document.getElementById('nav-placeholder')) {
-    const page = location.pathname.split('/').pop() || 'home.html';
+    const page = location.pathname.split('/').pop() || '/';
     renderNav(page);
     _addAdminBtn();
   }

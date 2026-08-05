@@ -190,7 +190,7 @@ function updateNav() {
 
 function finish() {
   localStorage.setItem('mateen_onboarding_done', '1');
-  const redirect = localStorage.getItem('ob_redirect') || 'home.html';
+  const redirect = localStorage.getItem('ob_redirect') || '/';
   window.location.href = redirect;
 }
 

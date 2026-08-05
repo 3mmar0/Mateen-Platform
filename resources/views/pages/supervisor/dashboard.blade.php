@@ -56,20 +56,20 @@
 <body>
 <div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
 <nav>
-  <a class="nav-logo" href="/Mateen/html/home.html">
+  <a class="nav-logo" href="/">
     <div class="logo-circle"><img alt="متين" src="/Mateen/logo.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/></div>
     <div><div class="nav-brand">برنامج متين العلمي</div><div class="nav-tagline">نحو بناء علميٍّ متين</div></div>
   </a>
   <div class="nav-shuraka"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img"/></div>
   <div class="nav-btns">
-    <a class="btn-outline d-none d-lg-flex" href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+    <a class="btn-outline d-none d-lg-flex" href="/"><i class="ti ti-home"></i> الرئيسية</a>
     <a class="btn-outline d-none d-lg-flex" href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد</a>
     <div class="nav-user d-none d-lg-flex"><i class="ti ti-shield"></i><span class="nav-user-name" id="navUserName">مشرفة</span></div>
     <button class="btn-logout d-none d-lg-flex" onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
   </div>
   <button onclick="typeof startPageTour==='function'&&startPageTour()" title="جولة تعريفية"
     style="background:none;border:none;color:rgba(255,255,255,0.85);font-size:18px;cursor:pointer;padding:6px 8px;display:flex;align-items:center;flex-shrink:0;">❓</button>
-  <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع"><i class="ti ti-arrow-right"></i></button>
+  <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع"><i class="ti ti-arrow-right"></i></button>
   <button class="nav-toggle" aria-label="القائمة" onclick="document.getElementById('supMobNav').classList.toggle('open')">
     <i class="ti ti-menu-2"></i>
   </button>
@@ -79,7 +79,7 @@
     #supMobNav.open{display:flex!important;flex-direction:column;position:fixed;top:54px;right:0;left:0;background:var(--green-dark);padding:14px 20px;gap:12px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.35)}
     #supMobNav a,#supMobNav button{color:rgba(255,255,255,.88);text-decoration:none;font-size:14px;font-family:inherit;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:4px 0}
   </style>
-  <a href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+  <a href="/"><i class="ti ti-home"></i> الرئيسية</a>
   <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
   <div style="color:rgba(255,255,255,.6);font-size:12px;display:flex;align-items:center;gap:6px"><i class="ti ti-shield"></i><span id="navUserName">مشرفة</span></div>
   <button onclick="doLogout()"><i class="ti ti-logout"></i> تسجيل الخروج</button>
@@ -112,7 +112,7 @@
       gap: 8px;
     }
   </style>
-  <a href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+  <a href="/"><i class="ti ti-home"></i> الرئيسية</a>
   <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
   <button onclick="doLogout()"><i class="ti ti-logout"></i> تسجيل الخروج</button>
 </div>

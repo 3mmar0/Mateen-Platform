@@ -48,7 +48,7 @@ async function runAuthGuard(userData, effRole) {
     initStudentView(userData, effRole);
     return;
   }
-  window.location.href = '../html/home.html';
+  window.location.href = '/';
 }
 
 async function bootLaravelAuth() {
@@ -59,7 +59,7 @@ async function bootLaravelAuth() {
   const status = session.status || userData.status || '';
   mountTestModeSwitcher(userData, session.email);
   if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html';
+    window.location.href = '/';
     return;
   }
   await runAuthGuard({ ...userData, subject: session.subject || userData.subject }, role);
@@ -84,7 +84,7 @@ async function bootFirebaseAuth() {
     const status = userData.status || '';
     mountTestModeSwitcher(userData, user.email);
     if (status === 'pending' || status === 'suspended') {
-      window.location.href = '../html/home.html';
+      window.location.href = '/';
       return;
     }
     await runAuthGuard(userData, role);

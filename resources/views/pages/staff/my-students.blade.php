@@ -217,7 +217,7 @@
 
 <nav>
 
-  <a class="nav-logo" href="/Mateen/html/home.html">
+  <a class="nav-logo" href="/">
     <div class="logo-circle"><img alt="متين" src="/Mateen/logo.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/></div>
     <div>
       <div class="nav-brand">برنامج متين العلمي</div>
@@ -225,7 +225,7 @@
     </div>
   </a>
   <ul class="nav-links">
-    <li><a href="/Mateen/html/home.html">الرئيسية</a></li>
+    <li><a href="/">الرئيسية</a></li>
     <li><a href="/Mateen/html/messages.html">رسائلي</a></li>
     <li><a href="/Mateen/html/news.html">الأخبار</a></li>
     <li><a class="active" href="/Mateen/html/my-students.html">طالباتي</a></li>
@@ -233,7 +233,7 @@
   <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
     <i class="ti ti-menu-2"></i>
   </button>
-    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
 </nav>
@@ -503,7 +503,7 @@ async function bootLaravelMyStudents() {
     const userData = me?.data || me || getStoredUser() || {};
     const role = effectiveRole(userData, userData.email || '');
     if (!['teacher','admin','support','supervisor'].includes(role)) {
-      location.href = '/Mateen/html/home.html';
+      location.href = '/';
       return;
     }
     mountTestModeSwitcher(userData, userData.email || '');
@@ -569,7 +569,7 @@ async function bootFirebaseMyStudents() {
     const subject  = userData.subject || '';
 
     if (!['teacher','admin','support'].includes(role)) {
-      location.href = '/Mateen/html/home.html';
+      location.href = '/';
       return;
     }
     mountTestModeSwitcher(userData, user.email);

@@ -52,7 +52,7 @@
 <div class="basmala-bar"><span class="bsm-ornament">❦</span>بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ<span class="bsm-ornament">❦</span></div>
 <nav>
 
-<a class="nav-logo" href="/Mateen/html/home.html">
+<a class="nav-logo" href="/">
 <div class="logo-circle"><img alt="متين" src="/Mateen/logo.png" style="width:100%;height:100%;border-radius:50%;object-fit:cover;"/></div>
 <div>
 <div class="nav-brand">برنامج متين العلمي</div>
@@ -61,10 +61,10 @@
 </a>
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
 <ul class="nav-links">
-<li><a href="/Mateen/html/home.html">الرئيسية</a></li>
+<li><a href="/">الرئيسية</a></li>
 <li><a href="/Mateen/html/about.html">عن البرنامج</a></li>
 <li><a href="/Mateen/html/courses.html">المسارات العلمية</a></li>
-<li><a href="/Mateen/html/home.html#contact">تواصل معنا</a></li>
+<li><a href="/#contact">تواصل معنا</a></li>
 </ul>
 <div class="nav-btns">
 <a class="btn-outline" href="/Mateen/html/login.html"><i class="ti ti-user"></i> تسجيل الدخول</a>
@@ -72,7 +72,7 @@
 <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
 <i class="ti ti-menu-2"></i>
 </button>
-    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
     <button onclick="startPageTour()" title="جولة تعريفية"
@@ -87,7 +87,7 @@
 </div>
 </div>
 <div class="breadcrumb">
-<a href="/Mateen/html/home.html">الرئيسية</a>
+<a href="/">الرئيسية</a>
 <i class="ti ti-chevron-left" style="font-size:12px"></i>
 <i class="ti ti-chevron-left" style="font-size:12px"></i>
 <span id="breadcrumbName">دكتورة عبير عقلان</span>

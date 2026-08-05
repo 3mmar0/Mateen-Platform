@@ -55,7 +55,7 @@
 
         <!-- روابط الNavigation -->
         <nav class="sidebar-nav flex-grow-1">
-          <a class="active" href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+          <a class="active" href="/"><i class="ti ti-home"></i> الرئيسية</a>
           <a href="/Mateen/html/about.html"><i class="ti ti-info-circle"></i> عن البرنامج</a>
           <a href="/Mateen/html/courses.html"><i class="ti ti-books"></i> المواد العلمية</a>
           <a href="/Mateen/html/library.html"><i class="ti ti-library"></i> المكتبة</a>
@@ -80,7 +80,7 @@
 
         <!-- روابط الNavigation -->
         <nav class="sidebar-nav" id="sidebarNav">
-          <a class="active" href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+          <a class="active" href="/"><i class="ti ti-home"></i> الرئيسية</a>
           <a href="/Mateen/html/messages.html" id="sidebarMsgLink">
             <i class="ti ti-message-2"></i> رسائلي
             <span class="nav-msg-badge d-none ms-auto" id="sidebarMsgBadge">0</span>

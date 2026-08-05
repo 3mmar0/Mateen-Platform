@@ -17,7 +17,7 @@ const ROLE_HOME = {
   admin:      '../html/admin.html',
   teacher:    '../html/teacher-tafseer.html',
   supervisor: '../html/supervisor.html',
-  mateen:     '../html/home.html'
+  mateen:     '/'
 };
 
 const ROLE_LABELS = {
@@ -72,6 +72,6 @@ export function mountTestModeSwitcher(userData, email) {
   document.getElementById('testModeSelect').addEventListener('change', (e) => {
     const chosen = e.target.value;
     localStorage.setItem('mateenTestRole', chosen);
-    window.location.href = ROLE_HOME[chosen] || '../html/home.html';
+    window.location.href = ROLE_HOME[chosen] || '/';
   });
 }

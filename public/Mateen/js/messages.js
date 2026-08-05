@@ -106,7 +106,7 @@ async function initMessagesApi() {
     window.location.href = '../html/login.html'; return;
   }
   if (data.status === 'pending' || data.status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   data.role = effectiveRole(data, data.email || '');
   currentUser = { uid: String(data.id), email: data.email };
@@ -249,7 +249,7 @@ onAuthStateChanged(auth, async user => {
 
   const data = snap.data();
   if (data.status === 'pending' || data.status === 'suspended') {
-    window.location.href = '../html/home.html'; return;
+    window.location.href = '/'; return;
   }
   data.role = effectiveRole(data, user.email);
 

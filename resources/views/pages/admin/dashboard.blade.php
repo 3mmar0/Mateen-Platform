@@ -44,7 +44,7 @@
 
 
   <!-- الIfجو -->
-  <a class="nav-logo navbar-brand p-0 flex-shrink-0" href="/Mateen/html/home.html">
+  <a class="nav-logo navbar-brand p-0 flex-shrink-0" href="/">
     <div class="logo-circle">
       <img alt="متين" src="/Mateen/logo.png" class="logo-circle-img"/>
     </div>
@@ -62,7 +62,7 @@
   <!-- روابط الNavigation — Center -->
   <ul class="navbar-nav flex-row mx-auto gap-1 admin-nav-links mb-0">
     <li class="nav-item">
-      <a class="nav-link px-2" href="/Mateen/html/home.html"><i class="ti ti-home"></i> <span class="d-none d-md-inline">الرئيسية</span></a>
+      <a class="nav-link px-2" href="/"><i class="ti ti-home"></i> <span class="d-none d-md-inline">الرئيسية</span></a>
     </li>
     <li class="nav-item">
       <a class="nav-link px-2" href="/Mateen/html/courses.html"><i class="ti ti-books"></i> <span class="d-none d-md-inline">المواد</span></a>
@@ -86,7 +86,7 @@
     </button>
   </div>
 
-    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
     <button onclick="startPageTour()" title="جولة تعريفية"
@@ -1257,7 +1257,7 @@
 
 <script>
 const SITE_PAGES = [
-  'home.html','courses.html','library.html','messages.html','news.html',
+  '/','courses.html','library.html','messages.html','news.html',
   'schedule.html','student.html','admin.html','supervisor.html','about.html',
   'stats.html','student-general.html','student-view.html',
   'teacher-quran1.html','teacher-quran2.html','teacher-aqeedah.html',

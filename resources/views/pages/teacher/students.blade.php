@@ -59,10 +59,10 @@
     <div class="nav-shuraka" style="display:flex;align-items:center;margin-inline-start:10px;padding-inline-start:12px;border-inline-start:1px solid rgba(201,162,39,0.35);"><img src="/Mateen/shuraka-logo.png" alt="شركاء الخير" class="nav-shuraka-img" style="height:48px;width:120px;display:block;object-fit:contain;filter:brightness(1.7) contrast(1.4);"/></div>
 <div class="nav-btns">
 <div class="nav-user"><i class="ti ti-user"></i><span class="nav-user-name" id="navUserName">معلمة</span></div>
-<a class="btn-outline" href="/Mateen/html/home.html"><i class="ti ti-home"></i> الرئيسية</a>
+<a class="btn-outline" href="/"><i class="ti ti-home"></i> الرئيسية</a>
 <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> خروج</button>
 </div>
-    <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+    <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
 </nav>

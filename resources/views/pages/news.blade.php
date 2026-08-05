@@ -54,7 +54,7 @@
 </script>
 </head>
 <body>
-<button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+<button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
   <i class="ti ti-arrow-right"></i>
 </button>
 
@@ -68,7 +68,7 @@
 </div>
 
 <div class="breadcrumb">
-  <a href="/Mateen/html/home.html">الرئيسية</a>
+  <a href="/">الرئيسية</a>
   <i class="ti ti-chevron-left"></i>
   <span>الأخبار</span>
 </div>

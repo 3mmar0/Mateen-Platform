@@ -36,9 +36,9 @@ function checkAccountStatus(status) {
 function computeBaseRedirect(role, subject) {
   if (role === 'teacher') {
     if (subject === 'ithraiyat') return 'teacher-students.html'; // مالهاش صفحة محتوى مخصصة زي باقي المواد
-    return subject ? `teacher-${subject}.html` : 'home.html';
+    return subject ? `teacher-${subject}.html` : '/';
   }
-  return 'home.html'; // student, mateen, admin, supervisor
+  return '/'; // student, mateen, admin, supervisor
 }
 
 // If Userة مسجلة دخول بالفعل — حوّليها بعيداً عن Page الدخول
@@ -65,7 +65,7 @@ if (!useApi()) {
       localStorage.setItem('ob_redirect', redirect);
       window.location.replace('onboarding.html');
     } catch(e) {
-      window.location.replace('home.html');
+      window.location.replace('/');
     }
   });
 } else if (getToken() && getStoredUser() && window.location.hash !== '#noredirect') {
@@ -89,11 +89,11 @@ let regRole   = 'mateen';
 /* ── إعدادات كل Role ── */
 const ROLE_CONFIG = {
   // معطّل مؤقتاً: حساب "أصدقاء متين" (student) — لا يُسمح بالتسجيل بهذا Role حالياً
-  // student:    { redirect: 'home.html', status: 'active',  needsApproval: false },
-  mateen:     { redirect: 'home.html', status: 'pending', needsApproval: true,  approvedBy: 'supervisor' },
-  teacher:    { redirect: 'home.html', status: 'pending', needsApproval: true,  approvedBy: 'admin' },
-  supervisor: { redirect: 'home.html', status: 'pending', needsApproval: true,  approvedBy: 'admin' },
-  admin:      { redirect: 'home.html', status: 'active',  needsApproval: false },
+  // student:    { redirect: '/', status: 'active',  needsApproval: false },
+  mateen:     { redirect: '/', status: 'pending', needsApproval: true,  approvedBy: 'supervisor' },
+  teacher:    { redirect: '/', status: 'pending', needsApproval: true,  approvedBy: 'admin' },
+  supervisor: { redirect: '/', status: 'pending', needsApproval: true,  approvedBy: 'admin' },
+  admin:      { redirect: '/', status: 'active',  needsApproval: false },
 };
 
 const ERRORS = {

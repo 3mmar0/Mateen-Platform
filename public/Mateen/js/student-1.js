@@ -61,7 +61,7 @@ async function runAuthGuard(sessionOrUser, userData, role) {
   mountTestModeSwitcher(userData, sessionOrUser.email);
 
   if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html';
+    window.location.href = '/';
     return;
   }
 
@@ -77,7 +77,7 @@ async function runAuthGuard(sessionOrUser, userData, role) {
       return;
     }
   } else if (role === 'admin' || role === 'teacher' || role === 'supervisor') {
-    if (!studentId) { window.location.href = '../html/home.html'; return; }
+    if (!studentId) { window.location.href = '/'; return; }
   } else {
     window.location.href = '../html/login.html';
     return;

@@ -1,7 +1,7 @@
 // ── Mateen PWA Service Worker ──────────────────────────────────
 const CACHE_NAME = 'mateen-v6'; // Blade UI on unified Laravel origin
 const ASSETS = [
-  '/Mateen/html/home.html',
+  '/',
   '/Mateen/html/login.html',
   '/Mateen/css/home.css',
   '/Mateen/js/home.js',

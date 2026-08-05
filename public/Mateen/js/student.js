@@ -34,17 +34,17 @@ const SUBJECT_MAP = {
 
 async function runAuthGuard(role, studentId) {
   if (role === 'student' || role === 'mateen') {
-    if (!studentId) { window.location.href = '../html/home.html'; return; }
+    if (!studentId) { window.location.href = '/'; return; }
     initPage();
     return;
   }
   if (role === 'admin') {
-    if (!studentId) { window.location.href = '../html/home.html'; return; }
+    if (!studentId) { window.location.href = '/'; return; }
     initPage();
     return;
   }
   if (role === 'teacher') {
-    if (!studentId) { window.location.href = '../html/home.html'; return; }
+    if (!studentId) { window.location.href = '/'; return; }
     if (useApi()) {
       initPage();
       return;
@@ -63,7 +63,7 @@ async function bootLaravelAuth() {
   const status = session.status || userData.status || '';
   mountTestModeSwitcher(userData, session.email);
   if (status === 'pending' || status === 'suspended') {
-    window.location.href = '../html/home.html';
+    window.location.href = '/';
     return;
   }
   const studentId = new URLSearchParams(location.search).get('id');
@@ -89,7 +89,7 @@ async function bootFirebaseAuth() {
     const status = userData.status || '';
     mountTestModeSwitcher(userData, user.email);
     if (status === 'pending' || status === 'suspended') {
-      window.location.href = '../html/home.html';
+      window.location.href = '/';
       return;
     }
     const studentId = new URLSearchParams(location.search).get('id');
@@ -98,7 +98,7 @@ async function bootFirebaseAuth() {
       const studentSnap = await getDoc(doc(db, 'students', studentId));
       const enrolled = Array.isArray(studentSnap.data()?.enrolledSubjects) ? studentSnap.data().enrolledSubjects : [];
       if (!studentSnap.exists() || !enrolled.includes(teacherSubjectAr)) {
-        window.location.href = '../html/home.html';
+        window.location.href = '/';
         return;
       }
     }

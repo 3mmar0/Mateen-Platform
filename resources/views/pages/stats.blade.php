@@ -52,7 +52,7 @@
   <nav class="s-topnav">
 
     <div class="logo" style="display:flex;align-items:center;gap:10px"><img src="/Mateen/logo.png" alt="متين" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);background:#fff;"> برنامج متين العلمي</div>
-      <button onclick="history.length > 1 ? history.back() : window.location.href='/Mateen/html/home.html'" class="nav-back-btn" aria-label="رجوع">
+      <button onclick="history.length > 1 ? history.back() : window.location.href='/'" class="nav-back-btn" aria-label="رجوع">
       <i class="ti ti-arrow-right"></i>
     </button>
 </nav>
