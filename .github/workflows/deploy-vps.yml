@@ -124,10 +124,10 @@ jobs:
             python3 "$APP_DIR/scripts/ci_apply_prod_env.py" "$APP_DIR"
             # Optional Firebase → MySQL sync credentials (GitHub secrets)
             if [ -n "${{ secrets.FIREBASE_IMPORT_EMAIL }}" ] && [ -n "${{ secrets.FIREBASE_IMPORT_PASSWORD }}" ]; then
-              grep -q '^FIREBASE_IMPORT_EMAIL=' "$APP_DIR/.env" && sed -i '/^FIREBASE_IMPORT_EMAIL=/d' "$APP_DIR/.env"
-              grep -q '^FIREBASE_IMPORT_PASSWORD=' "$APP_DIR/.env" && sed -i '/^FIREBASE_IMPORT_PASSWORD=/d' "$APP_DIR/.env"
-              echo "FIREBASE_IMPORT_EMAIL=${{ secrets.FIREBASE_IMPORT_EMAIL }}" >> "$APP_DIR/.env"
-              echo "FIREBASE_IMPORT_PASSWORD=${{ secrets.FIREBASE_IMPORT_PASSWORD }}" >> "$APP_DIR/.env"
+              sed -i '/^FIREBASE_IMPORT_EMAIL=/d' "$APP_DIR/.env" || true
+              sed -i '/^FIREBASE_IMPORT_PASSWORD=/d' "$APP_DIR/.env" || true
+              printf '%s\n' "FIREBASE_IMPORT_EMAIL=${{ secrets.FIREBASE_IMPORT_EMAIL }}" >> "$APP_DIR/.env"
+              printf '%s\n' "FIREBASE_IMPORT_PASSWORD=${{ secrets.FIREBASE_IMPORT_PASSWORD }}" >> "$APP_DIR/.env"
             fi
             rm -f "$APP_DIR/public/index.html" /var/www/mateen.academy/index.html /var/www/mateen.academy/public/index.html
             rm -rf "$APP_DIR/public/Mateen/html" /var/www/mateen.academy/public/Mateen/html /var/www/mateen.academy/Mateen/html
@@ -148,7 +148,7 @@ jobs:
             php artisan route:cache || true
             if grep -q '^FIREBASE_IMPORT_EMAIL=.\+' .env && grep -q '^FIREBASE_IMPORT_PASSWORD=.\+' .env; then
               php artisan mateen:sync-firebase || echo "Firebase sync skipped/failed"
-            fi
+            fi || true
             # Point Apache docroot at Laravel public/ and drop old / → home.html redirects
             for conf in /etc/apache2/sites-available/mateen.academy.conf \
                         /etc/apache2/sites-available/mateen.academy-le-ssl.conf \
