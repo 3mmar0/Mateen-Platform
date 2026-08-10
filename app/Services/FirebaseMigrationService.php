@@ -26,19 +26,27 @@ use Illuminate\Support\Str;
  * Firebase → MySQL import.
  *
  * Password reset for imported users:
- * - All mapped users get must_reset_password=true and a random unusable password.
- * - After cutover, users use POST /auth/password/forgot then /auth/password/reset
- *   (or admin-assisted reset). First successful reset clears must_reset_password.
+ * - Mapped users get must_reset_password=true and a random password by default.
+ * - Optional adminEmail/adminPassword preserves one account for immediate login.
  */
 class FirebaseMigrationService
 {
     public function __construct(private DocumentMapper $mapper) {}
 
-    public function load(string $path, bool $dryRun = false): array
+    /**
+     * @param  array{admin_email?:?string,admin_password?:?string}  $options
+     */
+    public function load(string $path, bool $dryRun = false, array $options = []): array
     {
-        $json = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $raw = file_get_contents($path);
+        if (str_starts_with($raw, "\xEF\xBB\xBF")) {
+            $raw = substr($raw, 3);
+        }
+        $json = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        $json = $this->normalizeExport($json);
+
         if ($dryRun) {
-            return $this->audit($path);
+            return $this->auditFromArray($json);
         }
 
         $counts = [];
@@ -46,12 +54,19 @@ class FirebaseMigrationService
         $userByFirebase = [];
         $subjectBySlug = [];
         $materialByLegacy = [];
+        $adminEmail = strtolower(trim((string) ($options['admin_email'] ?? '')));
+        $adminPassword = (string) ($options['admin_password'] ?? '');
 
-        DB::transaction(function () use ($json, &$counts, &$adminId, &$userByFirebase, &$subjectBySlug, &$materialByLegacy) {
+        DB::transaction(function () use ($json, &$counts, &$adminId, &$userByFirebase, &$subjectBySlug, &$materialByLegacy, $adminEmail, $adminPassword) {
             foreach ($json['subjects'] ?? $json['staticSubjects'] ?? [] as $d) {
+                $slug = $d['slug'] ?? $d['id'] ?? null;
+                if (! $slug && empty($d['title']) && empty($d['name'])) {
+                    continue;
+                }
+                $slug = $slug ?: Str::slug($d['title'] ?? $d['name'] ?? Str::random(8));
                 $s = Subject::updateOrCreate(
-                    ['slug' => $d['slug'] ?? $d['id']],
-                    $this->mapper->subject($d)
+                    ['slug' => $slug],
+                    $this->mapper->subject(array_merge($d, ['slug' => $slug]))
                 );
                 $subjectBySlug[$s->slug] = $s->id;
                 if (isset($d['id'])) {
@@ -64,9 +79,17 @@ class FirebaseMigrationService
             }
 
             foreach ($json['users'] ?? [] as $d) {
+                if (empty($d['email'])) {
+                    $counts['users_skipped'] = 1 + ($counts['users_skipped'] ?? 0);
+
+                    continue;
+                }
+                $preserve = ($adminEmail !== '' && strtolower($d['email']) === $adminEmail && $adminPassword !== '')
+                    ? $adminPassword
+                    : null;
                 $u = User::updateOrCreate(
                     ['email' => $d['email']],
-                    $this->mapper->user($d)
+                    $this->mapper->user($d, $preserve)
                 );
                 $fid = $d['uid'] ?? $d['id'] ?? null;
                 if ($fid) {
@@ -144,17 +167,31 @@ class FirebaseMigrationService
                 $counts['libraryItems'] = 1 + ($counts['libraryItems'] ?? 0);
             }
 
+            // Replace demo seed news/schedules when importing real content
+            if (! empty($json['news']) || ! empty($json['newsItems'])) {
+                NewsItem::query()->delete();
+            }
             foreach ($json['news'] ?? $json['newsItems'] ?? [] as $d) {
                 $creator = $userByFirebase[(string) ($d['createdBy'] ?? '')] ?? $adminId;
                 NewsItem::create($this->mapper->news($d, $creator));
                 $counts['news'] = 1 + ($counts['news'] ?? 0);
             }
 
+            $hasSchedules = ! empty($json['schedules']) || ! empty($json['scheduleEntries']) || ! empty($json['events']);
+            if ($hasSchedules) {
+                ScheduleEntry::query()->delete();
+            }
             foreach ($json['schedules'] ?? $json['scheduleEntries'] ?? [] as $d) {
                 $sid = $this->resolveSubjectId($d, $subjectBySlug);
                 $creator = $userByFirebase[(string) ($d['createdBy'] ?? '')] ?? $adminId;
                 ScheduleEntry::create($this->mapper->schedule($d, $sid, $creator));
                 $counts['schedules'] = 1 + ($counts['schedules'] ?? 0);
+            }
+            foreach ($json['events'] ?? [] as $d) {
+                $sid = $this->resolveSubjectId($d, $subjectBySlug);
+                $creator = $userByFirebase[(string) ($d['createdBy'] ?? '')] ?? $adminId;
+                ScheduleEntry::create($this->mapper->eventAsSchedule($d, $sid, $creator));
+                $counts['events'] = 1 + ($counts['events'] ?? 0);
             }
 
             foreach ($json['conversations'] ?? [] as $d) {
@@ -181,7 +218,6 @@ class FirebaseMigrationService
                 if (empty($d['conversationId'])) {
                     continue;
                 }
-                // Flat messages require prior conversation rows keyed by legacy id — skip if unmatched.
                 $counts['messages_skipped'] = 1 + ($counts['messages_skipped'] ?? 0);
             }
 
@@ -214,11 +250,21 @@ class FirebaseMigrationService
 
     public function audit(string $path): array
     {
-        $json = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $raw = file_get_contents($path);
+        if (str_starts_with($raw, "\xEF\xBB\xBF")) {
+            $raw = substr($raw, 3);
+        }
+        $json = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+
+        return $this->auditFromArray($this->normalizeExport($json));
+    }
+
+    private function auditFromArray(array $json): array
+    {
         $keys = [
             'users', 'students', 'subjects', 'staticSubjects', 'materials', 'learningMaterials',
             'libraryItems', 'library', 'assignments', 'conversations', 'messages',
-            'news', 'newsItems', 'schedules', 'scheduleEntries', 'tokens', 'fcmTokens', 'devices',
+            'news', 'newsItems', 'events', 'schedules', 'scheduleEntries', 'tokens', 'fcmTokens', 'devices',
             'contactMessages', 'contacts', 'contact_messages', 'registrationRequests', 'registrations', 'registration_requests',
         ];
         $out = [];
@@ -227,8 +273,44 @@ class FirebaseMigrationService
                 $out[$k] = count($json[$k]);
             }
         }
+        $msgCount = 0;
+        foreach ($json['conversations'] ?? [] as $c) {
+            $msgCount += count($c['messages'] ?? []);
+        }
+        if ($msgCount) {
+            $out['nested_messages'] = $msgCount;
+        }
 
         return $out;
+    }
+
+    private function normalizeExport(array $json): array
+    {
+        $byId = [];
+        foreach ($json['conversations'] ?? [] as $c) {
+            if (! isset($c['id'])) {
+                continue;
+            }
+            $c['messages'] = $c['messages'] ?? [];
+            $byId[(string) $c['id']] = $c;
+        }
+        $extra = $json['conversationMessages'] ?? [];
+        if (is_array($extra)) {
+            foreach ($extra as $cid => $msgs) {
+                $cid = (string) $cid;
+                if (! isset($byId[$cid])) {
+                    $byId[$cid] = ['id' => $cid, 'participants' => [], 'messages' => []];
+                }
+                foreach ($msgs as $m) {
+                    $byId[$cid]['messages'][] = $m;
+                }
+            }
+        }
+        if ($byId) {
+            $json['conversations'] = array_values($byId);
+        }
+
+        return $json;
     }
 
     private function resolveSubjectId(array $d, array $map): ?int

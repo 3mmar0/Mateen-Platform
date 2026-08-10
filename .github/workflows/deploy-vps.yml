@@ -122,6 +122,13 @@ jobs:
             fi
             cd "$APP_DIR"
             python3 "$APP_DIR/scripts/ci_apply_prod_env.py" "$APP_DIR"
+            # Optional Firebase → MySQL sync credentials (GitHub secrets)
+            if [ -n "${{ secrets.FIREBASE_IMPORT_EMAIL }}" ] && [ -n "${{ secrets.FIREBASE_IMPORT_PASSWORD }}" ]; then
+              grep -q '^FIREBASE_IMPORT_EMAIL=' "$APP_DIR/.env" && sed -i '/^FIREBASE_IMPORT_EMAIL=/d' "$APP_DIR/.env"
+              grep -q '^FIREBASE_IMPORT_PASSWORD=' "$APP_DIR/.env" && sed -i '/^FIREBASE_IMPORT_PASSWORD=/d' "$APP_DIR/.env"
+              echo "FIREBASE_IMPORT_EMAIL=${{ secrets.FIREBASE_IMPORT_EMAIL }}" >> "$APP_DIR/.env"
+              echo "FIREBASE_IMPORT_PASSWORD=${{ secrets.FIREBASE_IMPORT_PASSWORD }}" >> "$APP_DIR/.env"
+            fi
             rm -f "$APP_DIR/public/index.html" /var/www/mateen.academy/index.html /var/www/mateen.academy/public/index.html
             rm -rf "$APP_DIR/public/Mateen/html" /var/www/mateen.academy/public/Mateen/html /var/www/mateen.academy/Mateen/html
             grep -RIl 'Mateen/html/home.html' /etc/apache2 2>/dev/null | while read -r f; do
@@ -139,6 +146,9 @@ jobs:
             php artisan view:clear || true
             php artisan config:cache || true
             php artisan route:cache || true
+            if grep -q '^FIREBASE_IMPORT_EMAIL=.\+' .env && grep -q '^FIREBASE_IMPORT_PASSWORD=.\+' .env; then
+              php artisan mateen:sync-firebase || echo "Firebase sync skipped/failed"
+            fi
             # Point Apache docroot at Laravel public/ and drop old / → home.html redirects
             for conf in /etc/apache2/sites-available/mateen.academy.conf \
                         /etc/apache2/sites-available/mateen.academy-le-ssl.conf \
@@ -171,6 +181,9 @@ jobs:
             grep -q 'تسجيل الدخول' /tmp/mateen-login.html
             curl -fsS "https://mateen.academy/about" -o /tmp/mateen-about.html
             grep -q 'التعريف بالبرنامج' /tmp/mateen-about.html
+            curl -fsS "https://mateen.academy/api/v1/news" -o /tmp/mateen-news.json
+            curl -fsS "https://mateen.academy/api/v1/schedules" -o /tmp/mateen-schedules.json
+            curl -fsS "https://mateen.academy/api/v1/contact/recipients" -o /tmp/mateen-recipients.json
             code_login=$(curl -sI "https://mateen.academy/Mateen/html/login.html" | awk 'BEGIN{c=0} /^HTTP/{c=$2} END{print c}')
             test "$code_login" = "301"
             code_about=$(curl -sI "https://mateen.academy/Mateen/html/about.html" | awk 'BEGIN{c=0} /^HTTP/{c=$2} END{print c}')

@@ -129,6 +129,10 @@ export const api = {
   devices: {
     register: (body) => request('/devices', { method: 'POST', body }),
   },
+  contact: {
+    recipients: () => request('/contact/recipients', { auth: false }),
+    send: (body) => request('/contact', { method: 'POST', body, auth: false }),
+  },
   support: {
     users: () => request('/support/users'),
     setTheme: (id, body) => request(`/support/users/${id}/theme`, { method: 'PATCH', body }),

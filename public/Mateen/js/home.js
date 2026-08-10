@@ -5,7 +5,7 @@
 //  كل الشروط  and the منطق محفوظة بالضبط كما كانت in the Fileات الأصلية.
 // ═══════════════════════════════════════════════════════════════
 
-import { initNotifications } from "./notifications.js";
+import { initNotifications, initAdminNotifications } from "./notifications.js";
 import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
 import { api, isLaravelApi } from "./api.js";
 import { logoutApp, onAppSession, resolveLaravelSession, useLaravelBackend } from "./session.js";
@@ -78,8 +78,9 @@ function bootPublicFeedsApi() {
         } else {
           eventsEl.innerHTML = items.slice(0, 6).map((s) => {
             const date = s.starts_at ? new Date(s.starts_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+            const highlight = !!(s.audience && (s.audience.highlight === true || s.audience === 'highlight'));
             return `<div class="tl-item">
-              <div class="tl-dot"></div>
+              <div class="tl-dot ${highlight ? 'gold' : ''}"></div>
               <div>
                 <div class="tl-label">${s.title || ''}</div>
                 <div class="tl-date">${date}</div>
@@ -283,25 +284,10 @@ async function loadRecipientsApi() {
   const select = document.getElementById('ctRecipient');
   if (!select) return;
   try {
-    let users = [];
-    try {
-      const res = await api.support.users();
-      users = unwrapUsers(res);
-    } catch {
-      const session = await resolveLaravelSession({ refresh: false });
-      if (session) {
-        const convRes = await api.conversations.list();
-        const seen = new Set();
-        (convRes?.data || []).forEach(c => {
-          (c.participants || []).forEach(p => {
-            const id = String(p.id);
-            if (id !== String(session.id) && !seen.has(id)) { seen.add(id); users.push(p); }
-          });
-        });
-      }
-    }
-    const admins = users.filter(u => u.role === 'admin');
-    const teachers = users.filter(u => u.role === 'teacher' && u.is_active !== false);
+    const res = await api.contact.recipients();
+    const users = unwrapUsers(res);
+    const admins = users.filter(u => u.role === 'admin' || u.role === 'supervisor' || u.role === 'support');
+    const teachers = users.filter(u => u.role === 'teacher');
     let html = '<option value="">اختاري الجهة</option>';
     if (admins.length) {
       html += '<optgroup label="── الإدارة ──">';
@@ -324,8 +310,16 @@ function applySidebarGuestHome() {
   const loading = document.getElementById('sidebar-loading');
   if (loading) loading.style.display = 'none';
   document.getElementById('sidebar-guest')?.classList.remove('d-none');
+  const guest = document.getElementById('sidebar-guest');
+  if (guest) guest.style.display = 'block';
   document.getElementById('sidebar-user')?.classList.add('sidebar-user-hidden');
   document.querySelector('.page-layout')?.classList.add('guest-layout');
+  const heroBtnsGuest = document.getElementById('heroBtns');
+  if (heroBtnsGuest) { heroBtnsGuest.classList.remove('d-none'); heroBtnsGuest.classList.add('d-flex'); }
+  const navBtns = document.getElementById('navBtns');
+  if (navBtns) { navBtns.classList.remove('d-none'); navBtns.classList.add('d-flex'); }
+  const navUserActions = document.getElementById('navUserActions');
+  if (navUserActions) { navUserActions.classList.add('d-none'); navUserActions.classList.remove('d-flex'); }
 }
 
 async function applySidebarUserHome(session) {
@@ -335,19 +329,134 @@ async function applySidebarUserHome(session) {
   document.getElementById('sidebar-guest')?.classList.add('d-none');
   const userDiv = document.getElementById('sidebar-user');
   if (userDiv) { userDiv.classList.remove('sidebar-user-hidden'); userDiv.classList.add('show-user'); }
+
+  const heroBtns = document.getElementById('heroBtns');
+  if (heroBtns) { heroBtns.classList.remove('d-flex','d-lg-flex'); heroBtns.classList.add('d-none'); }
+  const navBtns = document.getElementById('navBtns');
+  if (navBtns) { navBtns.classList.remove('d-flex','d-lg-flex'); navBtns.classList.add('d-none'); }
+  const mobNavBtns = document.getElementById('mobNavBtns');
+  if (mobNavBtns) { mobNavBtns.classList.remove('d-flex','d-lg-flex'); mobNavBtns.classList.add('d-none'); }
+  const navUserActions = document.getElementById('navUserActions');
+  if (navUserActions) { navUserActions.classList.remove('d-none'); navUserActions.classList.add('d-flex'); }
+  const navMsgBtn = document.getElementById('navMsgBtn');
+  if (navMsgBtn) navMsgBtn.classList.remove('d-none');
+
   const role = session.role || 'student';
+  const status = session.status || 'active';
+  const subject = session.subject || session.subject_slug || '';
   const name = session.name || session.email?.split('@')[0] || 'مستخدم';
   initNotifications(String(session.uid || session.id));
   showSidebarSetup();
+
   const sidebarNameEl = document.getElementById('sidebarName');
   if (sidebarNameEl) sidebarNameEl.textContent = 'مرحباً، ' + name;
+  const sidebarRoleEl = document.getElementById('sidebarRole');
+  if (sidebarRoleEl) sidebarRoleEl.textContent =
+    role === 'admin' ? 'إدارية' :
+    role === 'supervisor' ? 'مشرفة' :
+    role === 'teacher' ? 'معلمة' :
+    role === 'mateen' ? 'بنات متين' :
+    role === 'support' ? 'الدعم الفني' : 'الطالبة';
+
   const ctName = document.getElementById('ctName');
   if (ctName) {
     ctName.value = role === 'admin' ? 'إدارة متين' : name;
     ctName.readOnly = role === 'admin';
   }
+
+  function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('d-none'); }
+  function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('d-none'); }
+
+  ['profileLink','linkCerts','linkAwards','linkGrades','linkSchedule','linkAdmin','linkNews','linkTeacher']
+    .forEach(hide);
+
+  if (role === 'admin') {
+    show('linkAdmin');
+    show('linkNews');
+  } else if (role === 'supervisor') {
+    const linkAdminEl = document.getElementById('linkAdmin');
+    if (linkAdminEl) {
+      linkAdminEl.href = '/supervisor';
+      linkAdminEl.innerHTML = '<i class="ti ti-shield"></i> لوحة المشرفة';
+    }
+    show('linkAdmin');
+    show('linkNews');
+  } else if (role === 'support') {
+    const linkAdminEl = document.getElementById('linkAdmin');
+    if (linkAdminEl) {
+      linkAdminEl.href = '/support';
+      linkAdminEl.innerHTML = '<i class="ti ti-headset"></i> لوحة الدعم';
+    }
+    show('linkAdmin');
+    show('linkNews');
+  } else if (role === 'teacher') {
+    show('linkNews');
+    show('linkTeacher');
+    show('linkSchedule');
+    const schedLink = document.getElementById('linkSchedule');
+    if (schedLink) schedLink.href = '/teacher/schedule';
+  } else if (role === 'mateen' || role === 'student') {
+    show('linkCerts');
+    show('linkAwards');
+    show('linkGrades');
+    show('linkSchedule');
+    show('linkNews');
+  }
+
+  const profileLink = document.getElementById('profileLink');
+  const navProfileBtn = document.getElementById('navProfileBtn');
+  const navAvatar = document.getElementById('navProfileAvatar');
+  const avatarEmoji =
+    role === 'admin' ? '👑' :
+    role === 'supervisor' ? '🎓' :
+    role === 'teacher' ? '📚' :
+    role === 'mateen' ? '🧕' :
+    role === 'support' ? '🛠️' : '🌸';
+  if (navAvatar) navAvatar.textContent = avatarEmoji;
+
+  if (status !== 'active') {
+    if (profileLink) profileLink.classList.add('d-none');
+    if (navProfileBtn) navProfileBtn.classList.add('d-none');
+  } else if (role === 'mateen' || role === 'student') {
+    const linkedId = session.linkedStudentId || session.linked_student_id;
+    if (linkedId) {
+      if (profileLink) { profileLink.href = `/student?id=${linkedId}`; profileLink.classList.remove('d-none'); }
+      if (navProfileBtn) { navProfileBtn.href = `/student?id=${linkedId}`; navProfileBtn.classList.remove('d-none'); }
+      const linkGradesEl = document.getElementById('linkGrades');
+      const linkCertsEl = document.getElementById('linkCerts');
+      const linkAwardsEl = document.getElementById('linkAwards');
+      if (linkGradesEl) linkGradesEl.href = `/student?id=${linkedId}#grades`;
+      if (linkCertsEl) linkCertsEl.href = `/student?id=${linkedId}#certs`;
+      if (linkAwardsEl) linkAwardsEl.href = `/student?id=${linkedId}#awards`;
+    } else if (navProfileBtn) {
+      navProfileBtn.classList.remove('d-none');
+    }
+  } else if (role === 'admin') {
+    if (navProfileBtn) { navProfileBtn.href = '/admin'; navProfileBtn.classList.remove('d-none'); }
+  } else if (role === 'supervisor') {
+    if (navProfileBtn) { navProfileBtn.href = '/supervisor'; navProfileBtn.classList.remove('d-none'); }
+  } else if (role === 'support') {
+    if (navProfileBtn) { navProfileBtn.href = '/support'; navProfileBtn.classList.remove('d-none'); }
+  } else if (role === 'teacher') {
+    const teacherPageMap = {
+      tafseer: '/teacher/tafseer', tafsir: '/teacher/tafseer', fiqh: '/teacher/fiqh',
+      aqeedah: '/teacher/aqeedah', hadith: '/teacher/hadeeth', hadeeth: '/teacher/hadeeth',
+      quran: '/teacher/quran1', quran1: '/teacher/quran1', quran2: '/teacher/quran2',
+      maqraah: '/teacher/quran1', ithraiyat: '/teacher/students',
+    };
+    if (navProfileBtn) {
+      navProfileBtn.href = teacherPageMap[subject] || '/teacher/profile';
+      navProfileBtn.classList.remove('d-none');
+    }
+  } else if (navProfileBtn) {
+    navProfileBtn.classList.remove('d-none');
+  }
+
   mountTestModeSwitcher(session.raw || session, session.email);
   applyCustomTheme(session.raw || session);
+  if (role === 'admin' || role === 'supervisor') {
+    try { initAdminNotifications(String(session.uid || session.id), role); } catch (_) {}
+  }
 }
 
 async function bootHomeLaravel() {

@@ -6,23 +6,6 @@ use Illuminate\Support\Str;
 
 class DocumentMapper
 {
-    public function user(array $d): array
-    {
-        return [
-            'firebase_uid' => $d['uid'] ?? $d['id'] ?? null,
-            'name' => $d['name'] ?? $d['displayName'] ?? 'مستخدم',
-            'email' => $d['email'],
-            'phone' => $d['phone'] ?? null,
-            'role' => $d['role'] ?? 'student',
-            'theme_id' => $d['theme_id'] ?? $d['theme'] ?? null,
-            'ornament_id' => $d['ornament_id'] ?? null,
-            'is_active' => ($d['status'] ?? 'active') === 'active' && ($d['is_active'] ?? true),
-            // Imported Firebase users must reset password on first Laravel login (FR migration).
-            'must_reset_password' => true,
-            'password' => Str::password(40),
-        ];
-    }
-
     public function subject(array $d): array
     {
         return [
@@ -129,15 +112,47 @@ class DocumentMapper
 
     public function schedule(array $d, ?int $subjectId, int $createdBy): array
     {
+        $title = $d['title'] ?? $d['label'] ?? $d['name'] ?? 'موعد';
+        $starts = $d['starts_at'] ?? $d['start'] ?? $d['date'] ?? $d['when'] ?? null;
+
         return [
             'subject_id' => $subjectId,
-            'title' => $d['title'] ?? 'موعد',
-            'starts_at' => $this->ts($d['starts_at'] ?? $d['start'] ?? now()) ?? now(),
+            'title' => $title,
+            'starts_at' => $this->ts($starts) ?? now(),
             'ends_at' => $this->ts($d['ends_at'] ?? $d['end'] ?? null),
             'weekday' => $d['weekday'] ?? $d['day'] ?? null,
-            'audience' => $d['audience'] ?? null,
+            'audience' => $d['audience'] ?? (isset($d['highlight']) ? ['highlight' => (bool) $d['highlight']] : null),
             'created_by' => $createdBy,
         ];
+    }
+
+    public function eventAsSchedule(array $d, ?int $subjectId, int $createdBy): array
+    {
+        return $this->schedule($d, $subjectId, $createdBy);
+    }
+
+    public function user(array $d, ?string $preservePassword = null): array
+    {
+        $payload = [
+            'firebase_uid' => $d['uid'] ?? $d['id'] ?? null,
+            'name' => $d['name'] ?? $d['displayName'] ?? 'مستخدم',
+            'email' => $d['email'],
+            'phone' => $d['phone'] ?? null,
+            'role' => $d['role'] ?? 'student',
+            'theme_id' => $d['theme_id'] ?? $d['theme'] ?? null,
+            'ornament_id' => $d['ornament_id'] ?? null,
+            'is_active' => ($d['status'] ?? 'active') === 'active' && ($d['is_active'] ?? true),
+            // Imported Firebase users must reset password on first Laravel login (FR migration).
+            'must_reset_password' => true,
+            'password' => Str::password(40),
+        ];
+
+        if ($preservePassword !== null && $preservePassword !== '') {
+            $payload['password'] = $preservePassword;
+            $payload['must_reset_password'] = false;
+        }
+
+        return $payload;
     }
 
     public function contact(array $d): array
