@@ -58,16 +58,24 @@ class FirebaseMigrationService
         $adminPassword = (string) ($options['admin_password'] ?? '');
 
         DB::transaction(function () use ($json, &$counts, &$adminId, &$userByFirebase, &$subjectBySlug, &$materialByLegacy, $adminEmail, $adminPassword) {
+            $importedSubjectIds = [];
             foreach ($json['subjects'] ?? $json['staticSubjects'] ?? [] as $d) {
                 $slug = $d['slug'] ?? $d['id'] ?? null;
                 if (! $slug && empty($d['title']) && empty($d['name'])) {
                     continue;
                 }
                 $slug = $slug ?: Str::slug($d['title'] ?? $d['name'] ?? Str::random(8));
-                $s = Subject::updateOrCreate(
-                    ['slug' => $slug],
-                    $this->mapper->subject(array_merge($d, ['slug' => $slug]))
-                );
+                $payload = $this->mapper->subject(array_merge($d, ['slug' => $slug]));
+                $title = $payload['title'] ?? null;
+                // Prefer slug match; fall back to Arabic title so demo stubs (tafsir) merge into Firebase (tafseer).
+                $s = Subject::query()->where('slug', $slug)->first()
+                    ?? ($title ? Subject::query()->where('title', $title)->first() : null);
+                if ($s) {
+                    $s->fill($payload)->save();
+                } else {
+                    $s = Subject::create($payload);
+                }
+                $importedSubjectIds[] = $s->id;
                 $subjectBySlug[$s->slug] = $s->id;
                 if (isset($d['id'])) {
                     $subjectBySlug[(string) $d['id']] = $s->id;
@@ -75,7 +83,17 @@ class FirebaseMigrationService
                 if (isset($d['name'])) {
                     $subjectBySlug[$d['name']] = $s->id;
                 }
+                if (isset($d['title'])) {
+                    $subjectBySlug[$d['title']] = $s->id;
+                }
                 $counts['subjects'] = 1 + ($counts['subjects'] ?? 0);
+            }
+            if ($importedSubjectIds !== []) {
+                $orphanIds = Subject::query()->whereNotIn('id', array_unique($importedSubjectIds))->pluck('id');
+                if ($orphanIds->isNotEmpty()) {
+                    Subject::query()->whereIn('id', $orphanIds)->delete();
+                    $counts['subjects_removed'] = $orphanIds->count();
+                }
             }
 
             foreach ($json['users'] ?? [] as $d) {
@@ -137,6 +155,12 @@ class FirebaseMigrationService
                 $counts['students'] = 1 + ($counts['students'] ?? 0);
             }
 
+            $hasMaterials = ! empty($json['materials']) || ! empty($json['learningMaterials']);
+            if ($hasMaterials) {
+                // Avoid duplicating materials on each sync (import always creates rows).
+                Assignment::query()->update(['learning_material_id' => null]);
+                LearningMaterial::query()->delete();
+            }
             foreach ($json['materials'] ?? $json['learningMaterials'] ?? [] as $d) {
                 $sid = $this->resolveSubjectId($d, $subjectBySlug);
                 if (! $sid) {

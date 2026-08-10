@@ -165,15 +165,35 @@ class DocumentMapper
     public function schedule(array $d, ?int $subjectId, int $createdBy): array
     {
         $title = $d['title'] ?? $d['label'] ?? $d['name'] ?? 'موعد';
-        $starts = $d['starts_at'] ?? $d['start'] ?? $d['date'] ?? $d['when'] ?? null;
+        $rawDate = $d['starts_at'] ?? $d['start'] ?? $d['date'] ?? $d['when'] ?? null;
+        $parsedStarts = $this->ts($rawDate);
+        // Firebase home events store Arabic display strings in `date` (not timestamps).
+        $dateLabel = null;
+        if ($parsedStarts === null && is_string($rawDate) && trim($rawDate) !== '') {
+            $dateLabel = trim($rawDate);
+        }
+        $order = (int) ($d['order'] ?? $d['sort_order'] ?? 0);
+        // Synthetic starts_at keeps list order when only a display label exists.
+        $startsAt = $parsedStarts ?? date('Y-m-d H:i:s', strtotime('2020-01-01') + max(0, $order) * 86400);
+
+        $audience = is_array($d['audience'] ?? null) ? $d['audience'] : [];
+        if (array_key_exists('highlight', $d)) {
+            $audience['highlight'] = (bool) $d['highlight'];
+        }
+        if ($dateLabel !== null) {
+            $audience['date_label'] = $dateLabel;
+        }
+        if ($order > 0) {
+            $audience['order'] = $order;
+        }
 
         return [
             'subject_id' => $subjectId,
             'title' => $title,
-            'starts_at' => $this->ts($starts) ?? now(),
+            'starts_at' => $startsAt,
             'ends_at' => $this->ts($d['ends_at'] ?? $d['end'] ?? null),
             'weekday' => $d['weekday'] ?? $d['day'] ?? null,
-            'audience' => $d['audience'] ?? (isset($d['highlight']) ? ['highlight' => (bool) $d['highlight']] : null),
+            'audience' => $audience !== [] ? $audience : null,
             'created_by' => $createdBy,
         ];
     }

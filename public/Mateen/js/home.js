@@ -77,7 +77,9 @@ function bootPublicFeedsApi() {
           eventsEl.innerHTML = '<div class="tl-item"><div class="tl-dot"></div><div><div class="tl-label" style="color:#aaa">لا توجد مواعيد</div></div></div>';
         } else {
           eventsEl.innerHTML = items.slice(0, 6).map((s) => {
-            const date = s.starts_at ? new Date(s.starts_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+            const date = s.date_label
+              || (s.audience && s.audience.date_label)
+              || (s.starts_at ? new Date(s.starts_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '');
             const highlight = !!(s.audience && (s.audience.highlight === true || s.audience === 'highlight'));
             return `<div class="tl-item">
               <div class="tl-dot ${highlight ? 'gold' : ''}"></div>

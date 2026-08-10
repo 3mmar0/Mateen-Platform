@@ -299,9 +299,10 @@
         return;
       }
       el.innerHTML = items.map(function (s) {
+        var dateText = s.date_label || (s.audience && s.audience.date_label) || fmt(s.starts_at);
         return '<div class="tl-item"><div class="tl-dot"></div><div>' +
           '<div class="tl-label">' + esc(s.title) + '</div>' +
-          '<div class="tl-date">' + esc(fmt(s.starts_at)) + '</div>' +
+          '<div class="tl-date">' + esc(dateText) + '</div>' +
           '</div></div>';
       }).join('');
     })
