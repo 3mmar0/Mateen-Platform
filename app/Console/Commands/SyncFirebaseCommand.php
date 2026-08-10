@@ -103,6 +103,10 @@ class SyncFirebaseCommand extends Command
             return self::SUCCESS;
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
+            $this->line($e->getFile().':'.$e->getLine());
+            if ($e->getPrevious()) {
+                $this->error('prev: '.$e->getPrevious()->getMessage());
+            }
 
             return self::FAILURE;
         }

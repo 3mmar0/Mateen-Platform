@@ -23,20 +23,67 @@ class DocumentMapper
         return [
             'subject_id' => $subjectId,
             'title' => $d['title'] ?? $d['name'] ?? 'مادة',
-            'type' => $d['type'] ?? 'محاضرة',
-            'body' => $d['body'] ?? $d['content'] ?? $d['description'] ?? null,
+            'type' => $this->materialType($d),
+            'body' => $d['body'] ?? $d['content'] ?? $d['description'] ?? $d['notes'] ?? null,
             'url' => $d['url'] ?? $d['link'] ?? null,
             'created_by' => $createdBy,
-            'sort_order' => $d['sort_order'] ?? $d['order'] ?? 0,
+            'sort_order' => $d['sort_order'] ?? $d['order'] ?? $d['lectureNumber'] ?? 0,
         ];
+    }
+
+    private function materialType(array $d): string
+    {
+        $raw = strtolower(trim((string) ($d['type'] ?? '')));
+        $url = strtolower((string) ($d['url'] ?? $d['link'] ?? ''));
+        $map = [
+            'pdf' => 'pdf',
+            'video' => 'video',
+            'article' => 'article',
+            'link' => 'link',
+            'محاضرة' => 'article',
+            'ملخص' => 'article',
+            'مرجع' => 'link',
+            'فيديو' => 'video',
+            'كتاب' => 'pdf',
+        ];
+        if (isset($map[$raw])) {
+            return $map[$raw];
+        }
+        if (isset($map[(string) ($d['type'] ?? '')])) {
+            return $map[(string) $d['type']];
+        }
+        if (str_contains($url, '.pdf')) {
+            return 'pdf';
+        }
+        if (str_contains($url, 'youtube') || str_contains($url, 'youtu.be') || str_contains($url, 'vimeo')) {
+            return 'video';
+        }
+        if ($url !== '') {
+            return 'link';
+        }
+
+        return 'article';
     }
 
     public function studentProfile(array $d, int $userId): array
     {
+        $interview = $d['interview_status'] ?? $d['interviewStatus'] ?? 'not_done';
+        $interview = match (true) {
+            in_array($interview, ['done', 'not_done'], true) => $interview,
+            in_array($interview, ['تم', 'done', true, 1, '1'], true) => 'done',
+            default => 'not_done',
+        };
+        $statusClass = $d['status_class'] ?? $d['statusClass'] ?? 'newcomer';
+        $statusClass = match (true) {
+            in_array($statusClass, ['newcomer', 'mateen_girls'], true) => $statusClass,
+            in_array($statusClass, ['mateen', 'بنات متين', 'mateen_girls'], true) => 'mateen_girls',
+            default => 'newcomer',
+        };
+
         return [
             'user_id' => $userId,
-            'interview_status' => $d['interview_status'] ?? $d['interviewStatus'] ?? 'not_done',
-            'status_class' => $d['status_class'] ?? $d['statusClass'] ?? 'newcomer',
+            'interview_status' => $interview,
+            'status_class' => $statusClass,
             'notes' => $d['notes'] ?? null,
             'extra' => array_filter([
                 'legacy_id' => $d['id'] ?? null,
@@ -101,11 +148,16 @@ class DocumentMapper
 
     public function news(array $d, int $createdBy): array
     {
+        $status = $d['status'] ?? 'published';
+        if (! in_array($status, ['draft', 'published'], true)) {
+            $status = 'published';
+        }
+
         return [
             'title' => $d['title'] ?? 'خبر',
             'body' => $d['body'] ?? $d['content'] ?? '',
-            'status' => $d['status'] ?? 'published',
-            'published_at' => $this->ts($d['published_at'] ?? $d['createdAt'] ?? null),
+            'status' => $status,
+            'published_at' => $this->ts($d['published_at'] ?? $d['createdAt'] ?? null) ?? now(),
             'created_by' => $createdBy,
         ];
     }
@@ -138,7 +190,7 @@ class DocumentMapper
             'name' => $d['name'] ?? $d['displayName'] ?? 'مستخدم',
             'email' => $d['email'],
             'phone' => $d['phone'] ?? null,
-            'role' => $d['role'] ?? 'student',
+            'role' => $this->mapRole($d['role'] ?? 'student'),
             'theme_id' => $d['theme_id'] ?? $d['theme'] ?? null,
             'ornament_id' => $d['ornament_id'] ?? null,
             'is_active' => ($d['status'] ?? 'active') === 'active' && ($d['is_active'] ?? true),
@@ -186,6 +238,17 @@ class DocumentMapper
         return array_intersect_key($d, array_flip($allowed));
     }
 
+    private function mapRole(mixed $role): string
+    {
+        $role = strtolower(trim((string) $role));
+        $allowed = ['admin', 'support', 'supervisor', 'teacher', 'student', 'mateen'];
+        if (in_array($role, $allowed, true)) {
+            return $role;
+        }
+
+        return 'student';
+    }
+
     private function ts(mixed $v): ?string
     {
         if ($v === null || $v === '') {
@@ -195,9 +258,20 @@ class DocumentMapper
             return date('Y-m-d H:i:s', (int) $v['_seconds']);
         }
         if (is_numeric($v)) {
-            return date('Y-m-d H:i:s', (int) $v);
-        }
+            $n = (int) $v;
+            // Firestore JS timestamps are often milliseconds
+            if ($n > 20000000000) {
+                $n = (int) floor($n / 1000);
+            }
 
-        return (string) $v;
+            return date('Y-m-d H:i:s', $n);
+        }
+        $s = trim((string) $v);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) {
+            return $s.' 00:00:00';
+        }
+        $t = strtotime($s);
+
+        return $t ? date('Y-m-d H:i:s', $t) : null;
     }
 }
