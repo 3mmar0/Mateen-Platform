@@ -18,10 +18,25 @@ class SyncFirebaseCommand extends Command
 
     public function handle(FirebaseMigrationService $service): int
     {
-        $email = (string) env('FIREBASE_IMPORT_EMAIL', '');
-        $password = (string) env('FIREBASE_IMPORT_PASSWORD', '');
-        $apiKey = (string) env('FIREBASE_WEB_API_KEY', 'AIzaSyBIVtK3tNHSnQW6Pfq-cZgSvLmTX6kaeTk');
-        $projectId = (string) env('FIREBASE_PROJECT_ID', 'mateen-a122d');
+        $email = (string) (getenv('FIREBASE_IMPORT_EMAIL') ?: env('FIREBASE_IMPORT_EMAIL', ''));
+        $password = (string) (getenv('FIREBASE_IMPORT_PASSWORD') ?: env('FIREBASE_IMPORT_PASSWORD', ''));
+        $apiKey = (string) (getenv('FIREBASE_WEB_API_KEY') ?: env('FIREBASE_WEB_API_KEY', 'AIzaSyBIVtK3tNHSnQW6Pfq-cZgSvLmTX6kaeTk'));
+        $projectId = (string) (getenv('FIREBASE_PROJECT_ID') ?: env('FIREBASE_PROJECT_ID', 'mateen-a122d'));
+
+        // Fallback: read .env directly (config:cache makes env() empty)
+        if ($email === '' || $password === '') {
+            $envFile = base_path('.env');
+            if (is_file($envFile)) {
+                foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+                    if (str_starts_with($line, 'FIREBASE_IMPORT_EMAIL=')) {
+                        $email = trim(substr($line, strlen('FIREBASE_IMPORT_EMAIL=')));
+                    }
+                    if (str_starts_with($line, 'FIREBASE_IMPORT_PASSWORD=')) {
+                        $password = trim(substr($line, strlen('FIREBASE_IMPORT_PASSWORD=')));
+                    }
+                }
+            }
+        }
 
         if ($email === '' || $password === '') {
             $this->error('Set FIREBASE_IMPORT_EMAIL and FIREBASE_IMPORT_PASSWORD in .env');

@@ -144,11 +144,11 @@ jobs:
             php artisan config:clear
             php artisan route:clear
             php artisan view:clear || true
-            php artisan config:cache || true
-            php artisan route:cache || true
             if grep -q '^FIREBASE_IMPORT_EMAIL=.\+' .env && grep -q '^FIREBASE_IMPORT_PASSWORD=.\+' .env; then
               php artisan mateen:sync-firebase || echo "Firebase sync skipped/failed"
             fi || true
+            php artisan config:cache || true
+            php artisan route:cache || true
             # Point Apache docroot at Laravel public/ and drop old / → home.html redirects
             for conf in /etc/apache2/sites-available/mateen.academy.conf \
                         /etc/apache2/sites-available/mateen.academy-le-ssl.conf \
