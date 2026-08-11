@@ -16,6 +16,11 @@ class UserController extends Controller
         abort_unless($r->user()->isRole(Role::Admin, Role::Support, Role::Supervisor), 403);
 
         $q = User::query()->with('subject')->orderBy('name');
+
+        // Match Firebase admin accounts: hide local demo/import placeholders.
+        $q->where('email', 'not like', '%@mateen.test')
+            ->where('email', 'not like', '%@mateen.import');
+
         if ($role = $r->string('role')->toString()) {
             $q->where('role', $role);
         }
