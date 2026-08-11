@@ -12,8 +12,13 @@ class SubjectController extends Controller
     public function index(Request $r)
     {
         $q = Subject::query()->orderBy('sort_order');
+        // Public route: optionally resolve Sanctum bearer so admins still see stub subjects.
+        $user = $r->user();
+        if (! $user && $r->bearerToken()) {
+            $user = \Laravel\Sanctum\PersonalAccessToken::findToken($r->bearerToken())?->tokenable;
+        }
         // Hide stub subjects (e.g. الإثرائيات) from the public course catalog.
-        if (! $r->user()?->isRole(\App\Enums\Role::Admin)) {
+        if (! $user?->isRole(\App\Enums\Role::Admin)) {
             $q->catalog();
         }
 
