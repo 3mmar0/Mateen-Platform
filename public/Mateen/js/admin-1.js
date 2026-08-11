@@ -96,8 +96,9 @@ function mapStudentPatch(existing, fields) {
 async function refreshStudentsApi() {
   const res = await api.students.list('?per_page=500');
   allStudents = unwrapList(res).map(mapApiStudent);
-  renderStudents(allStudents.filter(s => !s.archived));
-  updateStuStats(allStudents.filter(s => !s.archived));
+  // Match Firebase admin path: stats include archived; table hides them.
+  renderStudents(allStudents);
+  updateStuStats(allStudents);
 }
 
 async function patchStudent(id, fields) {

@@ -81,18 +81,28 @@ class DocumentMapper
 
     public function studentProfile(array $d, int $userId): array
     {
-        $interview = $d['interview_status'] ?? $d['interviewStatus'] ?? 'not_done';
+        $interviewRaw = $d['interview_status'] ?? $d['interviewStatus'] ?? $d['interview'] ?? 'not_done';
         $interview = match (true) {
-            in_array($interview, ['done', 'not_done'], true) => $interview,
-            in_array($interview, ['تم', 'done', true, 1, '1'], true) => 'done',
+            in_array($interviewRaw, ['done', 'تم', true, 1, '1'], true) => 'done',
+            in_array($interviewRaw, ['not_done', 'pending', 'لم تتم', false, 0, '0'], true) => 'not_done',
             default => 'not_done',
         };
-        $statusClass = $d['status_class'] ?? $d['statusClass'] ?? 'newcomer';
+
+        $statusRaw = $d['status_class'] ?? $d['statusClass'] ?? $d['status'] ?? 'newcomer';
         $statusClass = match (true) {
-            in_array($statusClass, ['newcomer', 'mateen_girls'], true) => $statusClass,
-            in_array($statusClass, ['mateen', 'بنات متين', 'mateen_girls'], true) => 'mateen_girls',
+            in_array($statusRaw, ['mateen_girls', 'mateen', 'بنات متين'], true) => 'mateen_girls',
+            in_array($statusRaw, ['newcomer', 'new', 'مستجد', 'المستجدات'], true) => 'newcomer',
             default => 'newcomer',
         };
+
+        $accepted = $d['accepted'] ?? 'na';
+        if (! in_array($accepted, ['accepted', 'rejected', 'na'], true)) {
+            $accepted = match (true) {
+                in_array($accepted, ['مقبولة', 'قبول', true, 1, '1'], true) => 'accepted',
+                in_array($accepted, ['غير مقبولة', 'رفض', false, 0, '0'], true) => 'rejected',
+                default => 'na',
+            };
+        }
 
         return [
             'user_id' => $userId,
@@ -103,7 +113,20 @@ class DocumentMapper
                 'legacy_id' => $d['id'] ?? null,
                 'name' => $d['name'] ?? null,
                 'order' => $d['order'] ?? null,
-            ]),
+                'day' => $d['day'] ?? null,
+                'dateH' => $d['dateH'] ?? null,
+                'dateG' => $d['dateG'] ?? null,
+                'hour' => $d['hour'] ?? null,
+                'minute' => $d['minute'] ?? null,
+                'ampm' => $d['ampm'] ?? null,
+                'accepted' => $accepted,
+                'archived' => (bool) ($d['archived'] ?? false),
+                'archivedAt' => $this->ts($d['archivedAt'] ?? $d['archived_at'] ?? null),
+                'uid' => $d['uid'] ?? $d['userId'] ?? null,
+                'status' => in_array($statusRaw, ['mateen', 'new'], true) ? $statusRaw
+                    : ($statusClass === 'mateen_girls' ? 'mateen' : 'new'),
+                'placementScore' => $d['placementScore'] ?? $d['placement_score'] ?? null,
+            ], fn ($v) => $v !== null && $v !== ''),
         ];
     }
 

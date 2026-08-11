@@ -148,11 +148,24 @@ class FirebaseMigrationService
                         $userByFirebase[(string) $d['id']] = $uid;
                     }
                 }
+                if (! empty($d['name'])) {
+                    User::query()->where('id', $uid)->update(['name' => $d['name']]);
+                }
                 StudentProfile::updateOrCreate(
                     ['user_id' => $uid],
                     $this->mapper->studentProfile($d, $uid)
                 );
                 $counts['students'] = 1 + ($counts['students'] ?? 0);
+            }
+
+            // Demo seeder accounts must not inflate admin student counts vs Firestore.
+            $demoStudentIds = User::query()
+                ->where('email', 'like', '%@mateen.test')
+                ->whereIn('role', ['student', 'mateen'])
+                ->pluck('id');
+            if ($demoStudentIds->isNotEmpty()) {
+                StudentProfile::query()->whereIn('user_id', $demoStudentIds)->delete();
+                $counts['demo_students_removed'] = $demoStudentIds->count();
             }
 
             $hasMaterials = ! empty($json['materials']) || ! empty($json['learningMaterials']);
