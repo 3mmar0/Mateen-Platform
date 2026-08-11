@@ -240,17 +240,25 @@ class DocumentMapper
         return $this->schedule($d, $subjectId, $createdBy);
     }
 
-    public function user(array $d, ?string $preservePassword = null): array
+    public function user(array $d, ?string $preservePassword = null, ?int $subjectId = null): array
     {
+        $status = strtolower(trim((string) ($d['status'] ?? 'active')));
+        if (! in_array($status, ['active', 'pending', 'suspended'], true)) {
+            $status = 'active';
+        }
+
         $payload = [
             'firebase_uid' => $d['uid'] ?? $d['id'] ?? null,
             'name' => $d['name'] ?? $d['displayName'] ?? 'مستخدم',
             'email' => $d['email'],
             'phone' => $d['phone'] ?? null,
+            'year' => isset($d['year']) ? (string) $d['year'] : null,
             'role' => $this->mapRole($d['role'] ?? 'student'),
+            'subject_id' => $subjectId,
             'theme_id' => $d['theme_id'] ?? $d['theme'] ?? null,
             'ornament_id' => $d['ornament_id'] ?? null,
-            'is_active' => ($d['status'] ?? 'active') === 'active' && ($d['is_active'] ?? true),
+            'account_status' => $status,
+            'is_active' => $status === 'active' && ($d['is_active'] ?? true),
             // Imported Firebase users must reset password on first Laravel login (FR migration).
             'must_reset_password' => true,
             'password' => Str::password(40),

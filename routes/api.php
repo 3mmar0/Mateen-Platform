@@ -27,6 +27,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']); Route::get('auth/me', [AuthController::class, 'me']);
         Route::delete('users/{user}', [UserController::class, 'destroy']);
+        Route::get('users', [UserController::class, 'index']);
+        Route::patch('users/{user}', [UserController::class, 'update']);
         Route::apiResource('subjects', SubjectController::class)->only(['store', 'update']);
         Route::post('subjects/{subject}/enrollments', [EnrollmentController::class, 'store']);
         Route::post('subjects/{subject}/materials', [MaterialController::class, 'store']);

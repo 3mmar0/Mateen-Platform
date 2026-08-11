@@ -173,15 +173,21 @@ async function initAdminApi() {
     document.getElementById('pendingSection').style.display = 'block';
     document.getElementById('allUsersSection').style.display = 'block';
     document.getElementById('deletionRequestsSection').style.display = 'block';
+    loadPendingAccountsApi().catch(e => console.error('[admin] pending users', e));
+    loadAllUsersApi().catch(e => console.error('[admin] all users', e));
   }
   if (role !== 'admin') {
     document.getElementById('studentsSection').style.display = 'none';
   }
   const testerEl = document.getElementById('siteTesterSection');
   if (testerEl) testerEl.style.display = 'none';
-  loadSubjectOptions();
-  loadAdminNewsApi().catch(e => console.warn('[admin] news API', e));
-  loadAdminEventsApi().catch(e => console.warn('[admin] events API', e));
+  await Promise.all([
+    refreshStudentsApi().catch(e => console.error('[admin] students', e)),
+    loadSubjectOptionsApi().catch(e => console.error('[admin] subjects', e)),
+    loadMatsApi().catch(e => console.error('[admin] materials', e)),
+    loadAdminNewsApi().catch(e => console.warn('[admin] news API', e)),
+    loadAdminEventsApi().catch(e => console.warn('[admin] events API', e)),
+  ]);
 }
 
 async function bootAdminFirebase() {
@@ -325,24 +331,191 @@ window.doAdd = async () => {
   btn.innerHTML = '<i class="ti ti-loader spin"></i> جارٍ الحفظ...';
 
   try {
-    await addDoc(collection(db, 'materials'), {
-      url, course, title,
-      type:     document.getElementById('fType').value,
-      notes:    document.getElementById('fNotes').value.trim(),
-      linkType: detectType(url),
-      addedAt:  Date.now(),
-      addedBy:  auth.currentUser.email,
-    });
+    const notes = document.getElementById('fNotes').value.trim();
+    const arType = document.getElementById('fType').value;
+    if (useApi()) {
+      const subjectId = await findSubjectIdByCourseName(course);
+      if (!subjectId) throw new Error('المادة غير موجودة');
+      await api.subjects.addMaterial(subjectId, {
+        title,
+        type: AR_TO_API_TYPE[arType] || 'link',
+        url,
+        body: notes || null,
+      });
+      await loadMatsApi();
+    } else {
+      await addDoc(collection(db, 'materials'), {
+        url, course, title,
+        type:     arType,
+        notes,
+        linkType: detectType(url),
+        addedAt:  Date.now(),
+        addedBy:  auth.currentUser.email,
+      });
+    }
     showToast('✓ تمت إضافة المادة بنجاح');
     ['fUrl','fTitle','fNotes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fCourse').value = '';
-  } catch(e) { showErr('خطأ: ' + e.message); }
+  } catch(e) { showErr('خطأ: ' + (e.message || e)); }
 
   btn.disabled = false;
   btn.innerHTML = '<i class="ti ti-circle-plus"></i> إضافة المادة';
 };
 
 // ── LOAD ──────────────────────────────────────────────
+const AR_TO_API_TYPE = {
+  'محاضرة': 'article', 'ملخص': 'article', 'واجب': 'article', 'اختبار': 'article',
+  'مرجع علمي': 'link', 'مرجع': 'link', 'فيديو': 'video', 'أخرى': 'link',
+};
+const API_TO_AR_TYPE = {
+  pdf: 'مرجع علمي', video: 'فيديو', article: 'محاضرة', link: 'مرجع علمي',
+};
+let apiSubjectsCache = [];
+
+async function findSubjectIdByCourseName(courseName) {
+  if (!apiSubjectsCache.length) {
+    apiSubjectsCache = unwrapList(await api.subjects.list());
+  }
+  const hit = apiSubjectsCache.find(s => s.title === courseName || s.name === courseName);
+  return hit ? hit.id : null;
+}
+
+function mapApiUser(u) {
+  const status = u.status || u.account_status || (u.is_active === false ? 'suspended' : 'active');
+  return {
+    id: String(u.id),
+    name: u.name || '',
+    email: u.email || '',
+    phone: u.phone || '',
+    year: u.year || '',
+    role: typeof u.role === 'object' ? (u.role?.value || u.role) : (u.role || ''),
+    subject: u.subject || u.subject_title || '',
+    subject_id: u.subject_id || null,
+    status,
+    createdAt: u.created_at ? { seconds: Math.floor(new Date(u.created_at).getTime() / 1000) } : null,
+  };
+}
+
+async function loadSubjectOptionsApi() {
+  const subjects = unwrapList(await api.subjects.list())
+    .map(s => s.title)
+    .filter(Boolean);
+  apiSubjectsCache = unwrapList(await api.subjects.list());
+  fillSubjectSelects(subjects);
+}
+
+function fillSubjectSelects(subjects) {
+  const fCourse = document.getElementById('fCourse');
+  if (fCourse) {
+    fCourse.innerHTML = '<option value="">اختاري المادة</option>' +
+      subjects.map(s => `<option>${s}</option>`).join('');
+  }
+  const filterCourse = document.getElementById('filterCourse');
+  if (filterCourse) {
+    filterCourse.innerHTML = '<option value="">كل المواد</option>' +
+      subjects.map(s => `<option>${s}</option>`).join('');
+  }
+  const bgSubject = document.getElementById('bgSubject');
+  if (bgSubject) {
+    bgSubject.innerHTML = '<option value="">— اختاري المادة —</option>' +
+      subjects.map(s => `<option>${s}</option>`).join('');
+  }
+  const baSubject = document.getElementById('baSubject');
+  if (baSubject) {
+    baSubject.innerHTML = '<option value="">— اختاري —</option><option value="__ALL__">📅 كل مواد اليوم</option>' +
+      subjects.map(s => `<option>${s}</option>`).join('');
+  }
+  _baAllSubjects = subjects;
+}
+
+async function loadMatsApi() {
+  const subjects = unwrapList(await api.subjects.list());
+  apiSubjectsCache = subjects;
+  const mats = [];
+  for (const s of subjects) {
+    const items = unwrapList(await api.subjects.materials(s.id));
+    items.forEach(m => {
+      mats.push({
+        id: String(m.id),
+        title: m.title || '',
+        course: s.title || '',
+        type: API_TO_AR_TYPE[m.type] || m.type || 'أخرى',
+        notes: m.body || '',
+        url: m.url || '',
+        linkType: detectType(m.url || ''),
+        addedAt: m.sort_order ?? m.id,
+      });
+    });
+  }
+  allMats = mats;
+  renderMats();
+  updateStats();
+}
+
+async function loadPendingAccountsApi() {
+  const res = await api.users.list('?per_page=500&status=pending');
+  const pending = unwrapList(res).map(mapApiUser);
+  renderPending(pending);
+}
+
+async function loadAllUsersApi() {
+  const res = await api.users.list('?per_page=500');
+  allUsersData = unwrapList(res).map(mapApiUser);
+  allUsersData.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'));
+  renderAllUsers();
+  updateUsersStats();
+  const badge = document.getElementById('allUsersBadge');
+  if (badge) {
+    badge.textContent = allUsersData.length;
+    badge.style.display = 'inline';
+  }
+}
+
+async function loadTeachersApi() {
+  const SUBJECT_AR = {
+    tafseer: 'التفسير', fiqh: 'الفقه', aqeedah: 'العقيدة',
+    hadith: 'الحديث', hadeeth: 'الحديث', quran: 'مقرأة متين',
+    quran1: 'مقرأة متين (١)', quran2: 'مقرأة متين (٢)'
+  };
+  const SUBJECT_PAGE = {
+    tafseer: '/teacher/tafseer', fiqh: '/teacher/fiqh',
+    aqeedah: '/teacher/aqeedah', hadith: '/teacher/hadeeth',
+    hadeeth: '/teacher/hadeeth', quran: '/teacher/quran1',
+    quran1: '/teacher/quran1', quran2: '/teacher/quran2'
+  };
+  const res = await api.users.list('?per_page=500&role=teacher');
+  const teachers = unwrapList(res).map(mapApiUser);
+  const grid = document.getElementById('teachersList');
+  if (!grid) return;
+  if (!teachers.length) {
+    grid.innerHTML = '<div style="color:var(--text-mid);font-size:13px;text-align:center;padding:20px;grid-column:1/-1">لا توجد معلمات مسجلات</div>';
+    return;
+  }
+  grid.innerHTML = teachers
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ar'))
+    .map(t => {
+      const subjectKey = t.subject || '';
+      const subjectAr = SUBJECT_AR[subjectKey] || t.subject || '—';
+      const page = SUBJECT_PAGE[subjectKey];
+      return `
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:var(--green-dark);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📚</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--text-dark);margin-bottom:2px">${esc(t.name || '—')}</div>
+            <div style="font-size:12px;color:var(--text-mid);margin-bottom:4px">${esc(t.email || '')}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <span style="font-size:11px;background:rgba(45,110,69,0.1);color:var(--green-dark);border-radius:20px;padding:2px 10px;border:1px solid rgba(45,110,69,0.2)">${esc(subjectAr)}</span>
+              <span style="font-size:11px;background:${t.status==='active'?'rgba(39,174,96,0.1)':'rgba(230,126,34,0.1)'};color:${t.status==='active'?'#1e8449':'#a04000'};border-radius:20px;padding:2px 10px;">${t.status==='active'?'نشطة':'موقوفة'}</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            ${page ? `<a href="${page}" style="color:var(--green-dark);font-size:20px;" title="صفحة المعلمة"><i class="ti ti-external-link"></i></a>` : ''}
+            <a href="/messages?uid=${t.id}" style="color:var(--gold);font-size:20px;" title="رسائلها"><i class="ti ti-message-circle"></i></a>
+          </div>
+        </div>`;
+    }).join('');
+}
+
 // تتنادى لما تاب المعلمات يتفتح (مرة واحدة بس)
 let _teachersLoaded = false;
 window.loadTeachersTab = function() {
@@ -352,6 +525,10 @@ window.loadTeachersTab = function() {
 };
 
 function loadTeachers() {
+  if (useApi()) {
+    loadTeachersApi().catch(e => console.error('loadTeachers:', e));
+    return;
+  }
   const SUBJECT_AR = {
     tafseer: 'التفسير', fiqh: 'الفقه', aqeedah: 'العقيدة',
     hadith: 'الحديث', hadeeth: 'الحديث', quran: 'مقرأة متين',
@@ -399,6 +576,9 @@ function loadTeachers() {
 const DEFAULT_SUBJECTS = ['التفسير', 'الفقه', 'العقيدة', 'الحديث', 'مقرأة متين'];
 
 async function loadSubjectOptions() {
+  if (useApi()) {
+    return loadSubjectOptionsApi();
+  }
   try {
     // ملحوظة: courses.html بيحفظ تاريخ الإضافة في addedAt، مش createdAt — orderBy('createdAt')
     // كان بيستبعد أي مادة اتضافت من هناك بالكامل. بنجيب الكل من غير استبعاد ونرتب يدويًا.
@@ -419,34 +599,7 @@ async function loadSubjectOptions() {
       .map(d => d.name)
       .filter(Boolean);
 
-    // ملء fCourse
-    const fCourse = document.getElementById('fCourse');
-    if (fCourse) {
-      fCourse.innerHTML = '<option value="">اختاري المادة</option>' +
-        subjects.map(s => `<option>${s}</option>`).join('');
-    }
-
-    // ملء filterCourse
-    const filterCourse = document.getElementById('filterCourse');
-    if (filterCourse) {
-      filterCourse.innerHTML = '<option value="">كل المواد</option>' +
-        subjects.map(s => `<option>${s}</option>`).join('');
-    }
-
-    // ملء bgSubject
-    const bgSubject = document.getElementById('bgSubject');
-    if (bgSubject) {
-      bgSubject.innerHTML = '<option value="">— اختاري المادة —</option>' +
-        subjects.map(s => `<option>${s}</option>`).join('');
-    }
-
-    // ملء baSubject
-    const baSubject = document.getElementById('baSubject');
-    if (baSubject) {
-      baSubject.innerHTML = '<option value="">— اختاري —</option><option value="__ALL__">📅 كل مواد اليوم</option>' +
-        subjects.map(s => `<option>${s}</option>`).join('');
-    }
-    _baAllSubjects = subjects;
+    fillSubjectSelects(subjects);
 
   } catch(e) {
     console.error('loadSubjectOptions:', e);
@@ -454,6 +607,10 @@ async function loadSubjectOptions() {
 }
 
 function loadMats() {
+  if (useApi()) {
+    loadMatsApi().catch(e => console.error('loadMats:', e));
+    return;
+  }
   onSnapshot(query(collection(db, 'materials'), orderBy('addedAt','desc')), snap => {
     allMats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderMats();
@@ -503,7 +660,12 @@ function updateStats() {
 
 window.delMat = async id => {
   if (!confirm('هل تريدين حذف هذه المادة نهائياً؟')) return;
-  await deleteDoc(doc(db, 'materials', id));
+  if (useApi()) {
+    await api.materials.remove(id);
+    await loadMatsApi();
+  } else {
+    await deleteDoc(doc(db, 'materials', id));
+  }
   showToast('تم الحذف');
 };
 
@@ -540,6 +702,10 @@ const ROLE_LABELS = {
 };
 
 function loadPendingAccounts() {
+  if (useApi()) {
+    loadPendingAccountsApi().catch(e => console.error('loadPendingAccounts:', e));
+    return;
+  }
   // Admin يشوف كل الحسابات المعلقة (معWhenت + not/don'tرفات + طالبات متين)
   onSnapshot(
     query(collection(db, 'users'), orderBy('createdAt', 'desc')),
@@ -612,6 +778,27 @@ let _pendingApproveId   = null;   // uid Userة المنتظرة للموافق�
 window._selectedLinkId  = null;   // id Student (f) المختارة in the Schedule/Table
 
 window.approveUser = async id => {
+  if (useApi()) {
+    const userData = allUsersData.find(u => String(u.id) === String(id)) || {};
+    const role = userData.role || '';
+    const name = userData.name || 'مستخدم';
+    if (role !== 'mateen') {
+      if (!confirm(`قبول حساب "${name}"؟`)) return;
+      await api.users.update(id, { account_status: 'active' });
+      await loadPendingAccountsApi();
+      await loadAllUsersApi();
+      showToast('✓ تم قبول الحساب');
+      return;
+    }
+    _pendingApproveId = id;
+    window._selectedLinkId = null;
+    document.getElementById('linkModalSubtitle').textContent =
+      'اختاري طالبة لربطها بحساب: ' + name;
+    document.getElementById('linkSearch').value = '';
+    renderLinkList(allStudents.filter(s => !s.archived));
+    document.getElementById('linkModal').classList.add('show');
+    return;
+  }
   const snap = await getDoc(doc(db, 'users', id));
   if (!snap.exists()) return;
   const userData = snap.data();
@@ -707,6 +894,19 @@ window.confirmLinkModal = async (studentId) => {
   _pendingApproveId = null;
   window._selectedLinkId = null;
 
+  if (useApi()) {
+    await api.users.update(uid, { account_status: 'active' });
+    if (studentId) {
+      await patchStudent(studentId, { uid });
+      showToast('✓ تم قبول الحساب وربطه بالطالبة');
+    } else {
+      showToast('✓ تم قبول الحساب');
+    }
+    await loadPendingAccountsApi();
+    await loadAllUsersApi();
+    return;
+  }
+
   // فعّل الحساب + التحاق تلقائي بكل Academic subjects
   await updateDoc(doc(db, 'users', uid), {
     status: 'active',
@@ -725,7 +925,13 @@ window.confirmLinkModal = async (studentId) => {
 
 window.rejectUser = async id => {
   if (!confirm('هل تريدين رفض هذا الحساب وحذفه نهائياً؟')) return;
-  await fullDeleteUser(id);
+  if (useApi()) {
+    await api.users.remove(id);
+    await loadPendingAccountsApi();
+    await loadAllUsersApi();
+  } else {
+    await fullDeleteUser(id);
+  }
   showToast('تم رفض الحساب وحذفه');
 };
 
@@ -774,7 +980,7 @@ function makeDatePicker(sid, dateStr) {
 }
 
 if (useApi()) {
-  refreshStudentsApi().catch(e => console.error('students API load:', e));
+  // Students load inside initAdminApi after auth.
 } else {
   (async () => {
     await ensureFirebase();
@@ -1523,6 +1729,10 @@ const STATUS_BG = {
 };
 
 function loadAllUsers() {
+  if (useApi()) {
+    loadAllUsersApi().catch(e => console.error('loadAllUsers:', e));
+    return;
+  }
   onSnapshot(
     collection(db, 'users'),
     snap => {
@@ -1691,12 +1901,22 @@ window.adminUnlinkStudent = async (userId, studentId) => {
 
 window.suspendUser = async id => {
   if (!confirm('هل تريدين إيقاف هذا الحساب مؤقتاً؟')) return;
-  await updateDoc(doc(db, 'users', id), { status: 'suspended' });
+  if (useApi()) {
+    await api.users.update(id, { account_status: 'suspended' });
+    await loadAllUsersApi();
+  } else {
+    await updateDoc(doc(db, 'users', id), { status: 'suspended' });
+  }
   showToast('تم إيقاف الحساب');
 };
 
 window.reactivateUser = async id => {
-  await updateDoc(doc(db, 'users', id), { status: 'active' });
+  if (useApi()) {
+    await api.users.update(id, { account_status: 'active' });
+    await loadAllUsersApi();
+  } else {
+    await updateDoc(doc(db, 'users', id), { status: 'active' });
+  }
   showToast('✓ تم إعادة تفعيل الحساب');
 };
 

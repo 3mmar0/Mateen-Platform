@@ -105,9 +105,10 @@ class FirebaseMigrationService
                 $preserve = ($adminEmail !== '' && strtolower($d['email']) === $adminEmail && $adminPassword !== '')
                     ? $adminPassword
                     : null;
+                $subjectId = $this->resolveSubjectId($d, $subjectBySlug);
                 $u = User::updateOrCreate(
                     ['email' => $d['email']],
-                    $this->mapper->user($d, $preserve)
+                    $this->mapper->user($d, $preserve, $subjectId)
                 );
                 $fid = $d['uid'] ?? $d['id'] ?? null;
                 if ($fid) {

@@ -92,6 +92,11 @@ export const api = {
     update: (id, body) => request(`/students/${id}`, { method: 'PATCH', body }),
     export: (body) => request('/students/export', { method: 'POST', body }),
   },
+  users: {
+    list: (q = '') => request(`/users${q}`),
+    update: (id, body) => request(`/users/${id}`, { method: 'PATCH', body }),
+    remove: (id) => request(`/users/${id}`, { method: 'DELETE' }),
+  },
   schedules: {
     list: () => request('/schedules'),
     create: (body) => request('/schedules', { method: 'POST', body }),
