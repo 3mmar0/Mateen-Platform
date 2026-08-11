@@ -25,7 +25,7 @@ class PublicPageController extends Controller
     public function courses(): View
     {
         return view('pages.courses', [
-            'subjects' => Subject::query()->orderBy('sort_order')->get(),
+            'subjects' => Subject::query()->catalog()->orderBy('sort_order')->get(),
         ]);
     }
 
@@ -56,23 +56,8 @@ class PublicPageController extends Controller
     /** @return array<string, mixed> */
     private function catalog(): array
     {
-        $icons = [
-            'tafsir' => '📖',
-            'tafseer' => '📖',
-            'fiqh' => '⚖️',
-            'aqeedah' => '🕌',
-            'hadeeth' => '📜',
-            'maqraah' => '🌿',
-            'quran1' => '🌿',
-            'quran2' => '🌿',
-        ];
-
         return [
-            'subjects' => Subject::query()->orderBy('sort_order')->get()->map(function (Subject $s) use ($icons) {
-                $s->setAttribute('icon', $icons[$s->slug] ?? '📚');
-
-                return $s;
-            }),
+            'subjects' => Subject::query()->catalog()->orderBy('sort_order')->get(),
             'newsItems' => NewsItem::query()
                 ->where('status', NewsStatus::Published)
                 ->latest('published_at')

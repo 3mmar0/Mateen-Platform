@@ -8,10 +8,24 @@ class DocumentMapper
 {
     public function subject(array $d): array
     {
+        $iconData = $d['icon_data'] ?? $d['iconData'] ?? null;
+        $iconUrl = $d['icon_url'] ?? $d['iconUrl'] ?? null;
+        // Firebase often stores the Cloudinary URL in iconData (not base64).
+        if (! $iconUrl && is_string($iconData) && str_starts_with($iconData, 'http')) {
+            $iconUrl = $iconData;
+        }
+
         return [
             'slug' => $d['slug'] ?? $d['id'],
             'title' => $d['title'] ?? $d['name'] ?? $d['id'],
-            'subtitle' => $d['subtitle'] ?? null,
+            'icon' => $d['icon'] ?? null,
+            'icon_url' => $iconUrl,
+            'icon_data' => $iconData,
+            'color' => $d['color'] ?? null,
+            'meetings' => $d['meetings'] ?? null,
+            'weeks' => $d['weeks'] ?? null,
+            'level' => $d['level'] ?? $d['subtitle'] ?? null,
+            'subtitle' => $d['subtitle'] ?? $d['level'] ?? null,
             'description' => $d['description'] ?? $d['desc'] ?? null,
             'axes' => $d['axes'] ?? $d['topics'] ?? null,
             'sort_order' => $d['sort_order'] ?? $d['addedAt'] ?? 0,

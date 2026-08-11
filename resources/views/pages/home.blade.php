@@ -163,7 +163,14 @@
         @forelse ($subjects as $subject)
         <div class="col-6 col-sm-4 col-md-3 col-xl-2dot4">
           <div class="path-card" onclick="window.location.href='{{ url('/courses') }}'">
-            <div class="path-icon">{{ $subject->icon ?? '📚' }}</div>
+            @php($img = $subject->imageUrl())
+            <div class="path-icon">
+              @if ($img)
+                <img src="{{ $img }}" alt="{{ $subject->title }}" style="width:100%;height:100%;object-fit:contain;display:block;" loading="lazy"/>
+              @else
+                {{ $subject->icon ?? '📚' }}
+              @endif
+            </div>
             <div class="path-name">{{ $subject->title }}</div>
             <button class="path-btn">عرض التفاصيل</button>
           </div>

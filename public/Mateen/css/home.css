@@ -842,6 +842,13 @@ body {
   margin: 0 auto 10px;
   display: flex; align-items: center; justify-content: center;
   font-size: 22px;
+  overflow: hidden;
+}
+.path-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .path-name {
   font-size: 13px;

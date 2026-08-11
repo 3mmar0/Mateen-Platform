@@ -52,18 +52,22 @@ function mapApiSubject(s) {
     x.name === s.title || x.id === s.slug ||
     ({ tafsir: 'tafseer', hadeeth: 'hadith', maqraah: 'quran' }[s.slug] === x.id)
   );
+  const iconData = s.icon_data || s.iconData || '';
+  const iconUrl = s.icon_url || s.iconUrl || '';
   return {
     id: String(s.id),
     slug: s.slug,
     name: s.title,
     desc: s.description || seed?.desc || '',
-    subtitle: s.subtitle || seed?.level || '',
+    subtitle: s.subtitle || s.level || seed?.level || '',
     topics: (Array.isArray(s.axes) && s.axes.length ? s.axes : null) || seed?.topics || [],
-    level: s.subtitle || seed?.level || '',
-    icon: seed?.icon || '📚',
-    color: seed?.color || 'linear-gradient(135deg,#5c3d2e,#8a5e3c)',
-    meetings: seed?.meetings || '',
-    weeks: seed?.weeks || '',
+    level: s.level || s.subtitle || seed?.level || '',
+    icon: s.icon || seed?.icon || '📚',
+    iconData,
+    iconUrl,
+    color: s.color || seed?.color || 'linear-gradient(135deg,#5c3d2e,#8a5e3c)',
+    meetings: s.meetings || seed?.meetings || '',
+    weeks: s.weeks || seed?.weeks || '',
     inExams: true,
     inAttendance: true,
     inEnrollment: true,
@@ -1090,6 +1094,12 @@ window.submitNewSubject = async () => {
         slug: name.replace(/\s+/g, '-').toLowerCase(),
         description: desc,
         subtitle: level,
+        level,
+        meetings,
+        weeks,
+        icon_data: iconData,
+        icon_url: iconUrl,
+        color: colorVal,
         axes: topics.split('\n').filter(Boolean),
       });
       await refreshApiCoursesData();
@@ -1180,6 +1190,12 @@ window.submitEditSubject = async () => {
         title: name,
         description: desc,
         subtitle: level,
+        level,
+        meetings,
+        weeks,
+        icon_data: iconData,
+        icon_url: iconUrl,
+        color: colorVal,
         axes: topics.split('\n').filter(Boolean),
       });
       await refreshApiCoursesData();
