@@ -13,11 +13,9 @@ Route::prefix('v1')->group(function () {
         Route::post('password/reset', [AuthController::class, 'reset']);
     });
 
-    // Public catalog reads (courses / library / news / schedules pages work without login)
+    // Public catalog: subject cards, news, and schedules only — no files/URLs.
     Route::get('subjects', [SubjectController::class, 'index']);
     Route::get('subjects/{subject}', [SubjectController::class, 'show']);
-    Route::get('subjects/{subject}/materials', [MaterialController::class, 'index']);
-    Route::get('library', [LibraryController::class, 'index']);
     Route::get('news', [NewsController::class, 'index']);
     Route::get('schedules', [ScheduleController::class, 'index']);
     Route::get('contact/recipients', [ContactController::class, 'recipients']);
@@ -31,6 +29,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('users/{user}', [UserController::class, 'update']);
         Route::apiResource('subjects', SubjectController::class)->only(['store', 'update']);
         Route::post('subjects/{subject}/enrollments', [EnrollmentController::class, 'store']);
+        Route::get('subjects/{subject}/materials', [MaterialController::class, 'index']);
         Route::post('subjects/{subject}/materials', [MaterialController::class, 'store']);
         Route::patch('materials/{material}', [MaterialController::class, 'update']); Route::delete('materials/{material}', [MaterialController::class, 'destroy']);
         Route::post('students/bulk', [StudentController::class, 'bulk']); Route::post('students/export', [StudentController::class, 'export']);
@@ -39,6 +38,7 @@ Route::prefix('v1')->group(function () {
         Route::get('assignments', [AssignmentController::class, 'index']); Route::post('assignments', [AssignmentController::class, 'store']);
         Route::get('assignments/{assignment}/submissions', [AssignmentController::class, 'submissions']); Route::post('assignments/{assignment}/submissions', [AssignmentController::class, 'submit']);
         Route::patch('submissions/{submission}', [AssignmentController::class, 'updateSubmission']);
+        Route::get('library', [LibraryController::class, 'index']);
         Route::apiResource('library', LibraryController::class)->parameters(['library'=>'library'])->only(['store','update','destroy']);
         Route::apiResource('news', NewsController::class)->only(['store','update','destroy']);
         Route::get('conversations', [ConversationController::class, 'index']); Route::post('conversations', [ConversationController::class, 'store']);

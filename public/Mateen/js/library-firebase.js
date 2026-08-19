@@ -1,5 +1,5 @@
 import { FIREBASE_CONFIG, USE_LARAVEL_API } from "./config.js";
-import { api, getStoredUser, isLaravelApi } from "./api.js";
+import { api, getStoredUser, getToken, isLaravelApi } from "./api.js";
 import { renderAssignmentsSection } from "./assignments-ui.js";
 import { deleteAssignmentsForMaterial } from "./assignments.js";
 
@@ -259,13 +259,17 @@ function renderCoursesGrid() {
 // ══ مستمعات Firestore / Laravel API ══
 
 if (useApi()) {
-  refreshLibraryFromApi();
-  setInterval(refreshLibraryFromApi, 30000);
-  const stored = getStoredUser();
-  currentRole = stored?.role || null;
-  window.renderLibMats();
-  ['enrichment', 'podcast'].forEach(renderSection);
-  renderCoursesGrid();
+  if (!getToken()) {
+    location.replace('/login?next=' + encodeURIComponent(location.pathname));
+  } else {
+    refreshLibraryFromApi();
+    setInterval(refreshLibraryFromApi, 30000);
+    const stored = getStoredUser();
+    currentRole = stored?.role || null;
+    window.renderLibMats();
+    ['enrichment', 'podcast'].forEach(renderSection);
+    renderCoursesGrid();
+  }
 } else {
   (async () => {
     await ensureFirebase();

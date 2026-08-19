@@ -399,7 +399,17 @@
       (item.media_url ? '<a href="' + esc(item.media_url) + '" target="_blank" rel="noopener" style="font-size:13px;color:var(--gold-dark,#b8860b)">فتح المصدر</a>' : '') +
       '</div>';
   }
-  fetch('/api/v1/library', { headers: { Accept: 'application/json' } })
+  var token = localStorage.getItem('mateen_api_token');
+  if (!token) {
+    ['libMatsGrid', 'enrichmentGrid', 'podcastGrid'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.innerHTML = '<div class="lib-empty" style="text-align:center;padding:24px">سجّلي الدخول لمشاهدة المكتبة<br><a href="/login?next=/library">تسجيل الدخول</a></div>';
+      }
+    });
+    return;
+  }
+  fetch('/api/v1/library', { headers: { Accept: 'application/json', Authorization: 'Bearer ' + token } })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (j) {
       var raw = (j && j.data) || [];
@@ -429,7 +439,7 @@
 </script>
 <script src="/Mateen/js/nav.js?v=20260731c"></script>
 <script src="/Mateen/js/library.js?v=20260731c"></script>
-<script type="module" src="/Mateen/js/library-firebase.js?v=20260731c"></script>
+<script type="module" src="/Mateen/js/library-firebase.js?v=20260819a"></script>
 <script type="module" src="/Mateen/js/notifications.js?v=20260731c"></script>
 <script src="/Mateen/js/sw-register.js?v=20260731c"></script>
 </body>

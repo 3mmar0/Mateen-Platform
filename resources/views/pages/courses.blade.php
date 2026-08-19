@@ -782,7 +782,7 @@
     }
   </script>
   <script src="/Mateen/js/courses.js?v=20260731c"></script>
-  <script src="/Mateen/js/courses-firebase.js?v=20260731c" type="module"></script>
+  <script src="/Mateen/js/courses-firebase.js?v=20260819a" type="module"></script>
   <script type="module" src="/Mateen/js/notifications.js?v=20260731c"></script>
   <script src="/Mateen/js/sw-register.js?v=20260731c"></script>
 <script src="/Mateen/js/tour.js?v=20260723"></script>

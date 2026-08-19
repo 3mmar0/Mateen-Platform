@@ -1,12 +1,9 @@
 <?php
 namespace App\Http\Controllers\Api;
-use App\Enums\{MaterialType,Role}; use App\Models\{LearningMaterial,Subject}; use Illuminate\Http\Request; use Illuminate\Validation\Rule;
+use App\Enums\MaterialType; use App\Models\{LearningMaterial,Subject}; use Illuminate\Http\Request; use Illuminate\Validation\Rule;
 class MaterialController extends Controller {
  public function index(Request $r,Subject $subject){
-  // Public catalog for courses page; Mateen friends see titles only via empty list
-  if ($r->user()?->isRole(Role::Mateen)) {
-   return response()->json(['data'=>[]]);
-  }
+  $this->authorize('viewAny', [LearningMaterial::class, $subject]);
   return response()->json(['data'=>$subject->materials()->orderBy('sort_order')->get()]);
  }
  public function store(Request $r,Subject $subject){$this->authorize('create',[LearningMaterial::class,$subject]);$m=$subject->materials()->create([...$this->data($r),'created_by'=>$r->user()->id]);return response()->json(['data'=>$m],201);}

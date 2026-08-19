@@ -98,12 +98,20 @@ async function findSubjectIdByCourseName(courseName) {
 }
 
 async function loadAllMaterialsApi() {
+  if (!getToken()) {
+    allMats = [];
+    return;
+  }
   const subjects = unwrapList(await api.subjects.list()).map(mapApiSubject);
   apiSubjectsCache = subjects;
   const mats = [];
   for (const s of subjects) {
-    const items = unwrapList(await api.subjects.materials(s.id));
-    items.forEach(m => mats.push(mapApiMaterial(m, s.name)));
+    try {
+      const items = unwrapList(await api.subjects.materials(s.id));
+      items.forEach(m => mats.push(mapApiMaterial(m, s.name)));
+    } catch {
+      /* guest/unenrolled: skip */
+    }
   }
   allMats = mats.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
 }
@@ -278,7 +286,14 @@ function renderMats(mats) {
   if (!container) return;
 
   if (mats.length === 0) {
-    if (isAdmin()) {
+    if (!isLoggedIn()) {
+      section.style.display = 'block';
+      container.innerHTML = `<div style="text-align:center;color:var(--text-mid);padding:40px;grid-column:1/-1;">
+        <i class="ti ti-lock" style="font-size:28px;"></i>
+        <div style="margin-top:8px">سجّلي الدخول لمشاهدة المواد العلمية</div>
+        <a href="/login" style="display:inline-block;margin-top:12px;padding:8px 16px;background:var(--green-dark);color:#fff;border-radius:8px;text-decoration:none;">تسجيل الدخول</a>
+      </div>`;
+    } else if (isAdmin()) {
       section.style.display = 'block';
       container.innerHTML = `<div style="text-align:center;color:var(--text-mid);padding:40px;grid-column:1/-1;">
         <i class="ti ti-files-off" style="font-size:28px;"></i>
@@ -323,6 +338,13 @@ function renderModalMats() {
     // ── Subjects المضافة من Firebase ──
     const el = document.getElementById('modal-mats-' + modalId);
     if (!el) return;
+    if (!isLoggedIn()) {
+      el.innerHTML = `<div style="text-align:center;color:var(--text-mid);padding:18px 8px;">
+        <div style="margin-bottom:8px">سجّلي الدخول لمشاهدة محتوى المادة</div>
+        <a href="/login" style="display:inline-block;padding:8px 16px;background:var(--green-dark);color:#fff;border-radius:8px;text-decoration:none;">تسجيل الدخول</a>
+      </div>`;
+      return;
+    }
     const subjMats = allMats.filter(m => m.course === subj);
     const canAdd = isAdmin() || (currentUserRole === 'teacher' && currentUserSubjects.includes(subj));
     const addBtnHTML = canAdd ? `
@@ -430,12 +452,20 @@ function matsGroupedHTML(mats) {
   return html;
 }
 
+function isLoggedIn() {
+  return useApi() ? !!getToken() : !!(auth && auth.currentUser);
+}
+
 window.filterMats = () => {
   const filterEl = document.getElementById('filterCourse');
   const val = filterEl ? filterEl.value : '';
+  if (!isLoggedIn()) {
+    renderMats([]);
+    return;
+  }
   let mats = allMats;
 
-  // Guests and staff see the full catalog; students only enrolled subjects
+  // Students only see enrolled subjects
   if (currentUserRole === 'student' && currentUserSubjects.length) {
     mats = mats.filter(m => currentUserSubjects.includes(m.course));
   }
