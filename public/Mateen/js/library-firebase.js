@@ -259,9 +259,7 @@ function renderCoursesGrid() {
 // ══ مستمعات Firestore / Laravel API ══
 
 if (useApi()) {
-  if (!getToken()) {
-    location.replace('/login?next=' + encodeURIComponent(location.pathname));
-  } else {
+  if (getToken()) {
     refreshLibraryFromApi();
     setInterval(refreshLibraryFromApi, 30000);
     const stored = getStoredUser();

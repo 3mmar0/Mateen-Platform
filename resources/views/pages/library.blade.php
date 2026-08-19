@@ -437,9 +437,10 @@
     .catch(function (e) { console.warn('[library] inline load failed', e); });
 })();
 </script>
+@include('partials.login-gate-modal')
 <script src="/Mateen/js/nav.js?v=20260731c"></script>
 <script src="/Mateen/js/library.js?v=20260731c"></script>
-<script type="module" src="/Mateen/js/library-firebase.js?v=20260819a"></script>
+<script type="module" src="/Mateen/js/library-firebase.js?v=20260819b"></script>
 <script type="module" src="/Mateen/js/notifications.js?v=20260731c"></script>
 <script src="/Mateen/js/sw-register.js?v=20260731c"></script>
 </body>
