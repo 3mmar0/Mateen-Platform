@@ -2646,7 +2646,8 @@ window.userFieldUpdate = async (uid, field, value) => {
       await updateDoc(doc(db, 'users', uid), { [field]: value });
     }
     if (field === 'role' || field === 'status') {
-      filterUsersTable();
+      updateUsersStats();
+      window.renderAllUsers();
     }
   } catch(e) {
     console.error('userFieldUpdate error:', e);

@@ -981,7 +981,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-<script src="/Mateen/js/admin-1.js?v=20260819f" type="module"></script>
+<script src="/Mateen/js/admin-1.js?v=20260819g" type="module"></script>
 <script type="module" src="/Mateen/js/notifications.js?v=20260723"></script>
 <script src="/Mateen/js/sw-register.js?v=20260723"></script>
 
