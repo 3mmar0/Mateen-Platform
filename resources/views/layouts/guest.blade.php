@@ -33,7 +33,7 @@
 @yield('content')
 @include('partials.footer')
 @include('partials.register-modal')
-<script src="{{ mateen_asset('js/login-prompt.js') }}?v=20260819d"></script>
+<script src="{{ mateen_asset('js/login-prompt.js') }}?v=20260819e"></script>
 @stack('scripts')
 </body>
 </html>

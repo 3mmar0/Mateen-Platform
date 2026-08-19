@@ -25,9 +25,11 @@
     var next = nextPath || '/courses';
     var modal = document.createElement('div');
     modal.id = 'loginPromptModal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:2147483647;';
+    window.scrollTo(0, 0);
+    document.body.style.overflow = 'hidden';
     modal.innerHTML =
-      '<div style="background:#fff;border-radius:20px;padding:36px 32px;max-width:360px;width:90%;text-align:center;font-family:inherit;box-shadow:0 18px 50px rgba(0,0,0,.2);">' +
+      '<div style="position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#fff;border-radius:20px;padding:36px 32px;max-width:360px;width:90%;text-align:center;font-family:inherit;box-shadow:0 18px 50px rgba(0,0,0,.2);">' +
         '<div style="font-size:42px;margin-bottom:12px;">🔒</div>' +
         '<div style="font-family:Amiri,serif;font-size:22px;color:var(--green-dark,#3d2b1f);font-weight:700;margin-bottom:10px;">يلزم تسجيل الدخول</div>' +
         '<p style="color:var(--text-mid,#6b6b6b);font-size:14px;line-height:1.7;margin-bottom:24px;">هذا القسم متاح للطالبات المسجلات فقط. سجّلي دخولك للاستمرار.</p>' +
@@ -36,16 +38,15 @@
           '<button type="button" id="loginPromptCancel" style="background:var(--beige,#f3ead8);border:1px solid var(--border,#e4d9c5);color:var(--text-mid,#5c4a3a);padding:10px 20px;border-radius:10px;font-family:inherit;font-size:14px;cursor:pointer;">إلغاء</button>' +
         '</div>' +
       '</div>';
-    document.body.appendChild(modal);
-    document.getElementById('loginPromptCancel').onclick = function () {
+    document.body.insertBefore(modal, document.body.firstChild);
+    function closePrompt() {
       modal.remove();
+      document.body.style.overflow = '';
       if (isProtectedPath(location.pathname)) location.replace('/');
-    };
+    }
+    document.getElementById('loginPromptCancel').onclick = closePrompt;
     modal.addEventListener('click', function (e) {
-      if (e.target === modal) {
-        modal.remove();
-        if (isProtectedPath(location.pathname)) location.replace('/');
-      }
+      if (e.target === modal) closePrompt();
     });
   };
 

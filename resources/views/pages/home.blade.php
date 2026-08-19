@@ -3,7 +3,7 @@
 @section('title', 'برنامج متين العلمي — الصفحة الرئيسية')
 
 @push('styles')
-<link href="{{ mateen_asset('css/home.css') }}?v=20260805reveal" rel="stylesheet"/>
+<link href="{{ mateen_asset('css/home.css') }}?v=20260819e" rel="stylesheet"/>
 @endpush
 
 @section('content')
