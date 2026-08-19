@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1.0" name="viewport"/>
 <title>المكتبة — متين العلمي</title>
-@include('partials.require-auth')
+<script src="/Mateen/js/login-prompt.js?v=20260819d"></script>
 <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
 <script>
 (function(){

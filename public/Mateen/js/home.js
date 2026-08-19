@@ -262,6 +262,10 @@ window.obInstallApp = async (src) => {
 };
 
 function showLoginPrompt() {
+  if (typeof window.showLoginRequiredModal === 'function') {
+    window.showLoginRequiredModal('/courses');
+    return;
+  }
   if (document.getElementById('loginPromptModal')) return;
   const modal = document.createElement('div');
   modal.id = 'loginPromptModal';

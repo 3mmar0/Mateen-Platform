@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>المواد العلمية — برنامج متين العلمي</title>
-@include('partials.require-auth')
+<script src="/Mateen/js/login-prompt.js?v=20260819d"></script>
 <script>
 (function(){
   try{

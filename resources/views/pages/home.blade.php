@@ -367,7 +367,7 @@
 document.documentElement.classList.add('ready');
 </script>
 <script src="{{ mateen_asset('libs/bootstrap/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ mateen_asset('js/home.js') }}?v=20260805" type="module"></script>
+<script src="{{ mateen_asset('js/home.js') }}?v=20260819d" type="module"></script>
 <script src="{{ mateen_asset('js/home-msg.js') }}?v=20260805" type="module"></script>
 <script src="{{ mateen_asset('js/sw-register.js') }}?v=20260805"></script>
 <script src="{{ mateen_asset('js/tour.js') }}?v=20260805"></script>
