@@ -1901,23 +1901,33 @@ window.adminUnlinkStudent = async (userId, studentId) => {
 
 window.suspendUser = async id => {
   if (!confirm('هل تريدين إيقاف هذا الحساب مؤقتاً؟')) return;
-  if (useApi()) {
-    await api.users.update(id, { account_status: 'suspended' });
-    await loadAllUsersApi();
-  } else {
-    await updateDoc(doc(db, 'users', id), { status: 'suspended' });
+  try {
+    if (useApi()) {
+      await api.users.update(id, { account_status: 'suspended' });
+      await loadAllUsersApi();
+    } else {
+      await updateDoc(doc(db, 'users', id), { status: 'suspended' });
+    }
+    showToast('تم إيقاف الحساب');
+  } catch (e) {
+    console.error('suspendUser:', e);
+    showToast('حدث خطأ أثناء الحفظ', true);
   }
-  showToast('تم إيقاف الحساب');
 };
 
 window.reactivateUser = async id => {
-  if (useApi()) {
-    await api.users.update(id, { account_status: 'active' });
-    await loadAllUsersApi();
-  } else {
-    await updateDoc(doc(db, 'users', id), { status: 'active' });
+  try {
+    if (useApi()) {
+      await api.users.update(id, { account_status: 'active' });
+      await loadAllUsersApi();
+    } else {
+      await updateDoc(doc(db, 'users', id), { status: 'active' });
+    }
+    showToast('✓ تم إعادة تفعيل الحساب');
+  } catch (e) {
+    console.error('reactivateUser:', e);
+    showToast('حدث خطأ أثناء الحفظ', true);
   }
-  showToast('✓ تم إعادة تفعيل الحساب');
 };
 
 window.deleteUserAccount = async (id, name) => {
@@ -2624,7 +2634,17 @@ window.userFieldUpdate = async (uid, field, value) => {
     return;
   }
   try {
-    await updateDoc(doc(db, 'users', uid), { [field]: value });
+    if (useApi()) {
+      const payload = field === 'status' ? { account_status: value } : { [field]: value };
+      await api.users.update(uid, payload);
+      const row = allUsersData.find(u => String(u.id) === String(uid));
+      if (row) {
+        row[field] = value;
+        if (field === 'status') row.account_status = value;
+      }
+    } else {
+      await updateDoc(doc(db, 'users', uid), { [field]: value });
+    }
     if (field === 'role' || field === 'status') {
       filterUsersTable();
     }

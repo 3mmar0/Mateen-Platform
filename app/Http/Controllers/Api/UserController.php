@@ -37,15 +37,22 @@ class UserController extends Controller
     {
         abort_unless($r->user()->isRole(Role::Admin, Role::Supervisor), 403);
 
+        if ($r->filled('status') && ! $r->filled('account_status')) {
+            $r->merge(['account_status' => $r->input('status')]);
+        }
+
         $v = $r->validate([
             'name' => 'sometimes|string',
+            'email' => ['sometimes', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'phone' => 'nullable|string',
             'year' => 'nullable|string',
             'role' => ['sometimes', Rule::enum(Role::class)],
             'subject_id' => 'nullable|exists:subjects,id',
             'account_status' => ['sometimes', Rule::in(['active', 'pending', 'suspended'])],
+            'status' => ['sometimes', Rule::in(['active', 'pending', 'suspended'])],
             'is_active' => 'sometimes|boolean',
         ]);
+        unset($v['status']);
 
         if (isset($v['account_status'])) {
             $v['is_active'] = $v['account_status'] === 'active';
