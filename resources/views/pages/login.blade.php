@@ -262,7 +262,7 @@
     </a>
 </div>
 
-<script src="/Mateen/js/login-1.js?v=20260731" type="module"></script>
+<script src="/Mateen/js/login-1.js?v=20260819c" type="module"></script>
 
 <!-- Tour button -->
 <button onclick="startPageTour()" title="جولة تعريفية بخطوات التسجيل"

@@ -33,6 +33,18 @@ function checkAccountStatus(status) {
   return { blocked: false };
 }
 
+function safeNextPath() {
+  try {
+    const next = new URLSearchParams(window.location.search).get('next') || '';
+    if (next.startsWith('/') && !next.startsWith('//') && !next.includes('\\')) {
+      return next;
+    }
+  } catch {
+    /* ignore */
+  }
+  return '';
+}
+
 function computeBaseRedirect(role, subject) {
   if (role === 'admin') return '/admin';
   if (role === 'supervisor') return '/supervisor';
@@ -85,11 +97,13 @@ if (!useApi()) {
 } else if (getToken() && getStoredUser() && window.location.hash !== '#noredirect') {
   const data = getStoredUser();
   const role = data.role || 'student';
-  let redirect = computeBaseRedirect(role, data.subject || '');
+  const next = safeNextPath();
+  let redirect = next || computeBaseRedirect(role, data.subject || '');
   localStorage.setItem('userRole', role);
   localStorage.setItem('ob_redirect', redirect);
-  // Show onboarding only once per browser; otherwise go straight to the app
-  if (localStorage.getItem('mateen_onboarding_done') === '1') {
+  if (next) {
+    window.location.replace(next);
+  } else if (localStorage.getItem('mateen_onboarding_done') === '1') {
     window.location.replace(redirect);
   } else {
     window.location.replace('/onboarding');
@@ -202,8 +216,8 @@ window.doLogin = async () => {
       const data = res.user || {};
       const role = data.role || 'student';
       setSession(res.token, data);
-      let redirect = computeBaseRedirect(role, '');
-      if (role === 'student') redirect = '/student';
+      let redirect = safeNextPath() || computeBaseRedirect(role, '');
+      if (!safeNextPath() && role === 'student') redirect = '/student';
       showSuccess('أهلاً بكِ! 🎉', 'تم الدخول بنجاح، جارٍ التحويل...');
       setTimeout(() => window.location.href = redirect, 1500);
       return;

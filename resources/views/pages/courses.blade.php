@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>المواد العلمية — برنامج متين العلمي</title>
+@include('partials.require-auth')
 <script>
 (function(){
   try{
@@ -781,7 +782,6 @@
       prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<i class=ti ti-photo-off style=font-size:24px;color:red; loading="lazy"></i>'">`;
     }
   </script>
-  @include('partials.login-gate-modal')
   <script src="/Mateen/js/courses.js?v=20260731c"></script>
   <script src="/Mateen/js/courses-firebase.js?v=20260819b" type="module"></script>
   <script type="module" src="/Mateen/js/notifications.js?v=20260731c"></script>

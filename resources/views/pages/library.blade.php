@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1.0" name="viewport"/>
 <title>المكتبة — متين العلمي</title>
+@include('partials.require-auth')
 <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
 <script>
 (function(){
@@ -437,7 +438,6 @@
     .catch(function (e) { console.warn('[library] inline load failed', e); });
 })();
 </script>
-@include('partials.login-gate-modal')
 <script src="/Mateen/js/nav.js?v=20260731c"></script>
 <script src="/Mateen/js/library.js?v=20260731c"></script>
 <script type="module" src="/Mateen/js/library-firebase.js?v=20260819b"></script>

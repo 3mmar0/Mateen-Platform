@@ -96,10 +96,10 @@ class BladePagesTest extends TestCase
         $this->get('/')->assertOk()->assertSee('برنامج متين العلمي', false)->assertSee('data-blade-home', false);
     }
 
-    public function test_courses_and_library_include_login_gate_modal(): void
+    public function test_courses_and_library_redirect_guests_to_login(): void
     {
-        $this->get('/courses')->assertOk()->assertSee('loginGateModal', false)->assertSee('سجّلي الدخول أولاً', false);
-        $this->get('/library')->assertOk()->assertSee('loginGateModal', false)->assertSee('سجّلي الدخول أولاً', false);
+        $this->get('/courses')->assertOk()->assertSee('mateen_api_token', false)->assertSee('/login?next=', false);
+        $this->get('/library')->assertOk()->assertSee('mateen_api_token', false)->assertSee('/login?next=', false);
     }
 
     public function test_contact_and_registration_endpoints(): void
